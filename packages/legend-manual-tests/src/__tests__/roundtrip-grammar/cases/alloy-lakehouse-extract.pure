@@ -1,0 +1,197 @@
+
+###Pure
+import meta::protocols::generation::java::*;
+
+import meta::external::extract::specification::protocol::*;
+import meta::external::extract::specification::protocol::organization::*;
+import meta::external::extract::specification::protocol::source::*;
+import meta::external::extract::specification::protocol::scheduler::*;
+import meta::external::extract::specification::protocol::auth::*;
+import meta::external::extract::specification::protocol::ingest::*;
+
+Class meta::external::extract::specification::protocol::ExtractDefinition extends  meta::protocols::pure::vX_X_X::metamodel::m3::PackageableElement
+[
+  Compatibility(
+    ~function : ($this.sourceType == SourceType.KAFKA || $this.sourceType == SourceType.RELATIONAL )
+    ~message : 'Only sourceType=KAFKA or RELATIONAL are supported'
+  ),
+
+  PublicSchemaNotAllowed(
+    ~function : $this.datasetGroup != 'PUBLIC'
+    ~message : 'PUBLIC group name is not allowed'
+  )
+]
+{
+    sourceType: SourceType[1];
+    datasetGroup: String[1] = 'DEFAULT';
+    owner: Owner[1];
+    source : Source[1];
+    schedule : Schedule[1];
+    ingest: Ingest[1..*];
+}
+
+Enum meta::external::extract::specification::protocol::SourceType
+{
+    KAFKA,
+    RELATIONAL
+}
+
+// Start Source Config -----
+
+Class meta::external::extract::specification::protocol::source::Source
+{
+}
+
+// Start Kafka Source Config -----
+
+Class {JSON.name = 'KAFKA'} meta::external::extract::specification::protocol::source::KafkaSource extends Source
+{
+  servers : String[1..*];
+  topic : String[1];
+  partitions : Integer[1..*];
+  messageFormat : meta::external::extract::specification::protocol::source::KafkaMessageFormat[1];
+  schemaRegistryUrl : String[0..1];
+  keyDeserializer : String[0..1];
+  valueDeserializer : String[0..1];
+}
+
+Class meta::external::extract::specification::protocol::source::KafkaMessageFormat
+{
+  format : KafkaDataFormat[1];
+  encoding : KafkaMessageEncoding[0..1];
+}
+
+Enum meta::external::extract::specification::protocol::source::KafkaDataFormat
+{
+  {JSON.name='Avro'}
+  AVRO,
+  {JSON.name='JSON'}
+  JSON
+}
+
+Enum meta::external::extract::specification::protocol::source::KafkaMessageEncoding
+{
+  BINARY,
+  JSON
+}
+
+// End Kafka Source Config -----
+
+// Start Relational Source Config -----
+
+Class {JSON.name = 'RELATIONAL'} meta::external::extract::specification::protocol::source::RelationalSource extends Source
+{
+  url : String[1];
+  driver : String[1];
+  auth : Auth[1];
+}
+
+Enum meta::external::extract::specification::protocol::auth::AuthType
+{
+  CREDENTIAL
+}
+
+Class meta::external::extract::specification::protocol::auth::Auth
+{
+}
+
+Class {JSON.name = 'CREDENTIAL'} meta::external::extract::specification::protocol::auth::CredentialAuth extends Auth
+{
+  credRef : String[1];
+}
+
+// End Relational Source Config -----
+
+// End Source Config -----
+
+// Start Scheduler Config ----------------
+
+Class meta::external::extract::specification::protocol::scheduler::Schedule
+{
+}
+
+Class {JSON.name = 'CRON'} meta::external::extract::specification::protocol::scheduler::CronSchedule extends Schedule
+{
+  expr : String[1];
+}
+
+// End Scheduler Config ----------------
+
+// Organizational Scope ----- START
+
+Class meta::external::extract::specification::protocol::organization::Owner
+{
+}
+
+Class meta::external::extract::specification::protocol::organization::AppDir extends meta::external::extract::specification::protocol::organization::Owner
+[
+  OneAppDir(
+    ~function : $this.prodParallel->isNotEmpty() || $this.production->isNotEmpty()
+    ~message : 'When defining an owner of type AppDir, you have to specify, at a minimum, one of a production or a prodParallel AppDirNode.'
+  )
+]
+{
+  prodParallel : meta::external::extract::specification::protocol::organization::AppDirNode[0..1];
+  production : meta::external::extract::specification::protocol::organization::AppDirNode[0..1];
+}
+
+Class meta::external::extract::specification::protocol::organization::AppDirNode
+[
+    DeploymentIdOnly(
+    ~function : $this.level == AppDirLevel.DEPLOYMENT
+    ~message : 'Only AppDir deployment id is allowed to be specified'
+  )
+]
+{
+  appDirId: Integer[1];
+  level: AppDirLevel[1];
+}
+
+Enum meta::external::extract::specification::protocol::organization::AppDirLevel
+{
+  BUSINESS_UNIT,
+  SUB_BUSINESS_UNIT,
+  FAMILY,
+  APPLICATION,
+  DEPLOYMENT
+}
+
+// Organizational Scope ----- END
+
+//Ingest Config ----- START
+
+Class meta::external::extract::specification::protocol::ingest::Ingest
+{
+    ingestPoint : AccessPoint[1];
+}
+
+Class {JSON.name = 'RELATIONAL'} meta::external::extract::specification::protocol::ingest::IngestRelationalDataset extends Ingest
+{
+  query : String[1];
+}
+
+Class {JSON.name = 'KAFKA'} meta::external::extract::specification::protocol::ingest::IngestKafkaDataset extends Ingest
+{
+  partitions : Integer[0..*];
+}
+
+//Ingest Config ----- END
+
+//Access point ----- START
+
+Class meta::external::extract::specification::protocol::ingest::AccessPoint
+{
+  sourceInformation : meta::protocols::pure::vX_X_X::metamodel::m3::SourceInformation[0..1];
+}
+
+Class meta::external::extract::specification::protocol::ingest::LakehouseAccessPoint extends AccessPoint
+{
+  func : meta::protocols::pure::vX_X_X::metamodel::m3::function::LambdaFunction[1];
+  ingestPackageName : String[0..1];
+  ingestDataset : String[0..1];
+}
+
+//Access point ----- END
+
+
+
