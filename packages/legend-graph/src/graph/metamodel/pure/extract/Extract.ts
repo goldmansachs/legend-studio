@@ -37,7 +37,7 @@ export enum SourceType {
 }
 
 export enum KafkaDataFormat {
-  AVRO = 'AVRO',
+  AVRO = 'Avro',
   JSON = 'JSON',
 }
 

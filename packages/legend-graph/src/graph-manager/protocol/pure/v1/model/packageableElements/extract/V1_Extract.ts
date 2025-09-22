@@ -23,7 +23,7 @@ export enum V1_SourceType {
 }
 
 export enum V1_KafkaDataFormat {
-  AVRO = 'AVRO',
+  AVRO = 'Avro',
   JSON = 'JSON',
 }
 

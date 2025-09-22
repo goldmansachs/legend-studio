@@ -132,7 +132,7 @@ import {
 } from '../../model/packageableElements/dataProduct/V1_DataProduct.js';
 import {
   V1_EXTRACT_DEFINITION_ELEMENT_PROTOCOL_TYPE,
-  type V1_ExtractDefinition,
+  // type V1_ExtractDefinition,
 } from '../../model/packageableElements/extract/V1_Extract.js';
 import { V1_dataProductModelSchema } from './serializationHelpers/V1_DataProductSerializationHelper.js';
 import { V1_INGEST_DEFINITION_TYPE } from '../../model/packageableElements/ingest/V1_IngestDefinition.js';
