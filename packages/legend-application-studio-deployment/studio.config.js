@@ -36,7 +36,7 @@ export default {
   devServerOptions: {
     // NOTE: for development from within a Docker container, it's best to update this to 0.0.0.0
     host: '0.0.0.0',
-    port: 5000,
+    port: 9000,
     allowedHosts: 'all',
   },
 };

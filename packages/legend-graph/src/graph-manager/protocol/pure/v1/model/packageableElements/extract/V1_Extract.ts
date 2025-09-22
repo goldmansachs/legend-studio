@@ -13,6 +13,8 @@ import {
   hashObjectWithoutSourceInformation,
 } from '../../../../../../../graph/Core_HashUtils.js';
 
+export const V1_EXTRACT_DEFINITION_ELEMENT_PROTOCOL_TYPE = 'extractDefinition';
+
 // --- Enums ---
 
 export enum V1_SourceType {

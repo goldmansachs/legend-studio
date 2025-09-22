@@ -68,7 +68,7 @@ export const getBaseWebpackConfig = (
       // See https://webpack.js.org/configuration/output/#outputpathinfo
       pathinfo: isEnvDevelopment_Debug,
     },
-    devtool: isEnvDevelopment
+    devtool: 'source-map'
       ? // NOTE: `eval-cheap-module-source-map` is recommend for dev, but it doesn't report error location accurately
         // See https://github.com/vuejs-templates/webpack/issues/520#issuecomment-356773702
         isEnvDevelopment_Debug
