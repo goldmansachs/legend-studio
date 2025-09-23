@@ -68,7 +68,19 @@ export const getBaseWebpackConfig = (
       // See https://webpack.js.org/configuration/output/#outputpathinfo
       pathinfo: isEnvDevelopment_Debug,
     },
-    devtool: 'source-map',
+    devtool: isEnvDevelopment
+      ? // NOTE: `eval-cheap-module-source-map` is recommend for dev, but it doesn't report error location accurately
+        // See https://github.com/vuejs-templates/webpack/issues/520#issuecomment-356773702
+        isEnvDevelopment_Debug
+        ? 'cheap-module-source-map'
+        : // no source map makes development build happens really fast
+          // and one would be able to see the final generated code, which could be helpful in certain cases
+          // but for debugging (e.g. where putting breakpoints is needed), source maps might be required
+          // See https://webpack.js.org/configuration/devtool/
+          false
+      : enableSourceMap
+        ? 'source-map'
+        : false,
     watchOptions: {
       ignored: /node_modules/,
     },
