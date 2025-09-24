@@ -248,6 +248,10 @@ export const V1_buildQuery = (
     protocol.id,
     `Query 'id' field is missing`,
   );
+  metamodel.description = guaranteeNonNullable(
+    protocol.description,
+    `Query 'description' field is missing`,
+  );
   metamodel.versionId = guaranteeNonNullable(
     protocol.versionId,
     `Query 'versionId' field is missing`,
@@ -347,6 +351,9 @@ export const V1_transformQuery = (metamodel: Partial<Query>): V1_Query => {
   }
   if (metamodel.id) {
     protocol.id = metamodel.id;
+  }
+  if (metamodel.description) {
+    protocol.description = metamodel.description;
   }
   if (metamodel.versionId) {
     protocol.versionId = metamodel.versionId;
