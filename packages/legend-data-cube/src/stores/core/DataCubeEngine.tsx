@@ -23,6 +23,7 @@ import {
   V1_deserializeValueSpecification,
   V1_serializeValueSpecification,
   type V1_ExecuteInput,
+  V1_PureModelContextData,
 } from '@finos/legend-graph';
 import {
   getFilterOperation,
@@ -298,6 +299,12 @@ export abstract class DataCubeEngine {
   abstract buildExecutionContext(
     source: DataCubeSource,
   ): V1_AppliedFunction | undefined;
+
+  async getIncompatibleProtocolModel(
+    code: string,
+  ): Promise<PlainObject<V1_PureModelContextData> | void> {
+    return;
+  }
 
   // ---------------------------------- CACHING ----------------------------------
 

@@ -30,7 +30,10 @@ import {
   type LakehouseIngestServerClient,
   type LakehousePlatformServerClient,
 } from '@finos/legend-server-lakehouse';
-import type { V1_IngestDefinition } from '@finos/legend-graph';
+import type {
+  V1_IngestDefinition,
+  V1_PureModelContextData,
+} from '@finos/legend-graph';
 
 export class LakehouseProducerDataCubeSourceBuilderState extends LegendDataCubeSourceBuilderState {
   deploymentId: number | undefined;
@@ -43,6 +46,8 @@ export class LakehouseProducerDataCubeSourceBuilderState extends LegendDataCubeS
   ingestUrns: string[] = [];
   tables: string[] = [];
   datasetGroup: string | undefined;
+
+  private LAKEHOUSE_SECTION = '###Lakehouse';
 
   readonly _platformServerClient: LakehousePlatformServerClient;
   readonly _ingestServerClient: LakehouseIngestServerClient;
@@ -150,13 +155,21 @@ export class LakehouseProducerDataCubeSourceBuilderState extends LegendDataCubeS
     this.setTables([]);
     this.setSelectedTable(undefined);
     try {
-      const plainObjectDef =
-        await this._ingestServerClient.getIngestDefinitionDetail(
+      const ingestGrammar =
+        await this._ingestServerClient.getIngestDefinitionGrammar(
           guaranteeNonNullable(this.selectedIngestUrn),
           this.ingestionServerUrl,
           access_token,
         );
-      this.ingestDefinition = Object.values(plainObjectDef)[0] as PlainObject;
+
+      const ingestDefPMCD = (await this._engine.getIncompatibleProtocolModel(
+        `${this.LAKEHOUSE_SECTION}\n${ingestGrammar}`,
+      )) as PlainObject<V1_PureModelContextData>;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.ingestDefinition = Object.values(
+        ingestDefPMCD.elements as any,
+      )[0] as PlainObject;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.setDatasetGroup((this.ingestDefinition as any).datasetGroup);

@@ -23,7 +23,10 @@ import type { LegendDataCubeApplicationStore } from '../../LegendDataCubeBaseSto
 import type { LegendDataCubeDataCubeEngine } from '../../LegendDataCubeDataCubeEngine.js';
 import { LegendDataCubeSourceLoaderState } from './LegendDataCubeSourceLoaderState.js';
 import type { DataCubeAlertService } from '@finos/legend-data-cube';
-import type { PersistentDataCube } from '@finos/legend-graph';
+import type {
+  PersistentDataCube,
+  V1_PureModelContextData,
+} from '@finos/legend-graph';
 import { RawLakehouseProducerDataCubeSource } from '../../model/LakehouseProducerDataCubeSource.js';
 import type { LakehouseIngestServerClient } from '@finos/legend-server-lakehouse';
 import { action, makeObservable, observable } from 'mobx';
@@ -35,6 +38,8 @@ export class LakehouseProducerDataCubeSourceLoaderState extends LegendDataCubeSo
   ingestDefinition: PlainObject | undefined;
   ingestDefinitionUrn: string;
   ingestServerUrl: string;
+
+  private LAKEHOUSE_SECTION = '###Lakehouse';
 
   constructor(
     application: LegendDataCubeApplicationStore,
@@ -95,13 +100,22 @@ export class LakehouseProducerDataCubeSourceLoaderState extends LegendDataCubeSo
     access_token: string | undefined,
     lakehouseIngestServerClient: LakehouseIngestServerClient,
   ) {
-    this.setIngestDefintion(
-      await lakehouseIngestServerClient.getIngestDefinitionDetail(
-        this.ingestDefinitionUrn,
+    const ingestGrammar =
+      await lakehouseIngestServerClient.getIngestDefinitionGrammar(
+        guaranteeNonNullable(this.ingestDefinitionUrn),
         this.ingestServerUrl,
         access_token,
-      ),
-    );
+      );
+
+    const ingestDefPMCD = (await this._engine.getIncompatibleProtocolModel(
+      `${this.LAKEHOUSE_SECTION}\n${ingestGrammar}`,
+    )) as PlainObject<V1_PureModelContextData>;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const protocolIngestDefinition = Object.values(
+      ingestDefPMCD.elements as any,
+    )[0] as PlainObject;
+    this.setIngestDefintion(protocolIngestDefinition);
   }
 
   override async load(source: PlainObject | undefined) {
