@@ -57,8 +57,9 @@ export interface QueryGridConfig {
 export class Query {
   name!: string;
   id!: string;
+  description?: string | undefined;
   versionId!: string;
-  originalVersionId?: string | undefined;
+  originalVersionId?: string;
   groupId!: string;
   artifactId!: string;
   // We enforce a single owner, for collaboration on query, use Studio
@@ -104,7 +105,7 @@ export class LightQuery {
   lastUpdatedAt?: number | undefined;
   createdAt?: number | undefined;
   lastOpenAt?: number | undefined;
-
+  description?: string | undefined;
   isCurrentUserQuery = false;
 }
 
@@ -112,6 +113,7 @@ export const toLightQuery = (query: Query): LightQuery => {
   const lightQuery = new LightQuery();
   lightQuery.name = query.name;
   lightQuery.id = query.id;
+  lightQuery.description = query.description;
   lightQuery.groupId = query.groupId;
   lightQuery.artifactId = query.artifactId;
   lightQuery.versionId = query.versionId;
