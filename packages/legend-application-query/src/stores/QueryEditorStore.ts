@@ -1263,7 +1263,7 @@ export class ExistingQueryUpdateState {
       this.editorStore.applicationStore.notificationService.notifySuccess(
         `Successfully updated query!`,
       );
-      console.log(updatedQuery);
+
       LegendQueryTelemetryHelper.logEvent_UpdateQuerySucceeded(
         this.editorStore.applicationStore.telemetryService,
         {

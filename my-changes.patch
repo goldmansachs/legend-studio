@@ -1,0 +1,387 @@
+diff --git a/.vscode/extensions.json b/.vscode/extensions.json
+index 31ec689b4..13ac4d338 100644
+--- a/.vscode/extensions.json
++++ b/.vscode/extensions.json
+@@ -6,7 +6,8 @@
+     "EditorConfig.EditorConfig",
+     "dbaeumer.vscode-eslint",
+     "esbenp.prettier-vscode",
+-    "stylelint.vscode-stylelint"
++    "stylelint.vscode-stylelint",
++    "github.copilot"
+   ],
+   // List of extensions recommended by VS Code that should not be recommended for users of this workspace.
+   "unwantedRecommendations": []
+diff --git a/.yarnrc.yml b/.yarnrc.yml
+index f90f187e1..8d012607c 100644
+--- a/.yarnrc.yml
++++ b/.yarnrc.yml
+@@ -6,6 +6,8 @@ nodeLinker: node-modules
+ 
+ npmPublishAccess: public
+ 
++npmRegistryServer: "https://nexus.aws.site.gs.com/repository/npm-group/"
++
+ packageExtensions:
+   postcss-loader@*:
+     peerDependenciesMeta:
+diff --git a/package.json b/package.json
+index 929176c75..cfb5cea40 100644
+--- a/package.json
++++ b/package.json
+@@ -131,7 +131,7 @@
+   },
+   "packageManager": "yarn@4.7.0",
+   "engines": {
+-    "node": ">=20.0.0",
++    "node": ">=18.0.0",
+     "yarn": ">=1.22.10"
+   }
+ }
+diff --git a/packages/legend-application-query-deployment/query.config.js b/packages/legend-application-query-deployment/query.config.js
+index daf72410a..cdbf3d461 100644
+--- a/packages/legend-application-query-deployment/query.config.js
++++ b/packages/legend-application-query-deployment/query.config.js
+@@ -35,7 +35,8 @@ export default {
+    */
+   devServerOptions: {
+     // NOTE: for development from within a Docker container, it's best to update this to 0.0.0.0
+-    host: 'localhost',
++    host: '0.0.0.0',
+     port: 9001,
++    allowedHosts:"all"
+   },
+ };
+diff --git a/packages/legend-application-query/src/components/QueryEditor.tsx b/packages/legend-application-query/src/components/QueryEditor.tsx
+index 2cb096666..bb57be8eb 100644
+--- a/packages/legend-application-query/src/components/QueryEditor.tsx
++++ b/packages/legend-application-query/src/components/QueryEditor.tsx
+@@ -110,7 +110,12 @@ const CreateQueryDialog = observer(() => {
+   };
+   const isExistingQueryName = createQueryState.editorStore.existingQueryName;
+   const isEmptyName = !createQueryState.queryName;
+-  // name
++  const isDescriptionValid = (desc: string | undefined): boolean =>
++    !!desc && /[a-zA-Z0-9]/.test(desc);
++  const descriptionInputRef = useRef<HTMLInputElement>(null);
++  const changeDescription: React.ChangeEventHandler<HTMLInputElement> = (event) => {
++    createQueryState.setQueryDescription(event.target.value);
++  };
+   const nameInputRef = useRef<HTMLInputElement>(null);
+   const debouncedLoadQueries = useMemo(
+     () =>
+@@ -142,6 +147,7 @@ const CreateQueryDialog = observer(() => {
+     debouncedLoadQueries,
+     createQueryState.editorStore.queryLoaderState.queries,
+   ]);
++  
+   return (
+     <Dialog
+       open={createQueryState.showCreateModal}
+@@ -163,7 +169,8 @@ const CreateQueryDialog = observer(() => {
+           <PanelLoadingIndicator
+             isLoading={createQueryState.createQueryState.isInProgress}
+           />
+-          <PanelListItem>
++          <div className="input-section">
++            <div className="input-label">Enter Query Name</div>
+             <div className="input--with-validation">
+               <input
+                 ref={nameInputRef}
+@@ -174,6 +181,7 @@ const CreateQueryDialog = observer(() => {
+                 value={createQueryState.queryName}
+                 onChange={changeName}
+                 title="New Query Name"
++                placeholder='(e.g. "MyQuery")'
+               />
+               {isExistingQueryName && (
+                 <div
+@@ -184,7 +192,21 @@ const CreateQueryDialog = observer(() => {
+                 </div>
+               )}
+             </div>
+-          </PanelListItem>
++          </div>
++          <div className="input-section" style={{ marginTop: '1rem' }}>
++            <div className="input-label">Enter Query Description</div>
++            <div className="input--with-validation">
++              <input
++                ref={descriptionInputRef}
++                className="input input--dark"
++                spellCheck={true}
++                value={createQueryState.queryDescription ?? ''}
++                onChange={changeDescription}
++                title="Query Description"
++                placeholder="Add details about what this query retrieves"
++              />
++            </div>
++          </div>
+         </ModalBody>
+         <ModalFooter>
+           <ModalFooterButton
+@@ -193,7 +215,8 @@ const CreateQueryDialog = observer(() => {
+             disabled={
+               createQueryState.editorStore.isPerformingBlockingAction ||
+               Boolean(isExistingQueryName) ||
+-              isEmptyName
++              isEmptyName ||
++              !isDescriptionValid(createQueryState.queryDescription) 
+             }
+             onClick={create}
+           />
+@@ -211,9 +234,12 @@ const SaveQueryDialog = observer(
+ 
+     const saveQuery = applicationStore.guardUnhandledError(
+       async (): Promise<void> => {
++        console.log('Before updateQuery:', existingEditorStore.query);
+         flowResult(
+           existingEditorStore.updateState.updateQuery(undefined, undefined),
+-        ).catch(applicationStore.alertUnhandledError);
++        ).then(() => {
++          console.log('After updateQuery:', existingEditorStore.query);
++        }).catch(applicationStore.alertUnhandledError);
+       },
+     );
+     const close = (): void => updateState.closeSaveModal();
+diff --git a/packages/legend-application-query/src/components/__tests__/QueryEditorQueryActions.test.tsx b/packages/legend-application-query/src/components/__tests__/QueryEditorQueryActions.test.tsx
+index 3ce3ebe27..42055f049 100644
+--- a/packages/legend-application-query/src/components/__tests__/QueryEditorQueryActions.test.tsx
++++ b/packages/legend-application-query/src/components/__tests__/QueryEditorQueryActions.test.tsx
+@@ -32,6 +32,7 @@ import {
+   getByText,
+   getByTitle,
+   waitFor,
++  getByPlaceholderText,
+ } from '@testing-library/react';
+ import {
+   TEST_QUERY_NAME,
+@@ -49,6 +50,57 @@ import {
+   TEST_DATA__simpleProjectionQuery,
+ } from './TEST_DATA__QueryBuilder_ResultStateTest.js';
+ 
++test(
++  integrationTest('User can enter a description and it is included in the query payload'),
++  async () => {
++    const { renderResult } = await TEST__setUpQueryEditor(
++      TEST__provideMockedQueryEditorStore(),
++      TEST_DATA__ResultState_entities,
++      stub_RawLambda(),
++      'execution::RelationalMapping',
++      'execution::Runtime',
++      TEST_DATA__modelCoverageAnalysisResult,
++    );
++
++    // Open the save as new query modal
++    const saveDropdown = await waitFor(() =>
++      renderResult.getByTitle('query__editor__save-dropdown'),
++    );
++    fireEvent.click(saveDropdown);
++    const saveAsNewQueryButton = renderResult.getByTitle(
++      'query__editor__save-dropdown__save-as',
++    );
++    fireEvent.click(saveAsNewQueryButton);
++
++    // Wait for the modal to appear
++    const createNewQueryModal = await waitFor(() =>
++      renderResult.getByRole('dialog'),
++    );
++
++        const nameInput = getByPlaceholderText(
++      createNewQueryModal,
++      /e\.g\. "MyQuery"/i, // or whatever your placeholder is for the name
++    );
++    fireEvent.change(nameInput, {
++      target: { value: 'Test Query Name' },
++    });
++
++    // Find the description input and enter a value
++    const descriptionInput = getByPlaceholderText(
++      createNewQueryModal,
++      /details about what this query retrieves/i,
++    );
++    fireEvent.change(descriptionInput, {
++      target: { value: 'This is a test description 123' },
++    });
++    expect((descriptionInput as HTMLInputElement).value).toBe('This is a test description 123');
++    // Find and click the Create Query button
++    const createButton = getByText(createNewQueryModal, 'Create Query');
++    expect(createButton.hasAttribute('disabled')).toBe(false);
++    fireEvent.click(createButton);
++  }
++);
++
+ test(
+   integrationTest(
+     'Query state has normal header actions for existing query name',
+diff --git a/packages/legend-application-query/src/stores/QueryEditorStore.ts b/packages/legend-application-query/src/stores/QueryEditorStore.ts
+index 39e76d8a4..f6d83f961 100644
+--- a/packages/legend-application-query/src/stores/QueryEditorStore.ts
++++ b/packages/legend-application-query/src/stores/QueryEditorStore.ts
+@@ -137,6 +137,7 @@ import { generateDataSpaceQueryCreatorRoute } from '../__lib__/DSL_DataSpace_Leg
+ import { hasDataSpaceInfoBeenVisited } from '../__lib__/LegendQueryUserDataSpaceHelper.js';
+ import { createDataSpaceDepoRepo } from './data-space/DataSpaceQueryBuilderHelper.js';
+ 
++
+ export interface QueryPersistConfiguration {
+   defaultName?: string | undefined;
+   allowUpdate?: boolean | undefined;
+@@ -148,12 +149,14 @@ export class QueryCreatorState {
+   readonly editorStore: QueryEditorStore;
+   readonly createQueryState = ActionState.create();
+   queryName: string;
++  queryDescription: string | undefined;
+   showCreateModal = false;
+   originalQuery: Query | undefined;
+ 
+   constructor(editorStore: QueryEditorStore, queryName: string | undefined) {
+     makeObservable(this, {
+       queryName: observable,
++      queryDescription: observable,
+       showCreateModal: observable,
+       createQueryState: observable,
+       originalQuery: observable,
+@@ -170,6 +173,11 @@ export class QueryCreatorState {
+     this.queryName = val;
+   }
+ 
++    setQueryDescription(val: string | undefined): void {
++    this.queryDescription = val;
++  }
++
++
+   open(originalQuery?: Query | undefined): void {
+     this.showCreateModal = true;
+     this.originalQuery = originalQuery;
+@@ -200,6 +208,7 @@ export class QueryCreatorState {
+         queryBuilderState.getGridConfig(),
+       )) as Query;
+       query.name = this.queryName;
++      query.description = this.queryDescription;
+       query.id = uuid();
+       query.originalVersionId =
+         query.versionId === LATEST_VERSION_ALIAS
+@@ -1197,8 +1206,11 @@ export class ExistingQueryUpdateState {
+         config,
+         queryBuilderState.getGridConfig(),
+       )) as Query;
++
+       query.name = queryName ?? query.name;
+       query.versionId = queryVersionId ?? query.versionId;
++         
++      query.description = this.editorStore.query?.description ?? query.description;
+       const updatedQuery =
+         (yield this.editorStore.graphManagerState.graphManager.updateQuery(
+           query,
+@@ -1252,6 +1264,7 @@ export class ExistingQueryUpdateState {
+       this.editorStore.applicationStore.notificationService.notifySuccess(
+         `Successfully updated query!`,
+       );
++      console.log(updatedQuery);
+       LegendQueryTelemetryHelper.logEvent_UpdateQuerySucceeded(
+         this.editorStore.applicationStore.telemetryService,
+         {
+@@ -1453,7 +1466,9 @@ export class ExistingQueryEditorStore extends QueryEditorStore {
+     this.setLightQuery(
+       await this.graphManagerState.graphManager.getLightQuery(this.queryId),
+     );
++
+     this.setQueryInfo(queryInfo);
++
+     LegendQueryUserDataHelper.addRecentlyViewedQuery(
+       this.applicationStore.userDataService,
+       queryInfo.id,
+diff --git a/packages/legend-application-studio-deployment/studio.config.js b/packages/legend-application-studio-deployment/studio.config.js
+index 9f7ee3b5a..5cff23d70 100644
+--- a/packages/legend-application-studio-deployment/studio.config.js
++++ b/packages/legend-application-studio-deployment/studio.config.js
+@@ -33,9 +33,11 @@ export default {
+    * Options to override `webpack-dev-server` configs.
+    * See https://webpack.js.org/configuration/dev-server/
+    */
+-  devServerOptions: {
++devServerOptions: {
+     // NOTE: for development from within a Docker container, it's best to update this to 0.0.0.0
+-    host: 'localhost',
++    host: '0.0.0.0',
+     port: 9000,
++    allowedHosts: 'all',
+   },
++
+ };
+diff --git a/packages/legend-graph/src/graph-manager/action/query/Query.ts b/packages/legend-graph/src/graph-manager/action/query/Query.ts
+index f43b24ca6..8972fbde2 100644
+--- a/packages/legend-graph/src/graph-manager/action/query/Query.ts
++++ b/packages/legend-graph/src/graph-manager/action/query/Query.ts
+@@ -57,8 +57,9 @@ export interface QueryGridConfig {
+ export class Query {
+   name!: string;
+   id!: string;
++  description?: string | undefined;
+   versionId!: string;
+-  originalVersionId?: string | undefined;
++  originalVersionId?: string;
+   groupId!: string;
+   artifactId!: string;
+   // We enforce a single owner, for collaboration on query, use Studio
+@@ -104,7 +105,7 @@ export class LightQuery {
+   lastUpdatedAt?: number | undefined;
+   createdAt?: number | undefined;
+   lastOpenAt?: number | undefined;
+-
++  description?: string | undefined;
+   isCurrentUserQuery = false;
+ }
+ 
+@@ -112,6 +113,7 @@ export const toLightQuery = (query: Query): LightQuery => {
+   const lightQuery = new LightQuery();
+   lightQuery.name = query.name;
+   lightQuery.id = query.id;
++  lightQuery.description = query.description;
+   lightQuery.groupId = query.groupId;
+   lightQuery.artifactId = query.artifactId;
+   lightQuery.versionId = query.versionId;
+diff --git a/packages/legend-graph/src/graph-manager/protocol/pure/v1/engine/V1_EngineHelper.ts b/packages/legend-graph/src/graph-manager/protocol/pure/v1/engine/V1_EngineHelper.ts
+index 0bb4b6957..4ef2d255d 100644
+--- a/packages/legend-graph/src/graph-manager/protocol/pure/v1/engine/V1_EngineHelper.ts
++++ b/packages/legend-graph/src/graph-manager/protocol/pure/v1/engine/V1_EngineHelper.ts
+@@ -248,6 +248,10 @@ export const V1_buildQuery = (
+     protocol.id,
+     `Query 'id' field is missing`,
+   );
++  metamodel.description = guaranteeNonNullable(
++    protocol.description,
++    `Query 'description' field is missing`,
++  );
+   metamodel.versionId = guaranteeNonNullable(
+     protocol.versionId,
+     `Query 'versionId' field is missing`,
+@@ -348,6 +352,9 @@ export const V1_transformQuery = (metamodel: Partial<Query>): V1_Query => {
+   if (metamodel.id) {
+     protocol.id = metamodel.id;
+   }
++  if(metamodel.description){
++    protocol.description = metamodel.description;
++  }
+   if (metamodel.versionId) {
+     protocol.versionId = metamodel.versionId;
+   }
+diff --git a/packages/legend-graph/src/graph-manager/protocol/pure/v1/engine/query/V1_Query.ts b/packages/legend-graph/src/graph-manager/protocol/pure/v1/engine/query/V1_Query.ts
+index 22a40cc2f..a9f425d2a 100644
+--- a/packages/legend-graph/src/graph-manager/protocol/pure/v1/engine/query/V1_Query.ts
++++ b/packages/legend-graph/src/graph-manager/protocol/pure/v1/engine/query/V1_Query.ts
+@@ -151,6 +151,7 @@ export class V1_Query {
+   groupId!: string;
+   artifactId!: string;
+   versionId!: string;
++  description?: string | undefined;
+   originalVersionId?: string | undefined;
+   content!: string;
+   owner?: string | undefined;
+@@ -187,6 +188,7 @@ export class V1_Query {
+       lastOpenAt: optional(primitive()),
+       mapping: optional(primitive()),
+       name: primitive(),
++      description : optional(primitive()),
+       owner: optional(primitive()),
+       runtime: optional(primitive()),
+       stereotypes: optional(
