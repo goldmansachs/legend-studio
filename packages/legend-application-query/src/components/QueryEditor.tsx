@@ -236,14 +236,9 @@ const SaveQueryDialog = observer(
 
     const saveQuery = applicationStore.guardUnhandledError(
       async (): Promise<void> => {
-        console.log('Before updateQuery:', existingEditorStore.query);
         flowResult(
           existingEditorStore.updateState.updateQuery(undefined, undefined),
-        )
-          .then(() => {
-            console.log('After updateQuery:', existingEditorStore.query);
-          })
-          .catch(applicationStore.alertUnhandledError);
+        ).catch(applicationStore.alertUnhandledError);
       },
     );
     const close = (): void => updateState.closeSaveModal();
