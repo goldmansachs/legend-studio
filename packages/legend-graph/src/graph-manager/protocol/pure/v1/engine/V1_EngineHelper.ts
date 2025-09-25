@@ -248,10 +248,7 @@ export const V1_buildQuery = (
     protocol.id,
     `Query 'id' field is missing`,
   );
-  metamodel.description = guaranteeNonNullable(
-    protocol.description,
-    `Query 'description' field is missing`,
-  );
+  metamodel.description = protocol.description;
   metamodel.versionId = guaranteeNonNullable(
     protocol.versionId,
     `Query 'versionId' field is missing`,

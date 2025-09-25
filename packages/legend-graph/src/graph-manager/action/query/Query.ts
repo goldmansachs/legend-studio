@@ -59,7 +59,7 @@ export class Query {
   id!: string;
   description?: string | undefined;
   versionId!: string;
-  originalVersionId?: string;
+  originalVersionId?: string | undefined;
   groupId!: string;
   artifactId!: string;
   // We enforce a single owner, for collaboration on query, use Studio
