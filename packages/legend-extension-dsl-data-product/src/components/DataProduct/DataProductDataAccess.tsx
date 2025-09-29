@@ -186,7 +186,7 @@ export const DataCubeScreen = observer(
     const loadDataCube = (): void => {
       const origin = dataAccessState?.entitlementsDataProductDetails.origin;
       //paths
-      const path = accessPointState.apgState.dataProductViewerState.getPath();
+      const path = accessPointState.apgState.dataProductViewerState.product.path;
       const accessPointName = accessPointState.accessPoint.id;
       const accessPointPath = [
         guaranteeNonNullable(path),
