@@ -92,8 +92,9 @@ import { V1_transformRootValueSpecification } from './V1_ValueSpecificationTrans
 
 export const V1_createGenericType = (
   genericType: GenericType,
+  fullPath?: string | undefined,
 ): V1_GenericType => {
-  const v1Type = V1_transformGenericType_Type(genericType.rawType);
+  const v1Type = V1_transformGenericType_Type(genericType.rawType, fullPath);
   const protocolGenType = new V1_GenericType();
   protocolGenType.rawType = v1Type;
   const typeArguments = genericType.typeArguments ?? [];
@@ -107,12 +108,19 @@ export const V1_createGenericType = (
   return protocolGenType;
 };
 
-export function V1_transformGenericType_Type(type: Type): V1_Type {
+export function V1_transformGenericType_Type(
+  type: Type,
+  fullPath?: string | undefined,
+): V1_Type {
   if (type instanceof RelationType) {
     return V1_transformGenericType_RelationType(type);
   }
   const pType = new V1_PackageableType();
-  pType.fullPath = type.path;
+  if (fullPath === undefined) {
+    pType.fullPath = type.path;
+  } else {
+    pType.fullPath = fullPath;
+  }
   return pType;
 }
 
@@ -255,7 +263,8 @@ const transformProperty = (element: Property): V1_Property => {
   property.multiplicity = V1_transformMultiplicity(element.multiplicity);
   property.stereotypes = element.stereotypes.map(V1_transformStereotype);
   property.taggedValues = element.taggedValues.map(V1_transformTaggedValue);
-  property.genericType = V1_createGenericTypeWithElementPath(
+  property.genericType = V1_createGenericType(
+    element.genericType.value,
     element.genericType.ownerReference.valueForSerialization ?? '',
   );
   property.aggregation = element.aggregation;
@@ -278,8 +287,8 @@ const transformDerivedProperty = (
   derivedProperty.returnMultiplicity = V1_transformMultiplicity(
     element.multiplicity,
   );
-  derivedProperty.returnGenericType = V1_createGenericTypeWithElementPath(
-    element.genericType.ownerReference.valueForSerialization ?? '',
+  derivedProperty.returnGenericType = V1_createGenericType(
+    element.genericType.value,
   );
 
   derivedProperty.stereotypes = element.stereotypes.map(V1_transformStereotype);

@@ -212,7 +212,9 @@ export const V1_buildProperty = (
       property.multiplicity.lowerBound,
       property.multiplicity.upperBound,
     ),
-    context.resolveGenericType(V1_getGenericTypeFullPath(property.genericType)),
+    context.resolveGenericTypeFromProtocolWithRelationType(
+      property.genericType,
+    ),
     owner,
   );
   pureProperty.aggregation = property.aggregation

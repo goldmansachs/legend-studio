@@ -114,6 +114,11 @@
       ]
     },
     {
+      "_type": "class",
+      "name": "Map",
+      "package": "meta::pure::functions::collection"
+    },
+    {
       "_type": "Enumeration",
       "name": "Quarter",
       "package": "meta::pure::functions::date",

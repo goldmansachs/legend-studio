@@ -25,6 +25,7 @@ Class model::Locker
   block: Integer[1];
   row: Integer[1];
   column: Integer[1];
+  simpleMap: meta::pure::functions::collection::Map<String, String>[1];
 }
 
 Class model::LibrarySpace
