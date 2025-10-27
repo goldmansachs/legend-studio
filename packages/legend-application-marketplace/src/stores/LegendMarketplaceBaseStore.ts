@@ -238,11 +238,11 @@ export class LegendMarketplaceBaseStore {
           )[0];
         return dataProductDetail
           ? new DataProductCardState(
-              this,
-              graphManager,
-              dataProductDetail,
-              new Map(),
-            )
+            this,
+            graphManager,
+            dataProductDetail,
+            new Map(),
+          )
           : undefined;
       };
 
@@ -293,14 +293,14 @@ export class LegendMarketplaceBaseStore {
           highlightedDataProducts.map(async (dataProduct) =>
             'deploymentId' in dataProduct
               ? getDataProductState(
-                  dataProduct.dataProductId,
-                  dataProduct.deploymentId,
-                  graphManager,
-                )
+                dataProduct.dataProductId,
+                dataProduct.deploymentId,
+                graphManager,
+              )
               : getLegacyDataProductState(
-                  dataProduct.dataProductId,
-                  dataProduct.gav,
-                ),
+                dataProduct.dataProductId,
+                dataProduct.gav,
+              ),
           ),
         )
       ).filter(isNonNullable);
@@ -355,7 +355,9 @@ export class LegendMarketplaceBaseStore {
 
     // Initialize cart store to load existing items
     try {
-      yield* this.cartStore.initialize();
+      if (this.applicationStore.config.options.showDevFeatures) {
+        yield* this.cartStore.initialize();
+      }
     } catch (error) {
       assertErrorThrown(error);
       this.applicationStore.logService.warn(
