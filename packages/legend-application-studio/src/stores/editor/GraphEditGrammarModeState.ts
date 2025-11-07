@@ -26,6 +26,7 @@ import {
   GRAPH_MANAGER_EVENT,
   EngineError,
   GraphBuilderError,
+  CompilationWarning,
   reportGraphAnalytics,
   INTERNAL__UnknownElement,
   type GraphTextInputOption,
@@ -398,10 +399,22 @@ export class GraphEditGrammarModeState extends GraphEditorMode {
         currentGraphHash,
       );
       this.editorStore.graphState.warnings = compilationResult.warnings
-        ? this.editorStore.graphState.TEMPORARY__removeDependencyProblems(
-            compilationResult.warnings,
-          )
+        ? (this.editorStore.graphState
+            .TEMPORARY__removeDependencyProblems(compilationResult.warnings)
+            .filter(
+              (problem): problem is CompilationWarning =>
+                problem instanceof CompilationWarning,
+            ) as CompilationWarning[])
         : [];
+
+      // Auto-open PROBLEMS panel if there are defects
+      const hasDefects = this.editorStore.graphState.warnings.some(
+        (warning) => warning.defectTypeId !== undefined,
+      );
+      if (hasDefects) {
+        this.editorStore.panelGroupDisplayState.open();
+        this.editorStore.setActivePanelMode(PANEL_MODE.PROBLEMS);
+      }
 
       if (!options?.disableNotificationOnSuccess) {
         if (this.editorStore.graphState.warnings.length) {
@@ -516,9 +529,12 @@ export class GraphEditGrammarModeState extends GraphEditorMode {
       );
 
       this.editorStore.graphState.warnings = compilationResult.warnings
-        ? this.editorStore.graphState.TEMPORARY__removeDependencyProblems(
-            compilationResult.warnings,
-          )
+        ? (this.editorStore.graphState
+            .TEMPORARY__removeDependencyProblems(compilationResult.warnings)
+            .filter(
+              (problem): problem is CompilationWarning =>
+                problem instanceof CompilationWarning,
+            ) as CompilationWarning[])
         : [];
 
       const entities = compilationResult.entities;

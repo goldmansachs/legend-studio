@@ -57,7 +57,7 @@ export const PanelGroup = observer(() => {
     editorStore.panelGroupDisplayState.toggleMaximize();
 
   const tabs: {
-    [key in PANEL_MODE]: {
+    [key in PANEL_MODE]?: {
       mode: PANEL_MODE;
       name: string;
       icon?: React.ReactNode;
@@ -75,7 +75,7 @@ export const PanelGroup = observer(() => {
     },
     [PANEL_MODE.DEV_TOOL]: {
       mode: PANEL_MODE.DEV_TOOL,
-      name: 'DEVELOPER TOOLS',
+      name: 'DEVELOPER TOOl2',
       icon: undefined,
       isVisible: true,
     },

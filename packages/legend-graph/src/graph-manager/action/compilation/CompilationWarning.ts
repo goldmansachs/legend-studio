@@ -22,12 +22,18 @@ export class CompilationWarning {
 
   message: string;
   sourceInformation?: SourceInformation | undefined;
+  defectSeverityLevel?: string | undefined;
+  defectTypeId?: string | undefined;
 
   constructor(
     message: string,
     sourceInformation: SourceInformation | undefined,
+    defectSeverityLevel?: string | undefined,
+    defectTypeId?: string | undefined,
   ) {
     this.message = message;
     this.sourceInformation = sourceInformation;
+    this.defectSeverityLevel = defectSeverityLevel;
+    this.defectTypeId = defectTypeId;
   }
 }

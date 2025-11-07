@@ -22,6 +22,8 @@ import type { V1_SourceInformation } from '../../model/V1_SourceInformation.js';
 export class V1_CompilationWarning {
   message = '';
   sourceInformation?: V1_SourceInformation | undefined;
+  defectSeverityLevel?: string | undefined;
+  defectTypeId?: string | undefined;
 
   static readonly serialization = new SerializationFactory(
     createModelSchema(V1_CompilationWarning, {
@@ -29,6 +31,8 @@ export class V1_CompilationWarning {
       sourceInformation: usingModelSchema(
         V1_sourceInformationSerialization.schema,
       ),
+      defectSeverityLevel: primitive(),
+      defectTypeId: primitive(),
     }),
   );
 }

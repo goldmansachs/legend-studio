@@ -607,14 +607,19 @@ export class V1_RemoteEngine implements V1_GraphManagerEngine {
       const compilationResult = await this.engineServerClient.compile(
         this.serializePureModelContext(model),
       );
+
+      // Combine warnings and defects into a single array
+      const allWarnings = [
+        ...((compilationResult.warnings as
+          | PlainObject<V1_CompilationWarning>[]
+          | undefined) ?? []),
+        ...((compilationResult.defects as
+          | PlainObject<V1_CompilationWarning>[]
+          | undefined) ?? []),
+      ].map((warning) => V1_CompilationWarning.serialization.fromJson(warning));
+
       return {
-        warnings: (
-          compilationResult.warnings as
-            | PlainObject<V1_CompilationWarning>[]
-            | undefined
-        )?.map((warning) =>
-          V1_CompilationWarning.serialization.fromJson(warning),
-        ),
+        warnings: allWarnings.length > 0 ? allWarnings : undefined,
       };
     } catch (error) {
       assertErrorThrown(error);
@@ -661,15 +666,19 @@ export class V1_RemoteEngine implements V1_GraphManagerEngine {
       ] = stopWatch.elapsed;
 
       const model = V1_deserializePureModelContextData(mainGraph);
+
+      const allWarnings = [
+        ...((compilationResult.warnings as
+          | PlainObject<V1_CompilationWarning>[]
+          | undefined) ?? []),
+        ...((compilationResult.defects as
+          | PlainObject<V1_CompilationWarning>[]
+          | undefined) ?? []),
+      ].map((warning) => V1_CompilationWarning.serialization.fromJson(warning));
+
       return {
         model,
-        warnings: (
-          compilationResult.warnings as
-            | PlainObject<V1_CompilationWarning>[]
-            | undefined
-        )?.map((warning) =>
-          V1_CompilationWarning.serialization.fromJson(warning),
-        ),
+        warnings: allWarnings.length > 0 ? allWarnings : undefined,
         sourceInformationIndex:
           this.extractElementSourceInformationIndexFromPureModelContextDataJSON(
             mainGraph,

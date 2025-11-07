@@ -131,6 +131,14 @@
       background: var(--color-dark-grey-200);
     }
 
+    &__content {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex: 1;
+      min-width: 0;
+    }
+
     &__icon {
       margin: 0 1rem 0 0.5rem;
 
@@ -140,6 +148,10 @@
 
       &--error {
         color: var(--color-red-100);
+      }
+
+      &--info {
+        color: var(--color-blue-100);
       }
     }
 
