@@ -75,7 +75,7 @@ export const PanelGroup = observer(() => {
     },
     [PANEL_MODE.DEV_TOOL]: {
       mode: PANEL_MODE.DEV_TOOL,
-      name: 'DEVELOPER TOOl2',
+      name: 'DEVELOPER TOOLS',
       icon: undefined,
       isVisible: true,
     },
