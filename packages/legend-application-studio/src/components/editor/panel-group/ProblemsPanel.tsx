@@ -26,7 +26,11 @@ import {
 } from '@finos/legend-art';
 import { useEditorStore } from '../EditorStoreProvider.js';
 import type { Problem } from '../../../stores/editor/EditorGraphState.js';
-import { CompilationWarning, EngineError } from '@finos/legend-graph';
+import {
+  CompilationWarning,
+  DEFECT_SEVERITY_LEVEL,
+  EngineError,
+} from '@finos/legend-graph';
 import { GRAPH_EDITOR_MODE } from '../../../stores/editor/EditorConfig.js';
 
 const ProblemItem = observer((props: { problem: Problem }) => {
@@ -43,12 +47,14 @@ const ProblemItem = observer((props: { problem: Problem }) => {
       );
     }
     if (problem instanceof CompilationWarning) {
-      const severityLevel = problem.defectSeverityLevel?.toUpperCase();
-      if (severityLevel === 'ERROR') {
+      const severityLevel = problem.defectSeverityLevel
+        ? problem.defectSeverityLevel.toUpperCase()
+        : undefined;
+      if (severityLevel === DEFECT_SEVERITY_LEVEL.ERROR) {
         return (
           <ErrorIcon className="panel-group__problem__icon panel-group__problem__icon--error" />
         );
-      } else if (severityLevel === 'INFO') {
+      } else if (severityLevel === DEFECT_SEVERITY_LEVEL.INFO) {
         return (
           <InfoCircleIcon className="panel-group__problem__icon panel-group__problem__icon--info" />
         );

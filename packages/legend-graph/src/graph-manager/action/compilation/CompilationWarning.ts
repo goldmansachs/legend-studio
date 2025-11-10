@@ -17,6 +17,12 @@
 import { uuid } from '@finos/legend-shared';
 import type { SourceInformation } from '../SourceInformation.js';
 
+export enum DEFECT_SEVERITY_LEVEL {
+  ERROR = 'ERROR',
+  WARN = 'WARN',
+  INFO = 'INFO',
+}
+
 export class CompilationWarning {
   readonly uuid = uuid();
 
@@ -28,8 +34,8 @@ export class CompilationWarning {
   constructor(
     message: string,
     sourceInformation: SourceInformation | undefined,
-    defectSeverityLevel?: string | undefined,
-    defectTypeId?: string | undefined,
+    defectSeverityLevel: string | undefined,
+    defectTypeId: string | undefined,
   ) {
     this.message = message;
     this.sourceInformation = sourceInformation;

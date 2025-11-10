@@ -57,7 +57,7 @@ export const PanelGroup = observer(() => {
     editorStore.panelGroupDisplayState.toggleMaximize();
 
   const tabs: {
-    [key in PANEL_MODE]?: {
+    [key in PANEL_MODE]: {
       mode: PANEL_MODE;
       name: string;
       icon?: React.ReactNode;

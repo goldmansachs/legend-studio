@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { createModelSchema, primitive } from 'serializr';
+import { createModelSchema, optional, primitive } from 'serializr';
 import { SerializationFactory, usingModelSchema } from '@finos/legend-shared';
 import { V1_sourceInformationSerialization } from '../../transformation/pureProtocol/serializationHelpers/V1_CoreSerializationHelper.js';
 import type { V1_SourceInformation } from '../../model/V1_SourceInformation.js';
@@ -31,8 +31,8 @@ export class V1_CompilationWarning {
       sourceInformation: usingModelSchema(
         V1_sourceInformationSerialization.schema,
       ),
-      defectSeverityLevel: primitive(),
-      defectTypeId: primitive(),
+      defectSeverityLevel: optional(primitive()),
+      defectTypeId: optional(primitive()),
     }),
   );
 }
