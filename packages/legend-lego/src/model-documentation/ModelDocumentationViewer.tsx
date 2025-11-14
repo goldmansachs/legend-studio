@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-present, Goldman Sachs
+ * Copyright (c) 2025-present, Goldman Sachs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { observer } from 'mobx-react-lite';
 import {
   AnchorLinkIcon,
   BasePopover,
@@ -41,50 +40,51 @@ import {
   CaretRightIcon,
   CaretLeftIcon,
 } from '@finos/legend-art';
-import { type DataSpaceViewerState } from '../stores/DataSpaceViewerState.js';
-import { DataSpaceWikiPlaceholder } from './DataSpacePlaceholder.js';
-import {
-  DataSpaceAssociationDocumentationEntry,
-  DataSpaceBasicDocumentationEntry,
-  DataSpaceClassDocumentationEntry,
-  DataSpaceEnumerationDocumentationEntry,
-  DataSpaceModelDocumentationEntry,
-  DataSpacePropertyDocumentationEntry,
-  type NormalizedDataSpaceDocumentationEntry,
-} from '../graph-manager/action/analytics/DataSpaceAnalysis.js';
-import { debounce, isNonNullable, prettyCONSTName } from '@finos/legend-shared';
-import { useApplicationStore, useCommands } from '@finos/legend-application';
 import {
   CORE_PURE_PATH,
   ELEMENT_PATH_DELIMITER,
+  getMultiplicityDescription,
   MILESTONING_STEREOTYPE,
   PROPERTY_ACCESSOR,
-  getMultiplicityDescription,
 } from '@finos/legend-graph';
-import { useEffect, useMemo, useRef } from 'react';
 import {
-  type ModelsDocumentationFilterTreeNodeData,
-  type DataSpaceViewerModelsDocumentationState,
-  ModelsDocumentationFilterTreeTypeNodeData,
-  ModelsDocumentationFilterTreeElementNodeData,
-  ModelsDocumentationFilterTreePackageNodeData,
-  ModelsDocumentationFilterTreeNodeCheckType,
-  uncheckFilterTreeNode,
-  checkFilterTreeNode,
-  uncheckAllFilterTree,
-  ModelsDocumentationFilterTreeRootNodeData,
-} from '../stores/DataSpaceModelsDocumentationState.js';
+  type NormalizedDocumentationEntry,
+  AssociationDocumentationEntry,
+  BasicDocumentationEntry,
+  ClassDocumentationEntry,
+  EnumerationDocumentationEntry,
+  ModelDocumentationEntry,
+  PropertyDocumentationEntry,
+} from './ModelDocumentationAnalysis.js';
+import { debounce, prettyCONSTName } from '@finos/legend-shared';
 import {
   DataGrid,
   type DataGridCellRendererParams,
-} from '@finos/legend-lego/data-grid';
-import { FuzzySearchAdvancedConfigMenu } from '@finos/legend-lego/application';
+} from '../data-grid/DataGrid.js';
 import {
-  DATA_SPACE_VIEWER_ACTIVITY_MODE,
-  generateAnchorForActivity,
-} from '../stores/DataSpaceViewerNavigation.js';
+  useApplicationStore,
+  useCommands,
+  type GenericLegendApplicationStore,
+} from '@finos/legend-application';
+import { observer } from 'mobx-react-lite';
+import {
+  type ModelsDocumentationFilterTreeNodeData,
+  type ViewerModelsDocumentationState,
+  checkFilterTreeNode,
+  ModelsDocumentationFilterTreeElementNodeData,
+  ModelsDocumentationFilterTreeNodeCheckType,
+  ModelsDocumentationFilterTreePackageNodeData,
+  ModelsDocumentationFilterTreeRootNodeData,
+  ModelsDocumentationFilterTreeTypeNodeData,
+  uncheckAllFilterTree,
+  uncheckFilterTreeNode,
+} from './ModelDocumentationState.js';
+import { FuzzySearchAdvancedConfigMenu } from '../application/FuzzySearchAdvancedConfigMenu.js';
+import { useEffect, useMemo, useRef } from 'react';
 
-const getMilestoningLabel = (val: string | undefined): string | undefined => {
+export const getMilestoningLabel = (
+  val: string | undefined,
+): string | undefined => {
   switch (val) {
     case MILESTONING_STEREOTYPE.BITEMPORAL:
       return 'Bi-temporal';
@@ -98,7 +98,7 @@ const getMilestoningLabel = (val: string | undefined): string | undefined => {
 };
 
 const ElementInfoTooltip: React.FC<{
-  entry: DataSpaceModelDocumentationEntry;
+  entry: ModelDocumentationEntry; //make general version
   children: React.ReactElement;
 }> = (props) => {
   const { entry, children } = props;
@@ -134,7 +134,7 @@ const ElementInfoTooltip: React.FC<{
               {entry.path}
             </div>
           </div>
-          {entry instanceof DataSpaceClassDocumentationEntry &&
+          {entry instanceof ClassDocumentationEntry &&
             entry.milestoning !== undefined && (
               <div className="data-space__viewer__tooltip__item">
                 <div className="data-space__viewer__tooltip__item__label">
@@ -154,8 +154,8 @@ const ElementInfoTooltip: React.FC<{
 };
 
 const PropertyInfoTooltip: React.FC<{
-  entry: DataSpacePropertyDocumentationEntry;
-  elementEntry: DataSpaceModelDocumentationEntry;
+  entry: PropertyDocumentationEntry;
+  elementEntry: ModelDocumentationEntry;
   children: React.ReactElement;
 }> = (props) => {
   const { entry, elementEntry, children } = props;
@@ -231,16 +231,15 @@ const PropertyInfoTooltip: React.FC<{
   );
 };
 
-const ElementContentCellRenderer = observer(
+export const ElementContentCellRenderer = observer(
   (
-    params: DataGridCellRendererParams<NormalizedDataSpaceDocumentationEntry> & {
-      dataSpaceViewerState: DataSpaceViewerState;
+    params: DataGridCellRendererParams<NormalizedDocumentationEntry> & {
+      modelsDocumentationState: ViewerModelsDocumentationState; //change this to accept bare minimum
     },
   ) => {
-    const { data, dataSpaceViewerState } = params;
+    const { data, modelsDocumentationState } = params;
     const applicationStore = useApplicationStore();
-    const showHumanizedForm =
-      dataSpaceViewerState.modelsDocumentationState.showHumanizedForm;
+    const showHumanizedForm = modelsDocumentationState.showHumanizedForm;
 
     if (!data) {
       return null;
@@ -255,7 +254,7 @@ const ElementContentCellRenderer = observer(
       ? prettyCONSTName(data.elementEntry.name)
       : data.elementEntry.name;
 
-    if (data.elementEntry instanceof DataSpaceClassDocumentationEntry) {
+    if (data.elementEntry instanceof ClassDocumentationEntry) {
       return (
         <div
           className="data-space__viewer__models-documentation__grid__cell"
@@ -308,9 +307,7 @@ const ElementContentCellRenderer = observer(
           </div>
         </div>
       );
-    } else if (
-      data.elementEntry instanceof DataSpaceEnumerationDocumentationEntry
-    ) {
+    } else if (data.elementEntry instanceof EnumerationDocumentationEntry) {
       return (
         <div
           className="data-space__viewer__models-documentation__grid__cell"
@@ -350,9 +347,7 @@ const ElementContentCellRenderer = observer(
           </div>
         </div>
       );
-    } else if (
-      data.elementEntry instanceof DataSpaceAssociationDocumentationEntry
-    ) {
+    } else if (data.elementEntry instanceof AssociationDocumentationEntry) {
       return (
         <div
           className="data-space__viewer__models-documentation__grid__cell"
@@ -397,16 +392,15 @@ const ElementContentCellRenderer = observer(
   },
 );
 
-const SubElementDocContentCellRenderer = observer(
+export const SubElementDocContentCellRenderer = observer(
   (
-    params: DataGridCellRendererParams<NormalizedDataSpaceDocumentationEntry> & {
-      dataSpaceViewerState: DataSpaceViewerState;
+    params: DataGridCellRendererParams<NormalizedDocumentationEntry> & {
+      modelsDocumentationState: ViewerModelsDocumentationState;
     },
   ) => {
-    const { data, dataSpaceViewerState } = params;
+    const { data, modelsDocumentationState } = params;
     const applicationStore = useApplicationStore();
-    const showHumanizedForm =
-      dataSpaceViewerState.modelsDocumentationState.showHumanizedForm;
+    const showHumanizedForm = modelsDocumentationState.showHumanizedForm;
 
     if (!data) {
       return null;
@@ -416,9 +410,9 @@ const SubElementDocContentCellRenderer = observer(
     const isDerivedProperty = label.endsWith('()');
     label = isDerivedProperty ? label.slice(0, -2) : label;
 
-    if (data.entry instanceof DataSpaceModelDocumentationEntry) {
+    if (data.entry instanceof ModelDocumentationEntry) {
       return null;
-    } else if (data.entry instanceof DataSpacePropertyDocumentationEntry) {
+    } else if (data.entry instanceof PropertyDocumentationEntry) {
       return (
         <div
           className="data-space__viewer__models-documentation__grid__cell"
@@ -478,7 +472,7 @@ const SubElementDocContentCellRenderer = observer(
           </div>
         </div>
       );
-    } else if (data.entry instanceof DataSpaceBasicDocumentationEntry) {
+    } else if (data.entry instanceof BasicDocumentationEntry) {
       const copyValue = (): void => {
         applicationStore.clipboardService
           .copyTextToClipboard(
@@ -525,9 +519,9 @@ const SubElementDocContentCellRenderer = observer(
   },
 );
 
-const ElementDocumentationCellRenderer = (
-  params: DataGridCellRendererParams<NormalizedDataSpaceDocumentationEntry> & {
-    dataSpaceViewerState: DataSpaceViewerState;
+export const ElementDocumentationCellRenderer = (
+  params: DataGridCellRendererParams<NormalizedDocumentationEntry> & {
+    //dataProductViewerState: DataProductViewerState;
   },
 ): React.ReactNode => {
   const data = params.data;
@@ -543,13 +537,15 @@ const ElementDocumentationCellRenderer = (
   );
 };
 
-const DataSpaceModelsDocumentationGridPanel = observer(
-  (props: { dataSpaceViewerState: DataSpaceViewerState }) => {
-    const { dataSpaceViewerState } = props;
-    const documentationState = dataSpaceViewerState.modelsDocumentationState;
+export const ModelsDocumentationGridPanel = observer(
+  (props: {
+    modelsDocumentationState: ViewerModelsDocumentationState;
+    applicationStore: GenericLegendApplicationStore;
+  }) => {
+    const { modelsDocumentationState, applicationStore } = props;
+    const documentationState = modelsDocumentationState;
     const darkMode =
-      !dataSpaceViewerState.applicationStore.layoutService
-        .TEMPORARY__isLightColorThemeEnabled;
+      !applicationStore.layoutService.TEMPORARY__isLightColorThemeEnabled;
 
     return (
       <div
@@ -569,7 +565,7 @@ const DataSpaceModelsDocumentationGridPanel = observer(
           overlayNoRowsTemplate={`<div class="data-space__viewer__grid--empty">No documentation found</div>`}
           // highlight element row
           getRowClass={(params) =>
-            params.data?.entry instanceof DataSpaceModelDocumentationEntry
+            params.data?.entry instanceof ModelDocumentationEntry
               ? 'data-space__viewer__models-documentation__grid__element-row'
               : undefined
           }
@@ -585,7 +581,8 @@ const DataSpaceModelsDocumentationGridPanel = observer(
               sortable: true,
               resizable: true,
               cellRendererParams: {
-                dataSpaceViewerState,
+                modelsDocumentationState,
+                applicationStore,
               },
               cellRenderer: ElementContentCellRenderer,
               headerName: 'Model',
@@ -596,7 +593,8 @@ const DataSpaceModelsDocumentationGridPanel = observer(
               sortable: false,
               resizable: true,
               cellRendererParams: {
-                dataSpaceViewerState,
+                modelsDocumentationState,
+                applicationStore,
               },
               cellRenderer: SubElementDocContentCellRenderer,
               headerName: '',
@@ -620,7 +618,7 @@ const DataSpaceModelsDocumentationGridPanel = observer(
   },
 );
 
-const getFilterTreeNodeIcon = (
+export const getFilterTreeNodeIcon = (
   node: ModelsDocumentationFilterTreeNodeData,
 ): React.ReactNode | undefined => {
   if (node instanceof ModelsDocumentationFilterTreeElementNodeData) {
@@ -678,7 +676,7 @@ const getFilterTreeNodeIcon = (
 
 const getFilterNodeCount = (
   node: ModelsDocumentationFilterTreeNodeData,
-  documentationState: DataSpaceViewerModelsDocumentationState,
+  documentationState: ViewerModelsDocumentationState, //was DataProductViewerModelsDocumentationState
 ): number | undefined => {
   if (node instanceof ModelsDocumentationFilterTreeElementNodeData) {
     return documentationState.searchResults.filter(
@@ -695,20 +693,17 @@ const getFilterNodeCount = (
   } else if (node instanceof ModelsDocumentationFilterTreeTypeNodeData) {
     return node.typePath === CORE_PURE_PATH.CLASS
       ? documentationState.searchResults.filter(
-          (entry) =>
-            entry.elementEntry instanceof DataSpaceClassDocumentationEntry,
+          (entry) => entry.elementEntry instanceof ClassDocumentationEntry,
         ).length
       : node.typePath === CORE_PURE_PATH.ENUMERATION
         ? documentationState.searchResults.filter(
             (entry) =>
-              entry.elementEntry instanceof
-              DataSpaceEnumerationDocumentationEntry,
+              entry.elementEntry instanceof EnumerationDocumentationEntry,
           ).length
         : node.typePath === CORE_PURE_PATH.ASSOCIATION
           ? documentationState.searchResults.filter(
               (entry) =>
-                entry.elementEntry instanceof
-                DataSpaceAssociationDocumentationEntry,
+                entry.elementEntry instanceof AssociationDocumentationEntry,
             ).length
           : undefined;
   } else if (node instanceof ModelsDocumentationFilterTreeRootNodeData) {
@@ -717,12 +712,12 @@ const getFilterNodeCount = (
   return undefined;
 };
 
-const DataSpaceModelsDocumentationFilterTreeNodeContainer = observer(
+const ModelsDocumentationFilterTreeNodeContainer = observer(
   (
     props: TreeNodeContainerProps<
-      ModelsDocumentationFilterTreeNodeData,
+      ModelsDocumentationFilterTreeNodeData, //lets make a general modeldocumentation state
       {
-        documentationState: DataSpaceViewerModelsDocumentationState;
+        documentationState: ViewerModelsDocumentationState;
         refreshTreeData: () => void;
         uncheckTree: () => void;
         updateFilter: () => void;
@@ -820,10 +815,10 @@ const DataSpaceModelsDocumentationFilterTreeNodeContainer = observer(
   },
 );
 
-const DataSpaceModelsDocumentationFilterPanel = observer(
-  (props: { dataSpaceViewerState: DataSpaceViewerState }) => {
-    const { dataSpaceViewerState } = props;
-    const documentationState = dataSpaceViewerState.modelsDocumentationState;
+const ModelsDocumentationFilterPanel = observer(
+  (props: { modelsDocumentationState: ViewerModelsDocumentationState }) => {
+    const { modelsDocumentationState } = props;
+    const documentationState = modelsDocumentationState;
     const resetAll = (): void => documentationState.resetAllFilters();
     const resetTypeFilter = (): void => documentationState.resetTypeFilter();
     const resetPackageFilter = (): void =>
@@ -867,8 +862,7 @@ const DataSpaceModelsDocumentationFilterPanel = observer(
           <div className="data-space__viewer__models-documentation__filter__group__content">
             <TreeView
               components={{
-                TreeNodeContainer:
-                  DataSpaceModelsDocumentationFilterTreeNodeContainer,
+                TreeNodeContainer: ModelsDocumentationFilterTreeNodeContainer,
               }}
               treeData={documentationState.typeFilterTreeData}
               getChildNodes={(node) =>
@@ -876,7 +870,10 @@ const DataSpaceModelsDocumentationFilterPanel = observer(
                   .map((id) =>
                     documentationState.typeFilterTreeData.nodes.get(id),
                   )
-                  .filter(isNonNullable)
+                  .filter(
+                    (item): item is ModelsDocumentationFilterTreeNodeData =>
+                      item !== undefined,
+                  )
                   .sort((a, b) => a.label.localeCompare(b.label))
               }
               innerProps={{
@@ -909,8 +906,7 @@ const DataSpaceModelsDocumentationFilterPanel = observer(
           <div className="data-space__viewer__models-documentation__filter__group__content">
             <TreeView
               components={{
-                TreeNodeContainer:
-                  DataSpaceModelsDocumentationFilterTreeNodeContainer,
+                TreeNodeContainer: ModelsDocumentationFilterTreeNodeContainer,
               }}
               treeData={documentationState.packageFilterTreeData}
               getChildNodes={(node) =>
@@ -918,7 +914,10 @@ const DataSpaceModelsDocumentationFilterPanel = observer(
                   .map((id) =>
                     documentationState.packageFilterTreeData.nodes.get(id),
                   )
-                  .filter(isNonNullable)
+                  .filter(
+                    (item): item is ModelsDocumentationFilterTreeNodeData =>
+                      item !== undefined,
+                  )
                   .sort((a, b) => a.label.localeCompare(b.label))
               }
               innerProps={{
@@ -940,12 +939,12 @@ const DataSpaceModelsDocumentationFilterPanel = observer(
   },
 );
 
-const DataSpaceModelsDocumentationSearchBar = observer(
-  (props: { dataSpaceViewerState: DataSpaceViewerState }) => {
-    const { dataSpaceViewerState } = props;
+const ModelsDocumentationSearchBar = observer(
+  (props: { modelsDocumentationState: ViewerModelsDocumentationState }) => {
+    const { modelsDocumentationState } = props;
     const searchInputRef = useRef<HTMLInputElement>(null);
     const searchConfigTriggerRef = useRef<HTMLButtonElement>(null);
-    const documentationState = dataSpaceViewerState.modelsDocumentationState;
+    const documentationState = modelsDocumentationState;
     const searchText = documentationState.searchText;
     const debouncedSearch = useMemo(
       () => debounce(() => documentationState.search(), 100),
@@ -1061,29 +1060,23 @@ const DataSpaceModelsDocumentationSearchBar = observer(
   },
 );
 
-export const DataSpaceModelsDocumentation = observer(
-  (props: { dataSpaceViewerState: DataSpaceViewerState }) => {
-    const { dataSpaceViewerState } = props;
+const ProductWikiPlaceholder: React.FC<{ message: string }> = (props) => (
+  <div className="data-product__viewer__wiki__placeholder">{props.message}</div>
+);
+
+export const ModelsDocumentation = observer(
+  (props: {
+    modelsDocumentationState: ViewerModelsDocumentationState;
+    elementDocs: NormalizedDocumentationEntry[];
+    applicationStore: GenericLegendApplicationStore;
+  }) => {
+    const { modelsDocumentationState, elementDocs, applicationStore } = props;
     const sectionRef = useRef<HTMLDivElement>(null);
-    const anchor = generateAnchorForActivity(
-      DATA_SPACE_VIEWER_ACTIVITY_MODE.MODELS_DOCUMENTATION,
-    );
 
-    useCommands(dataSpaceViewerState.modelsDocumentationState);
+    useCommands(modelsDocumentationState);
 
-    useEffect(() => {
-      if (sectionRef.current) {
-        dataSpaceViewerState.layoutState.setWikiPageAnchor(
-          anchor,
-          sectionRef.current,
-        );
-      }
-      return () => dataSpaceViewerState.layoutState.unsetWikiPageAnchor(anchor);
-    }, [dataSpaceViewerState, anchor]);
-
-    const documentationEntries =
-      dataSpaceViewerState.dataSpaceAnalysisResult.elementDocs;
-    const documentationState = dataSpaceViewerState.modelsDocumentationState;
+    const documentationEntries = elementDocs;
+    const documentationState = modelsDocumentationState;
 
     const toggleFilterPanel = (): void =>
       documentationState.setShowFilterPanel(
@@ -1098,7 +1091,6 @@ export const DataSpaceModelsDocumentation = observer(
             <button
               className="data-space__viewer__wiki__section__header__anchor"
               tabIndex={-1}
-              onClick={() => dataSpaceViewerState.changeZone(anchor, true)}
             >
               <AnchorLinkIcon />
             </button>
@@ -1125,24 +1117,25 @@ export const DataSpaceModelsDocumentation = observer(
                     <FilterIcon />
                   </div>
                 </button>
-                <DataSpaceModelsDocumentationSearchBar
-                  dataSpaceViewerState={dataSpaceViewerState}
+                <ModelsDocumentationSearchBar
+                  modelsDocumentationState={modelsDocumentationState}
                 />
               </div>
               <div className="data-space__viewer__models-documentation__content">
                 {documentationState.showFilterPanel && (
-                  <DataSpaceModelsDocumentationFilterPanel
-                    dataSpaceViewerState={dataSpaceViewerState}
+                  <ModelsDocumentationFilterPanel
+                    modelsDocumentationState={modelsDocumentationState}
                   />
                 )}
-                <DataSpaceModelsDocumentationGridPanel
-                  dataSpaceViewerState={dataSpaceViewerState}
+                <ModelsDocumentationGridPanel
+                  modelsDocumentationState={modelsDocumentationState}
+                  applicationStore={applicationStore}
                 />
               </div>
             </div>
           )}
           {documentationEntries.length === 0 && (
-            <DataSpaceWikiPlaceholder message="(not specified)" />
+            <ProductWikiPlaceholder message="(not specified)" />
           )}
         </div>
       </div>

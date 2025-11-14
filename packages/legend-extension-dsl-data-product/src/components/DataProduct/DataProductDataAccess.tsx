@@ -589,6 +589,11 @@ export const DataProductAccessPointGroupViewer = observer(
     const [isEntitledButtonGroupMenuOpen, setIsEntitledButtonGroupMenuOpen] =
       useState(false);
     const requestAccessButtonGroupRef = useRef<HTMLDivElement | null>(null);
+    let user = undefined;
+    if (auth.user) {
+      user = auth.user;
+    }
+    const accessToken = user?.access_token;
 
     const entitlementsDataContractViewerState = useMemo(() => {
       return dataAccessState?.dataContract &&
@@ -619,19 +624,20 @@ export const DataProductAccessPointGroupViewer = observer(
       if (
         dataAccessState?.lakehouseContractServerClient &&
         apgState.fetchingSubscriptionsState.isInInitialState &&
-        apgState.apgContracts.length > 0
+        apgState.apgContracts.length > 0 &&
+        accessToken
       ) {
         apgState.fetchSubscriptions(
           apgState.apgContracts,
           dataAccessState.lakehouseContractServerClient,
-          auth.user?.access_token,
+          accessToken,
         );
       }
     }, [
       apgState,
       apgState.fetchingSubscriptionsState,
       apgState.apgContracts,
-      auth.user?.access_token,
+      accessToken,
       dataAccessState?.lakehouseContractServerClient,
     ]);
 
@@ -844,7 +850,7 @@ export const DataProductAccessPointGroupViewer = observer(
             }
             apgState={apgState}
             dataAccessState={dataAccessState}
-            token={auth.user?.access_token}
+            token={accessToken}
           />
         )}
         {entitlementsDataContractViewerState && dataAccessState && (
@@ -857,7 +863,7 @@ export const DataProductAccessPointGroupViewer = observer(
                 apgState.fetchUserAccessStatus(
                   apgState.associatedUserContract.guid,
                   dataAccessState.lakehouseContractServerClient,
-                  auth.user?.access_token,
+                  accessToken,
                 );
               }
             }}

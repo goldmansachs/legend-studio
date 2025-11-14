@@ -37,6 +37,7 @@ import {
   TerminalAccessAndTable,
   TerminalProductPrice,
 } from './TerminalProductAccess.js';
+import { ModelsDocumentation } from '@finos/legend-lego/model-documentation';
 
 export const ProductWikiPlaceholder: React.FC<{ message: string }> = (
   props,
@@ -150,6 +151,13 @@ export const ProductWiki = observer(
               <DataProducteDataAccess
                 dataProductViewerState={productViewerState}
                 dataProductDataAccessState={productDataAccessState}
+              />
+              <ModelsDocumentation
+                modelsDocumentationState={
+                  productViewerState.modelsDocumentationState
+                }
+                elementDocs={productViewerState.elementDocs}
+                applicationStore={productViewerState.applicationStore}
               />
               <DataProductSupportInfo
                 dataProductViewerState={productViewerState}

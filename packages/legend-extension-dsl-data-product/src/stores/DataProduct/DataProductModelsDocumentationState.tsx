@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-present, Goldman Sachs
+ * Copyright (c) 2025-present, Goldman Sachs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,36 +15,32 @@
  */
 
 import { action, computed, makeObservable, observable } from 'mobx';
-import { type DataSpaceViewerState } from './DataSpaceViewerState.js';
+import { type DataProductViewerState } from './DataProductViewerState.js';
 import { type TreeData } from '@finos/legend-art';
 import { filterByType, FuzzySearchEngine } from '@finos/legend-shared';
-
 import type { CommandRegistrar } from '@finos/legend-application';
-import { DSL_DATA_SPACE_LEGEND_APPLICATION_COMMAND_KEY } from '../__lib__/DSL_DataSpace_LegendApplicationCommand.js';
-import { DATA_SPACE_VIEWER_ACTIVITY_MODE } from './DataSpaceViewerNavigation.js';
 import {
   type ModelsDocumentationFilterTreeNodeData,
   type NormalizedDocumentationEntry,
-  buildPackageFilterTreeData,
-  ModelsDocumentationFilterTreeNodeCheckType,
   ModelDocumentationEntry,
+  ModelsDocumentationFilterTreeNodeCheckType,
   ModelsDocumentationFilterTreeElementNodeData,
   trickleDownCheckNode,
   trickleUpCheckNode,
   uncheckAllFilterTree,
+  buildPackageFilterTreeData,
   ViewerModelsDocumentationState,
 } from '@finos/legend-lego/model-documentation';
 
-export class DataSpaceViewerModelsDocumentationState
+export class DataProductViewerModelsDocumentationState
   extends ViewerModelsDocumentationState
   implements CommandRegistrar
 {
-  readonly dataSpaceViewerState: DataSpaceViewerState;
-
+  readonly dataProductViewerState: DataProductViewerState;
   packageFilterTreeData: TreeData<ModelsDocumentationFilterTreeNodeData>;
   private readonly searchEngine: FuzzySearchEngine<NormalizedDocumentationEntry>;
 
-  constructor(dataSpaceViewerState: DataSpaceViewerState) {
+  constructor(dataProductViewerState: DataProductViewerState) {
     super();
     makeObservable(this, {
       packageFilterTreeData: observable.ref,
@@ -54,9 +50,9 @@ export class DataSpaceViewerModelsDocumentationState
       resetPackageFilter: action,
     });
 
-    this.dataSpaceViewerState = dataSpaceViewerState;
+    this.dataProductViewerState = dataProductViewerState;
     this.searchEngine = new FuzzySearchEngine(
-      this.dataSpaceViewerState.dataSpaceAnalysisResult.elementDocs,
+      this.dataProductViewerState.elementDocs,
       {
         includeScore: true,
         // NOTE: we must not sort/change the order in the grid since
@@ -104,15 +100,15 @@ export class DataSpaceViewerModelsDocumentationState
         useExtendedSearch: true,
       },
     );
+
     this.packageFilterTreeData = buildPackageFilterTreeData(
-      this.dataSpaceViewerState.dataSpaceAnalysisResult.elementDocs
+      this.dataProductViewerState.elementDocs
         .map((entry) => entry.entry)
         .filter(filterByType(ModelDocumentationEntry)),
     );
-    // this.updateTypeFilter();
     this.updatePackageFilter();
-    this.searchResults =
-      this.dataSpaceViewerState.dataSpaceAnalysisResult.elementDocs;
+
+    this.searchResults = this.dataProductViewerState.elementDocs;
   }
 
   protected performSearch(searchText: string): NormalizedDocumentationEntry[] {
@@ -122,7 +118,7 @@ export class DataSpaceViewerModelsDocumentationState
   }
 
   protected getElementDocs(): NormalizedDocumentationEntry[] {
-    return this.dataSpaceViewerState.dataSpaceAnalysisResult.elementDocs;
+    return this.dataProductViewerState.elementDocs;
   }
 
   get isPackageFilterCustomized(): boolean {
@@ -131,8 +127,13 @@ export class DataSpaceViewerModelsDocumentationState
         node.checkType === ModelsDocumentationFilterTreeNodeCheckType.UNCHECKED,
     );
   }
-  resetPackageFilterTreeData(): void {
-    this.packageFilterTreeData = { ...this.packageFilterTreeData };
+
+  resetPackageFilter(): void {
+    this.packageFilterTreeData.nodes.forEach((node) =>
+      node.setCheckType(ModelsDocumentationFilterTreeNodeCheckType.CHECKED),
+    );
+    this.updatePackageFilter();
+    this.resetPackageFilterTreeData();
   }
 
   updatePackageFilter(): void {
@@ -149,16 +150,12 @@ export class DataSpaceViewerModelsDocumentationState
     this.filterPaths = elementPaths.toSorted((a, b) => a.localeCompare(b));
   }
 
-  resetPackageFilter(): void {
-    this.packageFilterTreeData.nodes.forEach((node) =>
-      node.setCheckType(ModelsDocumentationFilterTreeNodeCheckType.CHECKED),
-    );
-    this.updatePackageFilter();
-    this.resetPackageFilterTreeData();
+  resetPackageFilterTreeData(): void {
+    this.packageFilterTreeData = { ...this.packageFilterTreeData };
   }
 
   hasClassDocumentation(classPath: string): boolean {
-    return this.dataSpaceViewerState.dataSpaceAnalysisResult.elementDocs.some(
+    return this.dataProductViewerState.elementDocs.some(
       (entry) => entry.elementEntry.path === classPath,
     );
   }
@@ -179,24 +176,11 @@ export class DataSpaceViewerModelsDocumentationState
     }
   }
 
-  registerCommands(): void {
-    const DEFAULT_TRIGGER = (): boolean =>
-      this.dataSpaceViewerState.currentActivity ===
-      DATA_SPACE_VIEWER_ACTIVITY_MODE.MODELS_DOCUMENTATION;
-    this.dataSpaceViewerState.applicationStore.commandService.registerCommand({
-      key: DSL_DATA_SPACE_LEGEND_APPLICATION_COMMAND_KEY.SEARCH_DOCUMENTATION,
-      trigger: DEFAULT_TRIGGER,
-      action: () => this.focusSearchInput(),
-    });
+  override registerCommands(): void {
+    //To be implemented
   }
 
-  deregisterCommands(): void {
-    [
-      DSL_DATA_SPACE_LEGEND_APPLICATION_COMMAND_KEY.SEARCH_DOCUMENTATION,
-    ].forEach((commandKey) =>
-      this.dataSpaceViewerState.applicationStore.commandService.deregisterCommand(
-        commandKey,
-      ),
-    );
+  override deregisterCommands(): void {
+    //To be implemented
   }
 }
