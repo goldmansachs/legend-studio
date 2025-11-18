@@ -18,16 +18,18 @@ import { type TreeData, type TreeNodeData } from '@finos/legend-art';
 import { CORE_PURE_PATH, ELEMENT_PATH_DELIMITER } from '@finos/legend-graph';
 import {
   ActionState,
+  filterByType,
   FuzzySearchAdvancedConfigState,
+  FuzzySearchEngine,
   guaranteeNonNullable,
 } from '@finos/legend-shared';
 import { action, computed, makeObservable, observable } from 'mobx';
 import {
-  type ModelDocumentationEntry,
   type NormalizedDocumentationEntry,
   AssociationDocumentationEntry,
   ClassDocumentationEntry,
   EnumerationDocumentationEntry,
+  ModelDocumentationEntry,
 } from './ModelDocumentationAnalysis.js';
 import type { CommandRegistrar } from '@finos/legend-application';
 
@@ -335,58 +337,19 @@ export abstract class ViewerModelsDocumentationState
   showHumanizedForm = true;
 
   private searchInput?: HTMLInputElement | undefined;
+  private readonly searchEngine: FuzzySearchEngine<NormalizedDocumentationEntry>;
   readonly searchConfigurationState: FuzzySearchAdvancedConfigState;
   readonly searchState = ActionState.create();
   searchText: string;
   searchResults: NormalizedDocumentationEntry[] = [];
   showSearchConfigurationMenu = false;
+  packageFilterTreeData: TreeData<ModelsDocumentationFilterTreeNodeData>;
+  elementDocs: NormalizedDocumentationEntry[];
 
-  abstract packageFilterTreeData: TreeData<ModelsDocumentationFilterTreeNodeData>;
-  abstract resetPackageFilterTreeData(): void;
-  abstract updatePackageFilter(): void;
-  abstract resetPackageFilter(): void;
-  abstract get isPackageFilterCustomized(): boolean;
   abstract registerCommands(): void;
   abstract deregisterCommands(): void;
 
-  protected abstract getElementDocs(): NormalizedDocumentationEntry[];
-  protected abstract performSearch(
-    searchText: string,
-  ): NormalizedDocumentationEntry[];
-
-  resetAllFilters(): void {
-    this.resetTypeFilter();
-    this.resetPackageFilter();
-  }
-
-  get isFilterCustomized(): boolean {
-    return this.isTypeFilterCustomized || this.isPackageFilterCustomized;
-  }
-
-  resetSearch(): void {
-    this.searchText = '';
-    this.searchResults = this.getElementDocs();
-    this.searchState.complete();
-  }
-
-  search(): void {
-    if (!this.searchText) {
-      this.searchResults = this.getElementDocs();
-      return;
-    }
-    this.searchState.inProgress();
-    this.searchResults = this.performSearch(
-      this.searchConfigurationState.generateSearchText(this.searchText),
-    );
-    this.searchState.complete();
-  }
-
-  showFilterPanel = true;
-  typeFilterTreeData: TreeData<ModelsDocumentationFilterTreeNodeData>;
-  filterTypes: string[] = [];
-  filterPaths: string[] = [];
-
-  constructor() {
+  constructor(elementDocs: NormalizedDocumentationEntry[]) {
     makeObservable(this, {
       showHumanizedForm: observable,
       searchText: observable,
@@ -413,9 +376,74 @@ export abstract class ViewerModelsDocumentationState
     this.searchConfigurationState = new FuzzySearchAdvancedConfigState(
       (): void => this.search(),
     );
+    this.elementDocs = elementDocs;
     this.searchText = '';
     this.typeFilterTreeData = buildTypeFilterTreeData();
     this.updateTypeFilter();
+    this.packageFilterTreeData = buildPackageFilterTreeData(
+      this.elementDocs
+        .map((entry) => entry.entry)
+        .filter(filterByType(ModelDocumentationEntry)),
+    );
+    this.searchResults = elementDocs;
+    this.updatePackageFilter();
+    this.searchEngine = new FuzzySearchEngine(elementDocs, {
+      includeScore: true,
+      // NOTE: we must not sort/change the order in the grid since
+      // we want to ensure the element row is on top
+      shouldSort: false,
+      // Ignore location when computing the search score
+      // See https://fusejs.io/concepts/scoring-theory.html
+      ignoreLocation: true,
+      // This specifies the point the search gives up
+      // `0.0` means exact match where `1.0` would match anything
+      // We set a relatively low threshold to filter out irrelevant results
+      threshold: 0.2,
+      keys: [
+        {
+          name: 'text',
+          weight: 3,
+        },
+        {
+          name: 'humanizedText',
+          weight: 3,
+        },
+        {
+          name: 'elementEntry.name',
+          weight: 3,
+        },
+        {
+          name: 'elementEntry.humanizedName',
+          weight: 3,
+        },
+        {
+          name: 'entry.name',
+          weight: 2,
+        },
+        {
+          name: 'entry.humanizedName',
+          weight: 2,
+        },
+        {
+          name: 'documentation',
+          weight: 4,
+        },
+      ],
+      // extended search allows for exact word match through single quote
+      // See https://fusejs.io/examples.html#extended-search
+      useExtendedSearch: true,
+    });
+  }
+
+  get isFilterCustomized(): boolean {
+    return this.isTypeFilterCustomized || this.isPackageFilterCustomized;
+  }
+
+  get isPackageFilterCustomized(): boolean {
+    return Array.from(this.packageFilterTreeData.nodes.values()).some(
+      (node) =>
+        node.checkType === ModelsDocumentationFilterTreeNodeCheckType.UNCHECKED,
+    );
   }
 
   get filteredSearchResults(): NormalizedDocumentationEntry[] {
@@ -436,6 +464,87 @@ export abstract class ViewerModelsDocumentationState
     return Array.from(this.typeFilterTreeData.nodes.values()).some(
       (node) =>
         node.checkType === ModelsDocumentationFilterTreeNodeCheckType.UNCHECKED,
+    );
+  }
+
+  resetAllFilters(): void {
+    this.resetTypeFilter();
+    this.resetPackageFilter();
+  }
+
+  resetSearch(): void {
+    this.searchText = '';
+    this.searchResults = this.elementDocs;
+    this.searchState.complete();
+  }
+
+  search(): void {
+    if (!this.searchText) {
+      this.searchResults = this.elementDocs;
+      return;
+    }
+    this.searchState.inProgress();
+    this.searchResults = this.performSearch(
+      this.searchConfigurationState.generateSearchText(this.searchText),
+    );
+    this.searchState.complete();
+  }
+
+  showFilterPanel = true;
+  typeFilterTreeData: TreeData<ModelsDocumentationFilterTreeNodeData>;
+  filterTypes: string[] = [];
+  filterPaths: string[] = [];
+
+  resetPackageFilterTreeData(): void {
+    this.packageFilterTreeData = { ...this.packageFilterTreeData };
+  }
+
+  hasClassDocumentation(classPath: string): boolean {
+    return this.elementDocs.some(
+      (entry) => entry.elementEntry.path === classPath,
+    );
+  }
+
+  viewClassDocumentation(classPath: string): void {
+    if (this.hasClassDocumentation(classPath)) {
+      const classNode = this.packageFilterTreeData.nodes.get(classPath);
+      if (classNode) {
+        uncheckAllFilterTree(this.packageFilterTreeData);
+        trickleDownCheckNode(classNode);
+        trickleUpCheckNode(classNode);
+        classNode.setCheckType(
+          ModelsDocumentationFilterTreeNodeCheckType.CHECKED,
+        );
+        this.resetSearch();
+        this.updatePackageFilter();
+      }
+    }
+  }
+
+  updatePackageFilter(): void {
+    const elementPaths: string[] = [];
+    this.packageFilterTreeData.nodes.forEach((node) => {
+      if (
+        node instanceof ModelsDocumentationFilterTreeElementNodeData &&
+        node.checkType === ModelsDocumentationFilterTreeNodeCheckType.CHECKED
+      ) {
+        elementPaths.push(node.elementPath);
+      }
+    });
+    this.filterPaths = elementPaths.toSorted((a, b) => a.localeCompare(b));
+  }
+
+  resetPackageFilter(): void {
+    this.packageFilterTreeData.nodes.forEach((node) =>
+      node.setCheckType(ModelsDocumentationFilterTreeNodeCheckType.CHECKED),
+    );
+    this.updatePackageFilter();
+    this.resetPackageFilterTreeData();
+  }
+
+  protected performSearch(searchText: string): NormalizedDocumentationEntry[] {
+    return Array.from(this.searchEngine.search(searchText).values()).map(
+      (result) => result.item,
     );
   }
 

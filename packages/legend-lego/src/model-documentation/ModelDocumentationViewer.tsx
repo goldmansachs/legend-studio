@@ -56,7 +56,7 @@ import {
   ModelDocumentationEntry,
   PropertyDocumentationEntry,
 } from './ModelDocumentationAnalysis.js';
-import { debounce, prettyCONSTName } from '@finos/legend-shared';
+import { debounce, isNonNullable, prettyCONSTName } from '@finos/legend-shared';
 import {
   DataGrid,
   type DataGridCellRendererParams,
@@ -98,7 +98,7 @@ export const getMilestoningLabel = (
 };
 
 const ElementInfoTooltip: React.FC<{
-  entry: ModelDocumentationEntry; //make general version
+  entry: ModelDocumentationEntry;
   children: React.ReactElement;
 }> = (props) => {
   const { entry, children } = props;
@@ -109,8 +109,8 @@ const ElementInfoTooltip: React.FC<{
       placement="bottom-end"
       disableInteractive={true}
       classes={{
-        tooltip: 'data-space__viewer__tooltip',
-        tooltipPlacementRight: 'data-space__viewer__tooltip--right',
+        tooltip: 'models-documentation__tooltip',
+        tooltipPlacementRight: 'models-documentation__tooltip--right',
       }}
       slotProps={{
         transition: {
@@ -121,26 +121,30 @@ const ElementInfoTooltip: React.FC<{
         },
       }}
       title={
-        <div className="data-space__viewer__tooltip__content">
-          <div className="data-space__viewer__tooltip__item">
-            <div className="data-space__viewer__tooltip__item__label">Name</div>
-            <div className="data-space__viewer__tooltip__item__value">
+        <div className="models-documentation__tooltip__content">
+          <div className="models-documentation__tooltip__item">
+            <div className="models-documentation__tooltip__item__label">
+              Name
+            </div>
+            <div className="models-documentation__tooltip__item__value">
               {entry.name}
             </div>
           </div>
-          <div className="data-space__viewer__tooltip__item">
-            <div className="data-space__viewer__tooltip__item__label">Path</div>
-            <div className="data-space__viewer__tooltip__item__value">
+          <div className="models-documentation__tooltip__item">
+            <div className="models-documentation__tooltip__item__label">
+              Path
+            </div>
+            <div className="models-documentation__tooltip__item__value">
               {entry.path}
             </div>
           </div>
           {entry instanceof ClassDocumentationEntry &&
             entry.milestoning !== undefined && (
-              <div className="data-space__viewer__tooltip__item">
-                <div className="data-space__viewer__tooltip__item__label">
+              <div className="models-documentation__tooltip__item">
+                <div className="models-documentation__tooltip__item__label">
                   Milestoning
                 </div>
-                <div className="data-space__viewer__tooltip__item__value">
+                <div className="models-documentation__tooltip__item__value">
                   {getMilestoningLabel(entry.milestoning)}
                 </div>
               </div>
@@ -166,8 +170,8 @@ const PropertyInfoTooltip: React.FC<{
       placement="bottom-end"
       disableInteractive={true}
       classes={{
-        tooltip: 'data-space__viewer__tooltip',
-        tooltipPlacementRight: 'data-space__viewer__tooltip--right',
+        tooltip: 'models-documentation__tooltip',
+        tooltipPlacementRight: 'models-documentation__tooltip--right',
       }}
       slotProps={{
         transition: {
@@ -178,47 +182,49 @@ const PropertyInfoTooltip: React.FC<{
         },
       }}
       title={
-        <div className="data-space__viewer__tooltip__content">
-          <div className="data-space__viewer__tooltip__item">
-            <div className="data-space__viewer__tooltip__item__label">Name</div>
-            <div className="data-space__viewer__tooltip__item__value">
+        <div className="models-documentation__tooltip__content">
+          <div className="models-documentation__tooltip__item">
+            <div className="models-documentation__tooltip__item__label">
+              Name
+            </div>
+            <div className="models-documentation__tooltip__item__value">
               {entry.name}
             </div>
           </div>
-          <div className="data-space__viewer__tooltip__item">
-            <div className="data-space__viewer__tooltip__item__label">
+          <div className="models-documentation__tooltip__item">
+            <div className="models-documentation__tooltip__item__label">
               Owner
             </div>
-            <div className="data-space__viewer__tooltip__item__value">
+            <div className="models-documentation__tooltip__item__value">
               {elementEntry.path}
             </div>
           </div>
           {entry.type && (
-            <div className="data-space__viewer__tooltip__item">
-              <div className="data-space__viewer__tooltip__item__label">
+            <div className="models-documentation__tooltip__item">
+              <div className="models-documentation__tooltip__item__label">
                 Type
               </div>
-              <div className="data-space__viewer__tooltip__item__value">
+              <div className="models-documentation__tooltip__item__value">
                 {entry.type}
               </div>
             </div>
           )}
           {entry.multiplicity && (
-            <div className="data-space__viewer__tooltip__item">
-              <div className="data-space__viewer__tooltip__item__label">
+            <div className="models-documentation__tooltip__item">
+              <div className="models-documentation__tooltip__item__label">
                 Multiplicity
               </div>
-              <div className="data-space__viewer__tooltip__item__value">
+              <div className="models-documentation__tooltip__item__value">
                 {getMultiplicityDescription(entry.multiplicity)}
               </div>
             </div>
           )}
           {entry.milestoning && (
-            <div className="data-space__viewer__tooltip__item">
-              <div className="data-space__viewer__tooltip__item__label">
+            <div className="models-documentation__tooltip__item">
+              <div className="models-documentation__tooltip__item__label">
                 Milestoning
               </div>
-              <div className="data-space__viewer__tooltip__item__value">
+              <div className="models-documentation__tooltip__item__value">
                 {getMilestoningLabel(entry.milestoning)}
               </div>
             </div>
@@ -234,7 +240,7 @@ const PropertyInfoTooltip: React.FC<{
 export const ElementContentCellRenderer = observer(
   (
     params: DataGridCellRendererParams<NormalizedDocumentationEntry> & {
-      modelsDocumentationState: ViewerModelsDocumentationState; //change this to accept bare minimum
+      modelsDocumentationState: ViewerModelsDocumentationState;
     },
   ) => {
     const { data, modelsDocumentationState } = params;
@@ -257,19 +263,19 @@ export const ElementContentCellRenderer = observer(
     if (data.elementEntry instanceof ClassDocumentationEntry) {
       return (
         <div
-          className="data-space__viewer__models-documentation__grid__cell"
+          className="models-documentation__grid__cell"
           title={`Class: ${data.elementEntry.path}`}
         >
-          <div className="data-space__viewer__models-documentation__grid__cell__label">
-            <div className="data-space__viewer__models-documentation__grid__cell__label__icon data-space__viewer__models-documentation__grid__cell__label__icon--class">
+          <div className="models-documentation__grid__cell__label">
+            <div className="models-documentation__grid__cell__label__icon models-documentation__grid__cell__label__icon--class">
               C
             </div>
-            <div className="data-space__viewer__models-documentation__grid__cell__label__text">
+            <div className="models-documentation__grid__cell__label__text">
               {label}
             </div>
             {data.elementEntry.milestoning && (
               <div
-                className="data-space__viewer__models-documentation__grid__cell__label__milestoning-badge"
+                className="models-documentation__grid__cell__label__milestoning-badge"
                 title={`Milestoning: ${getMilestoningLabel(
                   data.elementEntry.milestoning,
                 )}`}
@@ -278,14 +284,14 @@ export const ElementContentCellRenderer = observer(
               </div>
             )}
           </div>
-          <div className="data-space__viewer__models-documentation__grid__cell__actions">
+          <div className="models-documentation__grid__cell__actions">
             <ElementInfoTooltip entry={data.elementEntry}>
-              <div className="data-space__viewer__models-documentation__grid__cell__action">
-                <InfoCircleIcon className="data-space__viewer__models-documentation__grid__cell__action__info" />
+              <div className="models-documentation__grid__cell__action">
+                <InfoCircleIcon className="models-documentation__grid__cell__action__info" />
               </div>
             </ElementInfoTooltip>
             <ControlledDropdownMenu
-              className="data-space__viewer__models-documentation__grid__cell__action"
+              className="models-documentation__grid__cell__action"
               menuProps={{
                 anchorOrigin: { vertical: 'bottom', horizontal: 'right' },
                 transformOrigin: { vertical: 'top', horizontal: 'right' },
@@ -310,25 +316,25 @@ export const ElementContentCellRenderer = observer(
     } else if (data.elementEntry instanceof EnumerationDocumentationEntry) {
       return (
         <div
-          className="data-space__viewer__models-documentation__grid__cell"
+          className="models-documentation__grid__cell"
           title={`Enumeration: ${data.elementEntry.path}`}
         >
-          <div className="data-space__viewer__models-documentation__grid__cell__label">
-            <div className="data-space__viewer__models-documentation__grid__cell__label__icon data-space__viewer__models-documentation__grid__cell__label__icon--enumeration">
+          <div className="models-documentation__grid__cell__label">
+            <div className="models-documentation__grid__cell__label__icon models-documentation__grid__cell__label__icon--enumeration">
               E
             </div>
-            <div className="data-space__viewer__models-documentation__grid__cell__label__text">
+            <div className="models-documentation__grid__cell__label__text">
               {label}
             </div>
           </div>
-          <div className="data-space__viewer__models-documentation__grid__cell__actions">
+          <div className="models-documentation__grid__cell__actions">
             <ElementInfoTooltip entry={data.elementEntry}>
-              <div className="data-space__viewer__models-documentation__grid__cell__action">
-                <InfoCircleIcon className="data-space__viewer__models-documentation__grid__cell__action__info" />
+              <div className="models-documentation__grid__cell__action">
+                <InfoCircleIcon className="models-documentation__grid__cell__action__info" />
               </div>
             </ElementInfoTooltip>
             <ControlledDropdownMenu
-              className="data-space__viewer__models-documentation__grid__cell__action"
+              className="models-documentation__grid__cell__action"
               menuProps={{
                 anchorOrigin: { vertical: 'bottom', horizontal: 'right' },
                 transformOrigin: { vertical: 'top', horizontal: 'right' },
@@ -350,25 +356,25 @@ export const ElementContentCellRenderer = observer(
     } else if (data.elementEntry instanceof AssociationDocumentationEntry) {
       return (
         <div
-          className="data-space__viewer__models-documentation__grid__cell"
+          className="models-documentation__grid__cell"
           title={`Association: ${data.elementEntry.path}`}
         >
-          <div className="data-space__viewer__models-documentation__grid__cell__label">
-            <div className="data-space__viewer__models-documentation__grid__cell__label__icon data-space__viewer__models-documentation__grid__cell__label__icon--association">
+          <div className="models-documentation__grid__cell__label">
+            <div className="models-documentation__grid__cell__label__icon models-documentation__grid__cell__label__icon--association">
               A
             </div>
-            <div className="data-space__viewer__models-documentation__grid__cell__label__text">
+            <div className="models-documentation__grid__cell__label__text">
               {label}
             </div>
           </div>
-          <div className="data-space__viewer__models-documentation__grid__cell__actions">
+          <div className="models-documentation__grid__cell__actions">
             <ElementInfoTooltip entry={data.elementEntry}>
-              <div className="data-space__viewer__models-documentation__grid__cell__action">
-                <InfoCircleIcon className="data-space__viewer__models-documentation__grid__cell__action__info" />
+              <div className="models-documentation__grid__cell__action">
+                <InfoCircleIcon className="models-documentation__grid__cell__action__info" />
               </div>
             </ElementInfoTooltip>
             <ControlledDropdownMenu
-              className="data-space__viewer__models-documentation__grid__cell__action"
+              className="models-documentation__grid__cell__action"
               menuProps={{
                 anchorOrigin: { vertical: 'bottom', horizontal: 'right' },
                 transformOrigin: { vertical: 'top', horizontal: 'right' },
@@ -415,26 +421,26 @@ export const SubElementDocContentCellRenderer = observer(
     } else if (data.entry instanceof PropertyDocumentationEntry) {
       return (
         <div
-          className="data-space__viewer__models-documentation__grid__cell"
+          className="models-documentation__grid__cell"
           title={`${isDerivedProperty ? 'Derived property' : 'Property'}: ${
             data.elementEntry.path
           }${PROPERTY_ACCESSOR}${data.entry.name}`}
         >
-          <div className="data-space__viewer__models-documentation__grid__cell__label">
-            <div className="data-space__viewer__models-documentation__grid__cell__label__icon data-space__viewer__models-documentation__grid__cell__label__icon--property">
+          <div className="models-documentation__grid__cell__label">
+            <div className="models-documentation__grid__cell__label__icon models-documentation__grid__cell__label__icon--property">
               P
             </div>
-            <div className="data-space__viewer__models-documentation__grid__cell__label__text">
+            <div className="models-documentation__grid__cell__label__text">
               {label}
             </div>
             {isDerivedProperty && (
-              <div className="data-space__viewer__models-documentation__grid__cell__label__derived-property-badge">
+              <div className="models-documentation__grid__cell__label__derived-property-badge">
                 ()
               </div>
             )}
             {data.entry.milestoning && (
               <div
-                className="data-space__viewer__models-documentation__grid__cell__label__milestoning-badge"
+                className="models-documentation__grid__cell__label__milestoning-badge"
                 title={`Milestoning: ${getMilestoningLabel(
                   data.entry.milestoning,
                 )}`}
@@ -443,17 +449,17 @@ export const SubElementDocContentCellRenderer = observer(
               </div>
             )}
           </div>
-          <div className="data-space__viewer__models-documentation__grid__cell__actions">
+          <div className="models-documentation__grid__cell__actions">
             <PropertyInfoTooltip
               entry={data.entry}
               elementEntry={data.elementEntry}
             >
-              <div className="data-space__viewer__models-documentation__grid__cell__action">
-                <InfoCircleIcon className="data-space__viewer__models-documentation__grid__cell__action__info" />
+              <div className="models-documentation__grid__cell__action">
+                <InfoCircleIcon className="models-documentation__grid__cell__action__info" />
               </div>
             </PropertyInfoTooltip>
             <ControlledDropdownMenu
-              className="data-space__viewer__models-documentation__grid__cell__action"
+              className="models-documentation__grid__cell__action"
               menuProps={{
                 anchorOrigin: { vertical: 'bottom', horizontal: 'right' },
                 transformOrigin: { vertical: 'top', horizontal: 'right' },
@@ -482,20 +488,20 @@ export const SubElementDocContentCellRenderer = observer(
       };
       return (
         <div
-          className="data-space__viewer__models-documentation__grid__cell"
+          className="models-documentation__grid__cell"
           title={`Enum: ${data.elementEntry.path}${PROPERTY_ACCESSOR}${data.entry.name}`}
         >
-          <div className="data-space__viewer__models-documentation__grid__cell__label">
-            <div className="data-space__viewer__models-documentation__grid__cell__label__icon data-space__viewer__models-documentation__grid__cell__label__icon--enum">
+          <div className="models-documentation__grid__cell__label">
+            <div className="models-documentation__grid__cell__label__icon models-documentation__grid__cell__label__icon--enum">
               e
             </div>
-            <div className="data-space__viewer__models-documentation__grid__cell__label__text">
+            <div className="models-documentation__grid__cell__label__text">
               {label}
             </div>
           </div>
-          <div className="data-space__viewer__models-documentation__grid__cell__actions">
+          <div className="models-documentation__grid__cell__actions">
             <ControlledDropdownMenu
-              className="data-space__viewer__models-documentation__grid__cell__action"
+              className="models-documentation__grid__cell__action"
               menuProps={{
                 anchorOrigin: { vertical: 'bottom', horizontal: 'right' },
                 transformOrigin: { vertical: 'top', horizontal: 'right' },
@@ -520,9 +526,7 @@ export const SubElementDocContentCellRenderer = observer(
 );
 
 export const ElementDocumentationCellRenderer = (
-  params: DataGridCellRendererParams<NormalizedDocumentationEntry> & {
-    //dataProductViewerState: DataProductViewerState;
-  },
+  params: DataGridCellRendererParams<NormalizedDocumentationEntry> & {},
 ): React.ReactNode => {
   const data = params.data;
   if (!data) {
@@ -531,7 +535,7 @@ export const ElementDocumentationCellRenderer = (
   return data.documentation.trim() ? (
     data.documentation
   ) : (
-    <div className="data-space__viewer__grid__empty-cell">
+    <div className="models-documentation__grid__empty-cell">
       No documentation provided
     </div>
   );
@@ -549,24 +553,20 @@ export const ModelsDocumentationGridPanel = observer(
 
     return (
       <div
-        className={clsx(
-          'data-space__viewer__models-documentation__grid',
-          'data-space__viewer__grid',
-          {
-            'data-space__viewer__models-documentation__grid--shrink':
-              documentationState.showFilterPanel,
-            'ag-theme-balham': !darkMode,
-            'ag-theme-balham-dark': darkMode,
-          },
-        )}
+        className={clsx('models-documentation__grid', {
+          'models-documentation__grid--shrink':
+            documentationState.showFilterPanel,
+          'ag-theme-balham': !darkMode,
+          'ag-theme-balham-dark': darkMode,
+        })}
       >
         <DataGrid
           rowData={documentationState.filteredSearchResults}
-          overlayNoRowsTemplate={`<div class="data-space__viewer__grid--empty">No documentation found</div>`}
+          overlayNoRowsTemplate={`<div class="models-documentation__grid--empty">No documentation found</div>`}
           // highlight element row
           getRowClass={(params) =>
             params.data?.entry instanceof ModelDocumentationEntry
-              ? 'data-space__viewer__models-documentation__grid__element-row'
+              ? 'models-documentation__grid__element-row'
               : undefined
           }
           alwaysShowVerticalScroll={true}
@@ -604,7 +604,7 @@ export const ModelsDocumentationGridPanel = observer(
               minWidth: 50,
               sortable: false,
               resizable: false,
-              headerClass: 'data-space__viewer__grid__last-column-header',
+              headerClass: 'models-documentation__grid__last-column-header',
               cellRenderer: ElementDocumentationCellRenderer,
               headerName: 'Documentation',
               flex: 1,
@@ -624,26 +624,26 @@ export const getFilterTreeNodeIcon = (
   if (node instanceof ModelsDocumentationFilterTreeElementNodeData) {
     if (node.typePath === CORE_PURE_PATH.CLASS) {
       return (
-        <div className="data-space__viewer__models-documentation__filter__tree__node__type-icon data-space__viewer__models-documentation__filter__tree__node__type-icon--class">
+        <div className="models-documentation__filter__tree__node__type-icon models-documentation__filter__tree__node__type-icon--class">
           C
         </div>
       );
     } else if (node.typePath === CORE_PURE_PATH.ENUMERATION) {
       return (
-        <div className="data-space__viewer__models-documentation__filter__tree__node__type-icon data-space__viewer__models-documentation__filter__tree__node__type-icon--enumeration">
+        <div className="models-documentation__filter__tree__node__type-icon models-documentation__filter__tree__node__type-icon--enumeration">
           E
         </div>
       );
     } else if (node.typePath === CORE_PURE_PATH.ASSOCIATION) {
       return (
-        <div className="data-space__viewer__models-documentation__filter__tree__node__type-icon data-space__viewer__models-documentation__filter__tree__node__type-icon--association">
+        <div className="models-documentation__filter__tree__node__type-icon models-documentation__filter__tree__node__type-icon--association">
           A
         </div>
       );
     }
   } else if (node instanceof ModelsDocumentationFilterTreePackageNodeData) {
     return (
-      <div className="data-space__viewer__models-documentation__filter__tree__node__type-icon data-space__viewer__models-documentation__filter__tree__node__type-icon--package">
+      <div className="models-documentation__filter__tree__node__type-icon models-documentation__filter__tree__node__type-icon--package">
         <PackageIcon />
       </div>
     );
@@ -651,19 +651,19 @@ export const getFilterTreeNodeIcon = (
     switch (node.typePath) {
       case CORE_PURE_PATH.CLASS:
         return (
-          <div className="data-space__viewer__models-documentation__filter__tree__node__type-icon data-space__viewer__models-documentation__filter__tree__node__type-icon--class">
+          <div className="models-documentation__filter__tree__node__type-icon models-documentation__filter__tree__node__type-icon--class">
             C
           </div>
         );
       case CORE_PURE_PATH.ENUMERATION:
         return (
-          <div className="data-space__viewer__models-documentation__filter__tree__node__type-icon data-space__viewer__models-documentation__filter__tree__node__type-icon--enumeration">
+          <div className="models-documentation__filter__tree__node__type-icon models-documentation__filter__tree__node__type-icon--enumeration">
             E
           </div>
         );
       case CORE_PURE_PATH.ASSOCIATION:
         return (
-          <div className="data-space__viewer__models-documentation__filter__tree__node__type-icon data-space__viewer__models-documentation__filter__tree__node__type-icon--association">
+          <div className="models-documentation__filter__tree__node__type-icon models-documentation__filter__tree__node__type-icon--association">
             A
           </div>
         );
@@ -676,7 +676,7 @@ export const getFilterTreeNodeIcon = (
 
 const getFilterNodeCount = (
   node: ModelsDocumentationFilterTreeNodeData,
-  documentationState: ViewerModelsDocumentationState, //was DataProductViewerModelsDocumentationState
+  documentationState: ViewerModelsDocumentationState,
 ): number | undefined => {
   if (node instanceof ModelsDocumentationFilterTreeElementNodeData) {
     return documentationState.searchResults.filter(
@@ -715,7 +715,7 @@ const getFilterNodeCount = (
 const ModelsDocumentationFilterTreeNodeContainer = observer(
   (
     props: TreeNodeContainerProps<
-      ModelsDocumentationFilterTreeNodeData, //lets make a general modeldocumentation state
+      ModelsDocumentationFilterTreeNodeData,
       {
         documentationState: ViewerModelsDocumentationState;
         refreshTreeData: () => void;
@@ -782,7 +782,7 @@ const ModelsDocumentationFilterTreeNodeContainer = observer(
 
     return (
       <div
-        className="tree-view__node__container data-space__viewer__models-documentation__filter__tree__node__container"
+        className="tree-view__node__container models-documentation__filter__tree__node__container"
         style={{
           paddingLeft: `${(level - 1) * 1.4}rem`,
           display: 'flex',
@@ -790,23 +790,23 @@ const ModelsDocumentationFilterTreeNodeContainer = observer(
         onClick={onNodeClick}
       >
         <div
-          className="data-space__viewer__models-documentation__filter__tree__node__expand-icon"
+          className="models-documentation__filter__tree__node__expand-icon"
           onClick={toggleExpandNode}
         >
           {expandIcon}
         </div>
         <div
-          className="data-space__viewer__models-documentation__filter__tree__node__checker"
+          className="models-documentation__filter__tree__node__checker"
           onClick={toggleChecker}
         >
           {checkerIcon}
         </div>
         {getFilterTreeNodeIcon(node)}
-        <div className="tree-view__node__label data-space__viewer__models-documentation__filter__tree__node__label">
+        <div className="tree-view__node__label models-documentation__filter__tree__node__label">
           {node.label}
         </div>
         {nodeCount !== undefined && (
-          <div className="tree-view__node__label data-space__viewer__models-documentation__filter__tree__node__count">
+          <div className="tree-view__node__label models-documentation__filter__tree__node__count">
             {nodeCount}
           </div>
         )}
@@ -825,15 +825,15 @@ const ModelsDocumentationFilterPanel = observer(
       documentationState.resetPackageFilter();
 
     return (
-      <div className="data-space__viewer__models-documentation__filter__panel">
-        <div className="data-space__viewer__models-documentation__filter__group">
-          <div className="data-space__viewer__models-documentation__filter__group__header">
-            <div className="data-space__viewer__models-documentation__filter__group__header__label">
+      <div className="models-documentation__filter__panel">
+        <div className="models-documentation__filter__group">
+          <div className="models-documentation__filter__group__header">
+            <div className="models-documentation__filter__group__header__label">
               Filter
             </div>
-            <div className="data-space__viewer__models-documentation__filter__group__header__actions">
+            <div className="models-documentation__filter__group__header__actions">
               <button
-                className="data-space__viewer__models-documentation__filter__group__header__reset"
+                className="models-documentation__filter__group__header__reset"
                 tabIndex={-1}
                 disabled={!documentationState.isFilterCustomized}
                 onClick={resetAll}
@@ -843,14 +843,14 @@ const ModelsDocumentationFilterPanel = observer(
             </div>
           </div>
         </div>
-        <div className="data-space__viewer__models-documentation__filter__group data-space__viewer__models-documentation__filter__group--by-type">
-          <div className="data-space__viewer__models-documentation__filter__group__header">
-            <div className="data-space__viewer__models-documentation__filter__group__header__label">
+        <div className="models-documentation__filter__group models-documentation__filter__group--by-type">
+          <div className="models-documentation__filter__group__header">
+            <div className="models-documentation__filter__group__header__label">
               Filter by Type
             </div>
-            <div className="data-space__viewer__models-documentation__filter__group__header__actions">
+            <div className="models-documentation__filter__group__header__actions">
               <button
-                className="data-space__viewer__models-documentation__filter__group__header__reset"
+                className="models-documentation__filter__group__header__reset"
                 tabIndex={-1}
                 disabled={!documentationState.isTypeFilterCustomized}
                 onClick={resetTypeFilter}
@@ -859,7 +859,7 @@ const ModelsDocumentationFilterPanel = observer(
               </button>
             </div>
           </div>
-          <div className="data-space__viewer__models-documentation__filter__group__content">
+          <div className="models-documentation__filter__group__content">
             <TreeView
               components={{
                 TreeNodeContainer: ModelsDocumentationFilterTreeNodeContainer,
@@ -870,10 +870,7 @@ const ModelsDocumentationFilterPanel = observer(
                   .map((id) =>
                     documentationState.typeFilterTreeData.nodes.get(id),
                   )
-                  .filter(
-                    (item): item is ModelsDocumentationFilterTreeNodeData =>
-                      item !== undefined,
-                  )
+                  .filter(isNonNullable)
                   .sort((a, b) => a.label.localeCompare(b.label))
               }
               innerProps={{
@@ -887,14 +884,14 @@ const ModelsDocumentationFilterPanel = observer(
             />
           </div>
         </div>
-        <div className="data-space__viewer__models-documentation__filter__group data-space__viewer__models-documentation__filter__group--by-package">
-          <div className="data-space__viewer__models-documentation__filter__group__header">
-            <div className="data-space__viewer__models-documentation__filter__group__header__label">
+        <div className="models-documentation__filter__group models-documentation__filter__group--by-package">
+          <div className="models-documentation__filter__group__header">
+            <div className="models-documentation__filter__group__header__label">
               Filter by Package
             </div>
-            <div className="data-space__viewer__models-documentation__filter__group__header__actions">
+            <div className="models-documentation__filter__group__header__actions">
               <button
-                className="data-space__viewer__models-documentation__filter__group__header__reset"
+                className="models-documentation__filter__group__header__reset"
                 tabIndex={-1}
                 disabled={!documentationState.isPackageFilterCustomized}
                 onClick={resetPackageFilter}
@@ -903,7 +900,7 @@ const ModelsDocumentationFilterPanel = observer(
               </button>
             </div>
           </div>
-          <div className="data-space__viewer__models-documentation__filter__group__content">
+          <div className="models-documentation__filter__group__content">
             <TreeView
               components={{
                 TreeNodeContainer: ModelsDocumentationFilterTreeNodeContainer,
@@ -987,11 +984,11 @@ const ModelsDocumentationSearchBar = observer(
     }, [documentationState]);
 
     return (
-      <div className="data-space__viewer__models-documentation__search">
+      <div className="models-documentation__search">
         <input
           ref={searchInputRef}
           onKeyDown={onKeyDown}
-          className="data-space__viewer__models-documentation__search__input input--dark"
+          className="models-documentation__search__input input--dark"
           spellCheck={false}
           onChange={onSearchTextChange}
           value={searchText}
@@ -1000,11 +997,11 @@ const ModelsDocumentationSearchBar = observer(
         <button
           ref={searchConfigTriggerRef}
           className={clsx(
-            'data-space__viewer__models-documentation__search__input__config__trigger',
+            'models-documentation__search__input__config__trigger',
             {
-              'data-space__viewer__models-documentation__search__input__config__trigger--toggled':
+              'models-documentation__search__input__config__trigger--toggled':
                 documentationState.showSearchConfigurationMenu,
-              'data-space__viewer__models-documentation__search__input__config__trigger--active':
+              'models-documentation__search__input__config__trigger--active':
                 documentationState.searchConfigurationState
                   .isAdvancedSearchActive,
             },
@@ -1042,12 +1039,12 @@ const ModelsDocumentationSearchBar = observer(
           />
         </BasePopover>
         {!searchText ? (
-          <div className="data-space__viewer__models-documentation__search__input__search__icon">
+          <div className="models-documentation__search__input__search__icon">
             <SearchIcon />
           </div>
         ) : (
           <button
-            className="data-space__viewer__models-documentation__search__input__clear-btn"
+            className="models-documentation__search__input__clear-btn"
             tabIndex={-1}
             onClick={clearSearchText}
             title="Clear"
@@ -1061,7 +1058,9 @@ const ModelsDocumentationSearchBar = observer(
 );
 
 const ProductWikiPlaceholder: React.FC<{ message: string }> = (props) => (
-  <div className="data-product__viewer__wiki__placeholder">{props.message}</div>
+  <div className="models-documentation__viewer__wiki__placeholder">
+    {props.message}
+  </div>
 );
 
 export const ModelsDocumentation = observer(
@@ -1075,45 +1074,45 @@ export const ModelsDocumentation = observer(
 
     useCommands(modelsDocumentationState);
 
-    const documentationEntries = elementDocs;
-    const documentationState = modelsDocumentationState;
-
     const toggleFilterPanel = (): void =>
-      documentationState.setShowFilterPanel(
-        !documentationState.showFilterPanel,
+      modelsDocumentationState.setShowFilterPanel(
+        !modelsDocumentationState.showFilterPanel,
       );
 
     return (
-      <div ref={sectionRef} className="data-space__viewer__wiki__section">
-        <div className="data-space__viewer__wiki__section__header">
-          <div className="data-space__viewer__wiki__section__header__label">
+      <div
+        ref={sectionRef}
+        className="models-documentation__viewer__wiki__section"
+      >
+        <div className="models-documentation__viewer__wiki__section__header">
+          <div className="models-documentation__viewer__wiki__section__header__label">
             Models Documentation
             <button
-              className="data-space__viewer__wiki__section__header__anchor"
+              className="models-documentation__viewer__wiki__section__header__anchor"
               tabIndex={-1}
             >
               <AnchorLinkIcon />
             </button>
           </div>
         </div>
-        <div className="data-space__viewer__wiki__section__content">
-          {documentationEntries.length > 0 && (
-            <div className="data-space__viewer__models-documentation">
-              <div className="data-space__viewer__models-documentation__header">
+        <div className="models-documentation__viewer__wiki__section__content">
+          {elementDocs.length > 0 && (
+            <div className="models-documentation">
+              <div className="models-documentation__header">
                 <button
-                  className="data-space__viewer__models-documentation__filter__toggler"
+                  className="models-documentation__filter__toggler"
                   title="Toggle Filter Panel"
                   tabIndex={-1}
                   onClick={toggleFilterPanel}
                 >
-                  <div className="data-space__viewer__models-documentation__filter__toggler__arrow">
-                    {documentationState.showFilterPanel ? (
+                  <div className="models-documentation__filter__toggler__arrow">
+                    {modelsDocumentationState.showFilterPanel ? (
                       <CaretLeftIcon />
                     ) : (
                       <CaretRightIcon />
                     )}
                   </div>
-                  <div className="data-space__viewer__models-documentation__filter__toggler__icon">
+                  <div className="models-documentation__filter__toggler__icon">
                     <FilterIcon />
                   </div>
                 </button>
@@ -1121,8 +1120,8 @@ export const ModelsDocumentation = observer(
                   modelsDocumentationState={modelsDocumentationState}
                 />
               </div>
-              <div className="data-space__viewer__models-documentation__content">
-                {documentationState.showFilterPanel && (
+              <div className="models-documentation__content">
+                {modelsDocumentationState.showFilterPanel && (
                   <ModelsDocumentationFilterPanel
                     modelsDocumentationState={modelsDocumentationState}
                   />
@@ -1134,7 +1133,7 @@ export const ModelsDocumentation = observer(
               </div>
             </div>
           )}
-          {documentationEntries.length === 0 && (
+          {elementDocs.length === 0 && (
             <ProductWikiPlaceholder message="(not specified)" />
           )}
         </div>
