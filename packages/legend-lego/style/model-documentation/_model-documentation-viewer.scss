@@ -102,6 +102,81 @@
   }
 }
 
+.models-documentation__viewer__grid {
+  &--empty {
+    @include flexCenter;
+
+    padding: 1rem 1.5rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    background: var(--color-dark-grey-50);
+    color: var(--color-dark-grey-300);
+  }
+
+  &__empty-cell {
+    font-size: 1.2rem;
+    color: var(--color-dark-grey-280);
+  }
+
+  &__header-cell {
+    @include flexVCenter;
+
+    width: 100%;
+
+    &__label {
+      @include ellipsisTextOverflow;
+    }
+  }
+
+  &__last-column-header {
+    --ag-header-column-separator-display: none;
+  }
+
+  // NOTE: we need to ensure the specificity here in case a later imported ag-theme-balham-dark
+  // might override our theme customization here
+  &.ag-theme-balham-dark {
+    --ag-font-family: 'Roboto';
+
+    // Customize ag-grid theme
+    // See https://www.ag-grid.com/javascript-grid-themes-customising/#customising-themes
+    --ag-border-color: var(--color-dark-grey-200);
+    --ag-background-color: var(--color-dark-grey-50);
+    --ag-foreground-color: var(--color-light-grey-200);
+    --ag-header-background-color: var(--color-dark-grey-100);
+    --ag-header-foreground-color: var(--color-light-grey-50);
+    --ag-balham-active-color: var(--color-blue-200);
+    --ag-odd-row-background-color: var(--color-dark-grey-50);
+    --ag-even-row-background-color: var(--color-dark-grey-50);
+    --ag-row-hover-color: var(--color-dark-blue-shade-100);
+    --ag-row-border-color: var(--color-dark-grey-200);
+  }
+
+  .ag-header-cell-text {
+    font-weight: 700;
+  }
+
+  .ag-cell-value {
+    word-break: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .ag-center-cols-viewport {
+    // stripped background for remaining height of the grid when there are not enough rows
+    // See https://css-tricks.com/stripes-css/
+    background: repeating-linear-gradient(
+      135deg,
+      var(--color-dark-grey-50),
+      var(--color-dark-grey-50) 0.5rem,
+      var(--color-dark-grey-80) 0.5rem,
+      var(--color-dark-grey-80) 1rem
+    );
+  }
+
+  ::-webkit-scrollbar-track-piece {
+    background: transparent;
+  }
+}
+
 .models-documentation__grid {
   width: 100%;
 
@@ -247,7 +322,7 @@
 
     height: 2.8rem;
     border: 0.1rem solid var(--color-dark-grey-280);
-    color: var(--color-light-grey-200);
+    color: var(--color-dark-grey-350);
     margin-right: 0.5rem;
 
     &:hover {
@@ -273,9 +348,8 @@
     width: 25rem;
     margin-right: 0.5rem;
     border-radius: 0.2rem;
-    background: var(--color-dark-grey-85);
     border: 0.1rem solid var(--color-dark-grey-200);
-    color: var(--color-light-grey-50);
+    color: var(--color-light-grey-200);
   }
 
   &__group {
@@ -309,6 +383,7 @@
     @include ellipsisTextOverflow;
 
     font-weight: 500;
+    color: var(--color-dark-grey-350);
   }
 
   &__group__header__actions {
@@ -424,7 +499,7 @@
 
   &__node__label {
     font-size: 1.2rem;
-    color: var(--color-light-grey-400);
+    color: var(--color-dark-grey-350);
     user-select: none;
     margin-left: 0.5rem;
   }
@@ -435,8 +510,8 @@
     font-family: 'Roboto Mono', monospace;
     margin-left: 0.5rem;
     height: 1.4rem;
-    background: var(--color-dark-grey-200);
-    color: var(--color-dark-grey-500);
+    background: var(--color-light-grey-400);
+    color: var(--color-dark-grey-400);
     padding: 0 0.3rem;
     border-radius: 0.2rem;
     font-size: 0.8rem;
@@ -453,7 +528,6 @@
     padding-right: 5.6rem;
     padding-left: 1rem;
     width: 25rem;
-    background: var(--color-dark-grey-85);
     border-radius: 0.2rem;
     border: 0.1rem solid var(--color-dark-grey-200);
 

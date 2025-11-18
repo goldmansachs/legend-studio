@@ -553,9 +553,8 @@ export const ModelsDocumentationGridPanel = observer(
 
     return (
       <div
-        className={clsx('models-documentation__grid', {
-          'models-documentation__grid--shrink':
-            documentationState.showFilterPanel,
+        className={clsx('models-documentation__viewer__grid', {
+          'models-documentation__grid': documentationState.showFilterPanel,
           'ag-theme-balham': !darkMode,
           'ag-theme-balham-dark': darkMode,
         })}
@@ -988,7 +987,7 @@ const ModelsDocumentationSearchBar = observer(
         <input
           ref={searchInputRef}
           onKeyDown={onKeyDown}
-          className="models-documentation__search__input input--dark"
+          className="models-documentation__search__input input"
           spellCheck={false}
           onChange={onSearchTextChange}
           value={searchText}
