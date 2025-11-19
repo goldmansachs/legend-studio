@@ -156,7 +156,6 @@ export const ProductWiki = observer(
                 modelsDocumentationState={
                   productViewerState.modelsDocumentationState
                 }
-                elementDocs={productViewerState.elementDocs}
                 applicationStore={productViewerState.applicationStore}
               />
               <DataProductSupportInfo

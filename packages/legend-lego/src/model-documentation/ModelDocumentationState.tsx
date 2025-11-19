@@ -340,11 +340,11 @@ export abstract class ViewerModelsDocumentationState
   private readonly searchEngine: FuzzySearchEngine<NormalizedDocumentationEntry>;
   readonly searchConfigurationState: FuzzySearchAdvancedConfigState;
   readonly searchState = ActionState.create();
+  readonly elementDocs: NormalizedDocumentationEntry[];
   searchText: string;
   searchResults: NormalizedDocumentationEntry[] = [];
   showSearchConfigurationMenu = false;
   packageFilterTreeData: TreeData<ModelsDocumentationFilterTreeNodeData>;
-  elementDocs: NormalizedDocumentationEntry[];
 
   abstract registerCommands(): void;
   abstract deregisterCommands(): void;
@@ -360,8 +360,10 @@ export abstract class ViewerModelsDocumentationState
       showSearchConfigurationMenu: observable,
       showFilterPanel: observable,
       typeFilterTreeData: observable.ref,
+      packageFilterTreeData: observable.ref,
       filteredSearchResults: computed,
       isTypeFilterCustomized: computed,
+      isPackageFilterCustomized: computed,
       isFilterCustomized: computed,
       setShowHumanizedForm: action,
       setSearchText: action,
@@ -369,9 +371,13 @@ export abstract class ViewerModelsDocumentationState
       search: action,
       setShowSearchConfigurationMenu: action,
       setShowFilterPanel: action,
+      resetPackageFilterTreeData: action,
       resetTypeFilterTreeData: action,
       updateTypeFilter: action,
+      updatePackageFilter: action,
       resetTypeFilter: action,
+      resetPackageFilter: action,
+      resetAllFilters: action,
     });
     this.searchConfigurationState = new FuzzySearchAdvancedConfigState(
       (): void => this.search(),

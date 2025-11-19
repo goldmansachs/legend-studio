@@ -59,7 +59,6 @@ export const DataSpaceWiki = observer(
           modelsDocumentationState={
             dataSpaceViewerState.modelsDocumentationState
           }
-          elementDocs={dataSpaceViewerState.dataSpaceAnalysisResult.elementDocs}
           applicationStore={dataSpaceViewerState.applicationStore}
         />
         <DataSpaceQuickStart dataSpaceViewerState={dataSpaceViewerState} />

@@ -910,10 +910,7 @@ const ModelsDocumentationFilterPanel = observer(
                   .map((id) =>
                     documentationState.packageFilterTreeData.nodes.get(id),
                   )
-                  .filter(
-                    (item): item is ModelsDocumentationFilterTreeNodeData =>
-                      item !== undefined,
-                  )
+                  .filter(isNonNullable)
                   .sort((a, b) => a.label.localeCompare(b.label))
               }
               innerProps={{
@@ -1065,11 +1062,11 @@ const ProductWikiPlaceholder: React.FC<{ message: string }> = (props) => (
 export const ModelsDocumentation = observer(
   (props: {
     modelsDocumentationState: ViewerModelsDocumentationState;
-    elementDocs: NormalizedDocumentationEntry[];
     applicationStore: GenericLegendApplicationStore;
   }) => {
-    const { modelsDocumentationState, elementDocs, applicationStore } = props;
+    const { modelsDocumentationState, applicationStore } = props;
     const sectionRef = useRef<HTMLDivElement>(null);
+    const elementDocs = modelsDocumentationState.elementDocs;
 
     useCommands(modelsDocumentationState);
 
