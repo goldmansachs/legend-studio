@@ -87,7 +87,6 @@ export const LegendMarketplaceSearchBar = observer(
 
     const searchMenuOpen = Boolean(searchMenuAnchorEl);
 
-    // Get default suggestions from config (memoized to avoid recalculation)
     const defaultSuggestionsFromConfig =
       applicationStore.config.options.defaultSearchSuggestions;
     const shouldEnableAutosuggest = useMemo(
@@ -169,7 +168,6 @@ export const LegendMarketplaceSearchBar = observer(
           void debouncedFetchAutosuggestions(inputValue);
         }
       }
-      // Note: defaultSuggestionsFromConfig is from config and doesn't change during component lifecycle
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [inputValue, open, debouncedFetchAutosuggestions]);
 
