@@ -39,11 +39,9 @@ import {
   createAutosuggestSuggestions,
   type SearchSuggestion,
 } from '../../utils/SearchSuggestions.js';
-import { type AutosuggestResult } from '@finos/legend-server-marketplace';
 import { debounce, assertErrorThrown, LogEvent } from '@finos/legend-shared';
 import { APPLICATION_EVENT } from '@finos/legend-application';
 import { LEGEND_MARKETPLACE_APP_EVENT } from '../../__lib__/LegendMarketplaceAppEvent.js';
-import { useAuth } from 'react-oidc-context';
 
 export interface Vendor {
   provider: string;
@@ -75,7 +73,6 @@ export const LegendMarketplaceSearchBar = observer(
 
     const legendMarketplaceBaseStore = useLegendMarketplaceBaseStore();
     const applicationStore = legendMarketplaceBaseStore.applicationStore;
-    const auth = useAuth();
 
     const [searchQuery, setSearchQuery] = useState<string>(initialValue ?? '');
     const [inputValue, setInputValue] = useState<string>(initialValue ?? '');
@@ -126,7 +123,7 @@ export const LegendMarketplaceSearchBar = observer(
               5,
             );
 
-          const results = (response.results ?? []) as AutosuggestResult[];
+          const results = response.results;
           if (results.length > 0) {
             setSuggestions(createAutosuggestSuggestions(results));
           } else {
@@ -168,7 +165,8 @@ export const LegendMarketplaceSearchBar = observer(
             createDefaultSuggestions(defaultSuggestionsFromConfig),
           );
         } else {
-          debouncedFetchAutosuggestions(inputValue);
+          // eslint-disable-next-line no-void
+          void debouncedFetchAutosuggestions(inputValue);
         }
       }
       // Note: defaultSuggestionsFromConfig is from config and doesn't change during component lifecycle
@@ -201,7 +199,7 @@ export const LegendMarketplaceSearchBar = observer(
             applicationStore.telemetryService,
             query,
           );
-        } else if (newValue.type === 'default') {
+        } else {
           applicationStore.telemetryService.logEvent(
             LEGEND_MARKETPLACE_APP_EVENT.SEARCH_AUTOSUGGEST_SELECTION,
             {
@@ -306,10 +304,10 @@ export const LegendMarketplaceSearchBar = observer(
               {params.children}
             </Box>
           )}
-          renderOption={(props, option) => {
+          renderOption={(params, option) => {
             if (typeof option === 'string') {
               return (
-                <Box component="li" {...props} key={option}>
+                <Box component="li" {...params} key={option}>
                   <Typography className="legend-marketplace__search-bar__autocomplete-option__text">
                     {option}
                   </Typography>
@@ -321,7 +319,7 @@ export const LegendMarketplaceSearchBar = observer(
               return (
                 <Box
                   component="li"
-                  {...props}
+                  {...params}
                   key={option.query}
                   className="legend-marketplace__search-bar__autocomplete-option"
                 >
@@ -342,7 +340,7 @@ export const LegendMarketplaceSearchBar = observer(
             return (
               <Box
                 component="li"
-                {...props}
+                {...params}
                 key={result.dataProductName}
                 className="legend-marketplace__search-bar__autocomplete-option"
               >
