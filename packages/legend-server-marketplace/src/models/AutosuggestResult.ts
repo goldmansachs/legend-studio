@@ -14,14 +14,21 @@
  * limitations under the License.
  */
 
-export * from './models/DataProductSearchResult.js';
-export * from './models/AutosuggestResult.js';
-export * from './models/Provider.js';
-export * from './models/Subscription.js';
-export * from './models/Cart.js';
-export * from './models/Order.js';
-export * from './models/TerminalProductOrder.js';
-export * from './models/Registry.js';
-export { MarketplaceServerClient } from './MarketplaceServerClient.js';
-export { TerminalAccessServerClient } from './TerminalAccessServerClient.js';
-export { RegistryServerClient } from './RegistryServerClient.js';
+export interface AutosuggestDataProductDetails {
+  _type: string;
+  groupId: string;
+  artifactId: string;
+  versionId: string;
+  path: string;
+}
+
+export interface AutosuggestResult {
+  dataProductName: string;
+  dataProductDescription: string;
+  dataProductDetails: AutosuggestDataProductDetails;
+  matchedText: string;
+}
+
+export interface AutosuggestResponse {
+  results: AutosuggestResult[];
+}

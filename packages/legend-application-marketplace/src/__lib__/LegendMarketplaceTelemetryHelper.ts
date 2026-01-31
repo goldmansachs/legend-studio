@@ -394,4 +394,19 @@ export class LegendMarketplaceTelemetryHelper {
       ...session,
     });
   }
+
+  static logEvent_SearchAutosuggestSelection(
+    telemetryService: TelemetryService,
+    query: string,
+  ): void {
+    this.updateEventId();
+    const session = this.getOrCreateUserSession();
+    telemetryService.logEvent(
+      LEGEND_MARKETPLACE_APP_EVENT.SEARCH_AUTOSUGGEST_SELECTION,
+      {
+        query: query,
+        ...session,
+      },
+    );
+  }
 }

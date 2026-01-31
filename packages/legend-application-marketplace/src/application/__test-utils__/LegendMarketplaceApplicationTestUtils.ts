@@ -86,6 +86,13 @@ const TEST_DATA__appConfig: LegendMarketplaceApplicationConfigurationData = {
         },
       },
       showDevFeatures: true,
+      defaultSearchSuggestions: [
+        'Do we have any Ownership data?',
+        'Can you show me all our Counterparty Risk data?',
+        'What all ratings data do we have?',
+        'I need EOD prices for Fixed Income Products',
+        'Which Environmental, Social, and Governance data do we have?',
+      ],
     },
   },
   assets: {
