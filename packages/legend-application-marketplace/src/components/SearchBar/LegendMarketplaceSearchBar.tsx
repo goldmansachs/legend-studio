@@ -292,10 +292,7 @@ export const LegendMarketplaceSearchBar = observer(
           renderGroup={(params) => (
             <Box key={params.key}>
               {params.group && (
-                <Typography
-                  className="legend-marketplace__search-bar__autocomplete-group-header"
-                  component="div"
-                >
+                <Typography className="legend-marketplace__search-bar__autocomplete-group-header">
                   {params.group}
                 </Typography>
               )}
