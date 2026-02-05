@@ -125,12 +125,13 @@ export class MarketplaceServerClient extends AbstractServerClient {
     query: string,
     environment: string,
     limit: number = 5,
+    signal?: AbortSignal,
   ): Promise<AutosuggestResponse> =>
     this.get<AutosuggestResponse>(
       `${this._autosuggest()}/dataProducts/${environment}`,
-      {},
+      signal ? { signal } : {},
       undefined,
-      { query, limit: limit.toString() },
+      { query, limit },
     );
 
   // ------------------------------------------- Subscriptions -----------------------------------------

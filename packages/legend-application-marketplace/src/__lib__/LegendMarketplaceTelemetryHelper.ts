@@ -398,6 +398,7 @@ export class LegendMarketplaceTelemetryHelper {
   static logEvent_SearchAutosuggestSelection(
     telemetryService: TelemetryService,
     query: string,
+    suggestionType: string,
   ): void {
     this.updateEventId();
     const session = this.getOrCreateUserSession();
@@ -405,6 +406,7 @@ export class LegendMarketplaceTelemetryHelper {
       LEGEND_MARKETPLACE_APP_EVENT.SEARCH_AUTOSUGGEST_SELECTION,
       {
         query: query,
+        suggestionType: suggestionType,
         ...session,
       },
     );

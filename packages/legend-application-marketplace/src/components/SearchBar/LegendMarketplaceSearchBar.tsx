@@ -41,7 +41,8 @@ import {
 } from '../../utils/SearchSuggestions.js';
 import { debounce, assertErrorThrown, LogEvent } from '@finos/legend-shared';
 import { APPLICATION_EVENT } from '@finos/legend-application';
-import { LEGEND_MARKETPLACE_APP_EVENT } from '../../__lib__/LegendMarketplaceAppEvent.js';
+
+const AUTOSUGGEST_LIMIT = 5;
 
 export interface Vendor {
   provider: string;
@@ -74,7 +75,6 @@ export const LegendMarketplaceSearchBar = observer(
     const legendMarketplaceBaseStore = useLegendMarketplaceBaseStore();
     const applicationStore = legendMarketplaceBaseStore.applicationStore;
 
-    const [searchQuery, setSearchQuery] = useState<string>(initialValue ?? '');
     const [inputValue, setInputValue] = useState<string>(initialValue ?? '');
     const [useProducerSearch, setUseProducerSearch] = useState(
       stateUseProducerSearch ?? false,
@@ -83,33 +83,35 @@ export const LegendMarketplaceSearchBar = observer(
       useState<HTMLElement | null>();
     const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
     const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-    const [open, setOpen] = useState(false);
+    const [isAutosuggestPopupOpen, setIsAutosuggestPopupOpen] = useState(false);
 
     const searchMenuOpen = Boolean(searchMenuAnchorEl);
 
     const defaultSuggestionsFromConfig =
       applicationStore.config.options.defaultSearchSuggestions;
-    const shouldEnableAutosuggest = useMemo(
-      () =>
-        enableAutosuggest &&
-        Boolean(
-          defaultSuggestionsFromConfig &&
-            defaultSuggestionsFromConfig.length > 0,
-        ),
-      [enableAutosuggest, defaultSuggestionsFromConfig],
+    const showAutosuggest = useMemo(
+      () => enableAutosuggest,
+      [enableAutosuggest],
     );
 
     const fetchAutosuggestions = useCallback(
-      async (query: string): Promise<void> => {
-        if (!shouldEnableAutosuggest) {
+      async (query: string, signal?: AbortSignal): Promise<void> => {
+        if (!showAutosuggest) {
           setSuggestions([]);
           return;
         }
 
         if (!query || query.trim().length === 0) {
-          setSuggestions(
-            createDefaultSuggestions(defaultSuggestionsFromConfig),
-          );
+          if (
+            defaultSuggestionsFromConfig &&
+            defaultSuggestionsFromConfig.length > 0
+          ) {
+            setSuggestions(
+              createDefaultSuggestions(defaultSuggestionsFromConfig),
+            );
+          } else {
+            setSuggestions([]);
+          }
           return;
         }
 
@@ -119,32 +121,52 @@ export const LegendMarketplaceSearchBar = observer(
             await legendMarketplaceBaseStore.marketplaceServerClient.getAutosuggestions(
               query,
               legendMarketplaceBaseStore.envState.lakehouseEnvironment,
-              5,
+              AUTOSUGGEST_LIMIT,
+              signal,
             );
 
           const results = response.results;
           if (results.length > 0) {
             setSuggestions(createAutosuggestSuggestions(results));
           } else {
-            setSuggestions(
-              createDefaultSuggestions(defaultSuggestionsFromConfig),
-            );
+            if (
+              defaultSuggestionsFromConfig &&
+              defaultSuggestionsFromConfig.length > 0
+            ) {
+              setSuggestions(
+                createDefaultSuggestions(defaultSuggestionsFromConfig),
+              );
+            } else {
+              setSuggestions([]);
+            }
           }
         } catch (error) {
           assertErrorThrown(error);
+          if (error.name === 'AbortError') {
+            return;
+          }
           applicationStore.logService.error(
             LogEvent.create(APPLICATION_EVENT.GENERIC_FAILURE),
             error,
           );
-          setSuggestions(
-            createDefaultSuggestions(defaultSuggestionsFromConfig),
-          );
+          if (
+            defaultSuggestionsFromConfig &&
+            defaultSuggestionsFromConfig.length > 0
+          ) {
+            setSuggestions(
+              createDefaultSuggestions(defaultSuggestionsFromConfig),
+            );
+          } else {
+            setSuggestions([]);
+          }
         } finally {
-          setLoadingSuggestions(false);
+          if (!signal?.aborted) {
+            setLoadingSuggestions(false);
+          }
         }
       },
       [
-        shouldEnableAutosuggest,
+        showAutosuggest,
         defaultSuggestionsFromConfig,
         legendMarketplaceBaseStore.marketplaceServerClient,
         legendMarketplaceBaseStore.envState.lakehouseEnvironment,
@@ -158,18 +180,27 @@ export const LegendMarketplaceSearchBar = observer(
     );
 
     useEffect(() => {
-      if (open) {
+      const abortController = new AbortController();
+
+      if (isAutosuggestPopupOpen) {
         if (!inputValue || inputValue.trim().length === 0) {
           setSuggestions(
             createDefaultSuggestions(defaultSuggestionsFromConfig),
           );
         } else {
           // eslint-disable-next-line no-void
-          void debouncedFetchAutosuggestions(inputValue);
+          void debouncedFetchAutosuggestions(
+            inputValue,
+            abortController.signal,
+          );
         }
       }
+
+      return () => {
+        abortController.abort();
+      };
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [inputValue, open, debouncedFetchAutosuggestions]);
+    }, [inputValue, isAutosuggestPopupOpen, debouncedFetchAutosuggestions]);
 
     const handleInputChange = (
       _event: React.SyntheticEvent,
@@ -184,34 +215,23 @@ export const LegendMarketplaceSearchBar = observer(
       newValue: SearchSuggestion | string | null,
     ): void => {
       if (typeof newValue === 'string') {
-        setSearchQuery(newValue);
         setInputValue(newValue);
       } else if (newValue) {
         const query = newValue.query;
-        setSearchQuery(query);
         setInputValue(query);
         onSearch?.(query, useProducerSearch);
 
-        if (newValue.type === 'autosuggest') {
-          LegendMarketplaceTelemetryHelper.logEvent_SearchAutosuggestSelection(
-            applicationStore.telemetryService,
-            query,
-          );
-        } else {
-          applicationStore.telemetryService.logEvent(
-            LEGEND_MARKETPLACE_APP_EVENT.SEARCH_AUTOSUGGEST_SELECTION,
-            {
-              query,
-              suggestionType: 'default',
-            },
-          );
-        }
+        LegendMarketplaceTelemetryHelper.logEvent_SearchAutosuggestSelection(
+          applicationStore.telemetryService,
+          query,
+          newValue.type,
+        );
       }
     };
 
     const handleSubmit = (event: React.FormEvent): void => {
       event.preventDefault();
-      onSearch?.(inputValue || searchQuery, useProducerSearch);
+      onSearch?.(inputValue, useProducerSearch);
     };
 
     const getOptionLabel = (option: SearchSuggestion | string): string => {
@@ -233,14 +253,14 @@ export const LegendMarketplaceSearchBar = observer(
         <Autocomplete
           freeSolo={true}
           fullWidth={true}
-          open={shouldEnableAutosuggest ? open : false}
+          open={showAutosuggest ? isAutosuggestPopupOpen : false}
           onOpen={() => {
-            if (shouldEnableAutosuggest) {
-              setOpen(true);
+            if (showAutosuggest) {
+              setIsAutosuggestPopupOpen(true);
             }
           }}
           onClose={() => {
-            setOpen(false);
+            setIsAutosuggestPopupOpen(false);
           }}
           value={null}
           inputValue={inputValue}
@@ -250,7 +270,7 @@ export const LegendMarketplaceSearchBar = observer(
           loading={loadingSuggestions}
           filterOptions={filterOptions}
           getOptionLabel={getOptionLabel}
-          componentsProps={{
+          slotProps={{
             popper: {
               className: 'legend-marketplace__search-bar__dropdown',
               modifiers: [
