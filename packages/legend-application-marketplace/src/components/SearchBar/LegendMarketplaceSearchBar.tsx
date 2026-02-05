@@ -67,7 +67,7 @@ export const LegendMarketplaceSearchBar = observer(
     onChange?: (query: string) => void;
     className?: string | undefined;
     showSettings?: boolean;
-    initialUseProducerSearch?: boolean;
+    stateUseProducerSearch?: boolean | undefined;
     enableAutosuggest?: boolean;
   }): JSX.Element => {
     const {
@@ -77,14 +77,16 @@ export const LegendMarketplaceSearchBar = observer(
       onChange,
       className,
       showSettings,
-      initialUseProducerSearch,
+      stateUseProducerSearch,
       enableAutosuggest = true,
     } = props;
 
     const legendMarketplaceBaseStore = useLegendMarketplaceBaseStore();
     const applicationStore = legendMarketplaceBaseStore.applicationStore;
 
-    const [inputValue, setInputValue] = useState<string>(initialValue ?? '');
+    const [searchQuery, setSearchQuery] = useState<string>(
+      stateSearchQuery ?? '',
+    );
     const [useProducerSearch, setUseProducerSearch] = useState(
       stateUseProducerSearch ?? false,
     );
@@ -159,24 +161,33 @@ export const LegendMarketplaceSearchBar = observer(
       [fetchAutosuggestions],
     );
 
+    // Ensure component's state is in sync with external state
+    useEffect(() => {
+      setSearchQuery(stateSearchQuery ?? '');
+    }, [stateSearchQuery]);
+
+    useEffect(() => {
+      setUseProducerSearch(stateUseProducerSearch ?? false);
+    }, [stateUseProducerSearch]);
+
     useEffect(() => {
       const abortController = new AbortController();
 
       if (isAutosuggestPopupOpen) {
-        if (!inputValue || inputValue.trim().length === 0) {
+        if (!searchQuery || searchQuery.trim().length === 0) {
           setSuggestions(
             createDefaultSuggestions(defaultSuggestionsFromConfig),
           );
           setLoadingSuggestions(false);
         } else {
-          const userQuerySuggestion = createSearchQuerySuggestion(inputValue);
+          const userQuerySuggestion = createSearchQuerySuggestion(searchQuery);
           const loadingIndicator = createLoadingSuggestion();
           setSuggestions([userQuerySuggestion, loadingIndicator]);
           setLoadingSuggestions(true);
 
           // eslint-disable-next-line no-void
           void debouncedFetchAutosuggestions(
-            inputValue,
+            searchQuery,
             abortController.signal,
           );
         }
@@ -186,12 +197,12 @@ export const LegendMarketplaceSearchBar = observer(
         abortController.abort();
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [inputValue, isAutosuggestPopupOpen, debouncedFetchAutosuggestions]);
+    }, [searchQuery, isAutosuggestPopupOpen, debouncedFetchAutosuggestions]);
     const handleInputChange = (
       _event: React.SyntheticEvent,
       newInputValue: string,
     ): void => {
-      setInputValue(newInputValue);
+      setSearchQuery(newInputValue);
       onChange?.(newInputValue);
     };
 
@@ -200,23 +211,23 @@ export const LegendMarketplaceSearchBar = observer(
       selectedSuggestion: SearchSuggestion | string | null,
     ): void => {
       if (typeof selectedSuggestion === 'string') {
-        setInputValue(selectedSuggestion);
+        setSearchQuery(selectedSuggestion);
       } else if (selectedSuggestion) {
         if (selectedSuggestion.type === SearchSuggestionType.LOADING) {
           return;
         }
 
-        const searchQuery = selectedSuggestion.query;
-        setInputValue(searchQuery);
+        const selectedQuery = selectedSuggestion.query;
+        setSearchQuery(selectedQuery);
 
         if (
           selectedSuggestion.type === SearchSuggestionType.SEARCH_QUERY ||
           selectedSuggestion.type === SearchSuggestionType.DEFAULT
         ) {
-          onSearch?.(searchQuery, useProducerSearch);
+          onSearch?.(selectedQuery, useProducerSearch);
           LegendMarketplaceTelemetryHelper.logEvent_SearchAutosuggestSelection(
             applicationStore.telemetryService,
-            searchQuery,
+            selectedQuery,
             selectedSuggestion.type,
           );
         } else {
@@ -237,7 +248,7 @@ export const LegendMarketplaceSearchBar = observer(
 
             LegendMarketplaceTelemetryHelper.logEvent_SearchAutosuggestSelection(
               applicationStore.telemetryService,
-              searchQuery,
+              selectedQuery,
               selectedSuggestion.type,
             );
           }
@@ -247,7 +258,7 @@ export const LegendMarketplaceSearchBar = observer(
 
     const handleSubmit = (event: React.FormEvent): void => {
       event.preventDefault();
-      onSearch?.(inputValue, useProducerSearch);
+      onSearch?.(searchQuery, useProducerSearch);
     };
 
     const getOptionLabel = (option: SearchSuggestion | string): string => {
@@ -279,7 +290,7 @@ export const LegendMarketplaceSearchBar = observer(
             setIsAutosuggestPopupOpen(false);
           }}
           value={null}
-          inputValue={inputValue}
+          inputValue={searchQuery}
           onInputChange={handleInputChange}
           onChange={handleSuggestionSelection}
           options={suggestions}
