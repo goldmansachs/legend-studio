@@ -39,6 +39,8 @@ import {
   createAutosuggestSuggestions,
   createSearchQuerySuggestion,
   createLoadingSuggestion,
+  SearchSuggestionType,
+  SEARCH_SUGGESTION_CONSTANTS,
   type SearchSuggestion,
 } from '../../utils/SearchSuggestions.js';
 import { debounce, assertErrorThrown, LogEvent } from '@finos/legend-shared';
@@ -49,6 +51,7 @@ import {
 } from '../../utils/SearchUtils.js';
 
 const AUTOSUGGEST_LIMIT = 5;
+const AUTOSUGGEST_DEBOUNCE_DELAY = 300;
 
 export interface Vendor {
   provider: string;
@@ -152,7 +155,7 @@ export const LegendMarketplaceSearchBar = observer(
     );
 
     const debouncedFetchAutosuggestions = useMemo(
-      () => debounce(fetchAutosuggestions, 300),
+      () => debounce(fetchAutosuggestions, AUTOSUGGEST_DEBOUNCE_DELAY),
       [fetchAutosuggestions],
     );
 
@@ -199,7 +202,7 @@ export const LegendMarketplaceSearchBar = observer(
       if (typeof selectedSuggestion === 'string') {
         setInputValue(selectedSuggestion);
       } else if (selectedSuggestion) {
-        if (selectedSuggestion.type === 'loading') {
+        if (selectedSuggestion.type === SearchSuggestionType.LOADING) {
           return;
         }
 
@@ -207,8 +210,8 @@ export const LegendMarketplaceSearchBar = observer(
         setInputValue(searchQuery);
 
         if (
-          selectedSuggestion.type === 'search-query' ||
-          selectedSuggestion.type === 'default'
+          selectedSuggestion.type === SearchSuggestionType.SEARCH_QUERY ||
+          selectedSuggestion.type === SearchSuggestionType.DEFAULT
         ) {
           onSearch?.(searchQuery, useProducerSearch);
           LegendMarketplaceTelemetryHelper.logEvent_SearchAutosuggestSelection(
@@ -216,7 +219,7 @@ export const LegendMarketplaceSearchBar = observer(
             searchQuery,
             selectedSuggestion.type,
           );
-        } else if (selectedSuggestion.type === 'autosuggest') {
+        } else {
           const autosuggestResult = selectedSuggestion.autosuggestResult;
           if (autosuggestResult) {
             const searchResult =
@@ -317,20 +320,21 @@ export const LegendMarketplaceSearchBar = observer(
             if (typeof option === 'string') {
               return '';
             }
-            if (option.type === 'search-query') {
+            if (option.type === SearchSuggestionType.SEARCH_QUERY) {
               return '';
             }
-            if (option.type === 'loading') {
+            if (option.type === SearchSuggestionType.LOADING) {
               return '';
             }
-            if (option.type === 'default') {
-              return 'Suggested Searches';
+            if (option.type === SearchSuggestionType.DEFAULT) {
+              return SEARCH_SUGGESTION_CONSTANTS.GROUP_HEADER_SUGGESTED_SEARCHES;
             }
-            return 'Data Products';
+            return SEARCH_SUGGESTION_CONSTANTS.GROUP_HEADER_DATA_PRODUCTS;
           }}
           renderGroup={(params) => (
             <Box key={params.key}>
-              {params.group === 'Data Products' && (
+              {params.group ===
+                SEARCH_SUGGESTION_CONSTANTS.GROUP_HEADER_DATA_PRODUCTS && (
                 <div className="legend-marketplace__search-bar__section-divider" />
               )}
               {params.group && (
@@ -352,7 +356,7 @@ export const LegendMarketplaceSearchBar = observer(
               );
             }
 
-            if (suggestionOption.type === 'search-query') {
+            if (suggestionOption.type === SearchSuggestionType.SEARCH_QUERY) {
               return (
                 <Box
                   component="li"
@@ -370,12 +374,12 @@ export const LegendMarketplaceSearchBar = observer(
               );
             }
 
-            if (suggestionOption.type === 'loading') {
+            if (suggestionOption.type === SearchSuggestionType.LOADING) {
               return (
                 <Box
                   component="li"
                   {...params}
-                  key="loading"
+                  key={SEARCH_SUGGESTION_CONSTANTS.LOADING_KEY}
                   className="legend-marketplace__search-bar__autocomplete-option legend-marketplace__search-bar__autocomplete-option--loading"
                   style={{ cursor: 'default' }}
                 >
@@ -395,7 +399,7 @@ export const LegendMarketplaceSearchBar = observer(
               );
             }
 
-            if (suggestionOption.type === 'default') {
+            if (suggestionOption.type === SearchSuggestionType.DEFAULT) {
               return (
                 <Box
                   component="li"
@@ -443,7 +447,9 @@ export const LegendMarketplaceSearchBar = observer(
             <TextField
               {...(params as TextFieldProps)}
               className="legend-marketplace__search-bar__text-field"
-              placeholder={placeholder ?? 'Search'}
+              placeholder={
+                placeholder ?? SEARCH_SUGGESTION_CONSTANTS.DEFAULT_PLACEHOLDER
+              }
               fullWidth={true}
               slotProps={{
                 input: {

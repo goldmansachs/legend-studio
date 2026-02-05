@@ -16,8 +16,23 @@
 
 import type { AutosuggestResult } from '@finos/legend-server-marketplace';
 
+export enum SearchSuggestionType {
+  DEFAULT = 'default',
+  AUTOSUGGEST = 'autosuggest',
+  SEARCH_QUERY = 'search-query',
+  LOADING = 'loading',
+}
+
+export const SEARCH_SUGGESTION_CONSTANTS = {
+  LOADING_MESSAGE: 'Loading suggestions...',
+  GROUP_HEADER_SUGGESTED_SEARCHES: 'Suggested Searches',
+  GROUP_HEADER_DATA_PRODUCTS: 'Data Products',
+  DEFAULT_PLACEHOLDER: 'Search',
+  LOADING_KEY: 'loading',
+} as const;
+
 export interface SearchSuggestion {
-  type: 'default' | 'autosuggest' | 'search-query' | 'loading';
+  type: SearchSuggestionType;
   query: string;
   autosuggestResult?: AutosuggestResult | undefined;
 }
@@ -29,7 +44,7 @@ export function createDefaultSuggestions(
     return [];
   }
   return defaultSuggestionQueries.map((queryText) => ({
-    type: 'default',
+    type: SearchSuggestionType.DEFAULT,
     query: queryText,
   }));
 }
@@ -38,7 +53,7 @@ export function createAutosuggestSuggestions(
   autosuggestResults: AutosuggestResult[],
 ): SearchSuggestion[] {
   return autosuggestResults.map((autosuggestResult) => ({
-    type: 'autosuggest',
+    type: SearchSuggestionType.AUTOSUGGEST,
     query: autosuggestResult.dataProductName,
     autosuggestResult: autosuggestResult,
   }));
@@ -48,14 +63,14 @@ export function createSearchQuerySuggestion(
   userQuery: string,
 ): SearchSuggestion {
   return {
-    type: 'search-query',
+    type: SearchSuggestionType.SEARCH_QUERY,
     query: userQuery,
   };
 }
 
 export function createLoadingSuggestion(): SearchSuggestion {
   return {
-    type: 'loading',
-    query: 'Loading suggestions...',
+    type: SearchSuggestionType.LOADING,
+    query: SEARCH_SUGGESTION_CONSTANTS.LOADING_MESSAGE,
   };
 }

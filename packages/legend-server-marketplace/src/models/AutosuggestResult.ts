@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 
+export enum DataProductDetailsType {
+  LAKEHOUSE = 'lakehouse',
+  LEGACY = 'legacy',
+  SDLC_DEPLOYMENT = 'SdlcDeployment',
+}
+
 export interface AutosuggestDataProductOrigin {
   _type: string;
   groupId: string;

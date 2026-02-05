@@ -20,6 +20,7 @@ import {
   LakehouseDataProductSearchResultDetails,
   LakehouseSDLCDataProductSearchResultOrigin,
   LegacyDataProductSearchResultDetails,
+  DataProductDetailsType,
   type AutosuggestResult,
 } from '@finos/legend-server-marketplace';
 import {
@@ -32,6 +33,7 @@ import {
 } from '../__lib__/LegendMarketplaceNavigation.js';
 import {
   type V1_EntitlementsDataProductDetails,
+  type V1_EntitlementsLakehouseEnvironmentType,
   V1_SdlcDeploymentDataProductOrigin,
 } from '@finos/legend-graph';
 import type { V1_DataSpace } from '@finos/legend-extension-dsl-data-space/graph';
@@ -156,15 +158,18 @@ export const convertAutosuggestResultToSearchResult = (
 
   const details = autosuggestResult.dataProductDetails;
 
-  if (details._type === 'lakehouse') {
+  if (details._type === DataProductDetailsType.LAKEHOUSE) {
     const lakehouseDetails = new LakehouseDataProductSearchResultDetails();
     lakehouseDetails.dataProductId = details.dataProductId ?? '';
     lakehouseDetails.deploymentId = details.deploymentId ?? 0;
     lakehouseDetails.producerEnvironmentName =
       details.producerEnvironmentName ?? '';
     lakehouseDetails.producerEnvironmentType =
-      details.producerEnvironmentType as any;
+      details.producerEnvironmentType as
+        | V1_EntitlementsLakehouseEnvironmentType
+        | undefined;
 
+    // Set origin based on whether origin data exists
     if (details.origin) {
       const sdlcOrigin = new LakehouseSDLCDataProductSearchResultOrigin();
       sdlcOrigin.groupId = details.origin.groupId;
@@ -178,7 +183,7 @@ export const convertAutosuggestResultToSearchResult = (
     }
 
     searchResult.dataProductDetails = lakehouseDetails;
-  } else if (details._type === 'legacy') {
+  } else if (details._type === DataProductDetailsType.LEGACY) {
     const legacyDetails = new LegacyDataProductSearchResultDetails();
     legacyDetails.groupId = details.groupId;
     legacyDetails.artifactId = details.artifactId;
