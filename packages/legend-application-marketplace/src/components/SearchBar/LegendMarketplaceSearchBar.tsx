@@ -37,10 +37,16 @@ import { useLegendMarketplaceBaseStore } from '../../application/providers/Legen
 import {
   createDefaultSuggestions,
   createAutosuggestSuggestions,
+  createSearchQuerySuggestion,
+  createLoadingSuggestion,
   type SearchSuggestion,
 } from '../../utils/SearchSuggestions.js';
 import { debounce, assertErrorThrown, LogEvent } from '@finos/legend-shared';
 import { APPLICATION_EVENT } from '@finos/legend-application';
+import {
+  generatePathForDataProductSearchResult,
+  convertAutosuggestResultToSearchResult,
+} from '../../utils/SearchUtils.js';
 
 const AUTOSUGGEST_LIMIT = 5;
 
@@ -97,25 +103,9 @@ export const LegendMarketplaceSearchBar = observer(
     const fetchAutosuggestions = useCallback(
       async (query: string, signal?: AbortSignal): Promise<void> => {
         if (!showAutosuggest) {
-          setSuggestions([]);
           return;
         }
 
-        if (!query || query.trim().length === 0) {
-          if (
-            defaultSuggestionsFromConfig &&
-            defaultSuggestionsFromConfig.length > 0
-          ) {
-            setSuggestions(
-              createDefaultSuggestions(defaultSuggestionsFromConfig),
-            );
-          } else {
-            setSuggestions([]);
-          }
-          return;
-        }
-
-        setLoadingSuggestions(true);
         try {
           const response =
             await legendMarketplaceBaseStore.marketplaceServerClient.getAutosuggestions(
@@ -125,20 +115,16 @@ export const LegendMarketplaceSearchBar = observer(
               signal,
             );
 
-          const results = response.results;
-          if (results.length > 0) {
-            setSuggestions(createAutosuggestSuggestions(results));
+          const autosuggestResults = response.results;
+          const userQuerySuggestion = createSearchQuerySuggestion(query);
+
+          if (autosuggestResults.length > 0) {
+            setSuggestions([
+              userQuerySuggestion,
+              ...createAutosuggestSuggestions(autosuggestResults),
+            ]);
           } else {
-            if (
-              defaultSuggestionsFromConfig &&
-              defaultSuggestionsFromConfig.length > 0
-            ) {
-              setSuggestions(
-                createDefaultSuggestions(defaultSuggestionsFromConfig),
-              );
-            } else {
-              setSuggestions([]);
-            }
+            setSuggestions([userQuerySuggestion]);
           }
         } catch (error) {
           assertErrorThrown(error);
@@ -149,16 +135,8 @@ export const LegendMarketplaceSearchBar = observer(
             LogEvent.create(APPLICATION_EVENT.GENERIC_FAILURE),
             error,
           );
-          if (
-            defaultSuggestionsFromConfig &&
-            defaultSuggestionsFromConfig.length > 0
-          ) {
-            setSuggestions(
-              createDefaultSuggestions(defaultSuggestionsFromConfig),
-            );
-          } else {
-            setSuggestions([]);
-          }
+          const fallbackQuerySuggestion = createSearchQuerySuggestion(query);
+          setSuggestions([fallbackQuerySuggestion]);
         } finally {
           if (!signal?.aborted) {
             setLoadingSuggestions(false);
@@ -167,7 +145,6 @@ export const LegendMarketplaceSearchBar = observer(
       },
       [
         showAutosuggest,
-        defaultSuggestionsFromConfig,
         legendMarketplaceBaseStore.marketplaceServerClient,
         legendMarketplaceBaseStore.envState.lakehouseEnvironment,
         applicationStore.logService,
@@ -187,7 +164,13 @@ export const LegendMarketplaceSearchBar = observer(
           setSuggestions(
             createDefaultSuggestions(defaultSuggestionsFromConfig),
           );
+          setLoadingSuggestions(false);
         } else {
+          const userQuerySuggestion = createSearchQuerySuggestion(inputValue);
+          const loadingIndicator = createLoadingSuggestion();
+          setSuggestions([userQuerySuggestion, loadingIndicator]);
+          setLoadingSuggestions(true);
+
           // eslint-disable-next-line no-void
           void debouncedFetchAutosuggestions(
             inputValue,
@@ -201,7 +184,6 @@ export const LegendMarketplaceSearchBar = observer(
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [inputValue, isAutosuggestPopupOpen, debouncedFetchAutosuggestions]);
-
     const handleInputChange = (
       _event: React.SyntheticEvent,
       newInputValue: string,
@@ -210,22 +192,53 @@ export const LegendMarketplaceSearchBar = observer(
       onChange?.(newInputValue);
     };
 
-    const handleChange = (
+    const handleSuggestionSelection = (
       _event: React.SyntheticEvent,
-      newValue: SearchSuggestion | string | null,
+      selectedSuggestion: SearchSuggestion | string | null,
     ): void => {
-      if (typeof newValue === 'string') {
-        setInputValue(newValue);
-      } else if (newValue) {
-        const query = newValue.query;
-        setInputValue(query);
-        onSearch?.(query, useProducerSearch);
+      if (typeof selectedSuggestion === 'string') {
+        setInputValue(selectedSuggestion);
+      } else if (selectedSuggestion) {
+        if (selectedSuggestion.type === 'loading') {
+          return;
+        }
 
-        LegendMarketplaceTelemetryHelper.logEvent_SearchAutosuggestSelection(
-          applicationStore.telemetryService,
-          query,
-          newValue.type,
-        );
+        const searchQuery = selectedSuggestion.query;
+        setInputValue(searchQuery);
+
+        if (
+          selectedSuggestion.type === 'search-query' ||
+          selectedSuggestion.type === 'default'
+        ) {
+          onSearch?.(searchQuery, useProducerSearch);
+          LegendMarketplaceTelemetryHelper.logEvent_SearchAutosuggestSelection(
+            applicationStore.telemetryService,
+            searchQuery,
+            selectedSuggestion.type,
+          );
+        } else if (selectedSuggestion.type === 'autosuggest') {
+          const autosuggestResult = selectedSuggestion.autosuggestResult;
+          if (autosuggestResult) {
+            const searchResult =
+              convertAutosuggestResultToSearchResult(autosuggestResult);
+            const dataProductViewerPath =
+              generatePathForDataProductSearchResult(searchResult);
+
+            if (dataProductViewerPath) {
+              applicationStore.navigationService.navigator.visitAddress(
+                applicationStore.navigationService.navigator.generateAddress(
+                  dataProductViewerPath,
+                ),
+              );
+            }
+
+            LegendMarketplaceTelemetryHelper.logEvent_SearchAutosuggestSelection(
+              applicationStore.telemetryService,
+              searchQuery,
+              selectedSuggestion.type,
+            );
+          }
+        }
       }
     };
 
@@ -265,9 +278,8 @@ export const LegendMarketplaceSearchBar = observer(
           value={null}
           inputValue={inputValue}
           onInputChange={handleInputChange}
-          onChange={handleChange}
+          onChange={handleSuggestionSelection}
           options={suggestions}
-          loading={loadingSuggestions}
           filterOptions={filterOptions}
           getOptionLabel={getOptionLabel}
           slotProps={{
@@ -305,12 +317,22 @@ export const LegendMarketplaceSearchBar = observer(
             if (typeof option === 'string') {
               return '';
             }
-            return option.type === 'default'
-              ? 'Suggested Searches'
-              : 'Suggestions';
+            if (option.type === 'search-query') {
+              return '';
+            }
+            if (option.type === 'loading') {
+              return '';
+            }
+            if (option.type === 'default') {
+              return 'Suggested Searches';
+            }
+            return 'Data Products';
           }}
           renderGroup={(params) => (
             <Box key={params.key}>
+              {params.group === 'Data Products' && (
+                <div className="legend-marketplace__search-bar__section-divider" />
+              )}
               {params.group && (
                 <Typography className="legend-marketplace__search-bar__autocomplete-group-header">
                   {params.group}
@@ -319,59 +341,99 @@ export const LegendMarketplaceSearchBar = observer(
               {params.children}
             </Box>
           )}
-          renderOption={(params, option) => {
-            if (typeof option === 'string') {
+          renderOption={(params, suggestionOption) => {
+            if (typeof suggestionOption === 'string') {
               return (
-                <Box component="li" {...params} key={option}>
+                <Box component="li" {...params} key={suggestionOption}>
                   <Typography className="legend-marketplace__search-bar__autocomplete-option__text">
-                    {option}
+                    {suggestionOption}
                   </Typography>
                 </Box>
               );
             }
 
-            if (option.type === 'default') {
+            if (suggestionOption.type === 'search-query') {
               return (
                 <Box
                   component="li"
                   {...params}
-                  key={option.query}
+                  key={suggestionOption.query}
+                  className="legend-marketplace__search-bar__autocomplete-option"
+                >
+                  <div className="legend-marketplace__search-bar__autocomplete-option__search-query">
+                    <SearchIcon className="legend-marketplace__search-bar__autocomplete-option__search-icon" />
+                    <Typography className="legend-marketplace__search-bar__autocomplete-option__text">
+                      {suggestionOption.query}
+                    </Typography>
+                  </div>
+                </Box>
+              );
+            }
+
+            if (suggestionOption.type === 'loading') {
+              return (
+                <Box
+                  component="li"
+                  {...params}
+                  key="loading"
+                  className="legend-marketplace__search-bar__autocomplete-option legend-marketplace__search-bar__autocomplete-option--loading"
+                  style={{ cursor: 'default' }}
+                >
+                  <div className="legend-marketplace__search-bar__autocomplete-option__loading">
+                    <CircularProgress
+                      size={16}
+                      sx={{ color: 'var(--marketplace-text-secondary)' }}
+                    />
+                    <Typography
+                      className="legend-marketplace__search-bar__autocomplete-option__text"
+                      sx={{ color: 'var(--marketplace-text-secondary)' }}
+                    >
+                      {suggestionOption.query}
+                    </Typography>
+                  </div>
+                </Box>
+              );
+            }
+
+            if (suggestionOption.type === 'default') {
+              return (
+                <Box
+                  component="li"
+                  {...params}
+                  key={suggestionOption.query}
                   className="legend-marketplace__search-bar__autocomplete-option"
                 >
                   <Typography className="legend-marketplace__search-bar__autocomplete-option__text">
-                    {option.query}
+                    {suggestionOption.query}
                   </Typography>
                 </Box>
               );
             }
 
-            const result = option.autosuggestResult;
-            if (!result) {
+            const autosuggestResult = suggestionOption.autosuggestResult;
+            if (!autosuggestResult) {
               return null;
             }
 
-            const description = result.dataProductDescription;
+            const dataProductName = autosuggestResult.dataProductName;
+            const dataProductDescription =
+              autosuggestResult.dataProductDescription;
 
             return (
               <Box
                 component="li"
                 {...params}
-                key={result.dataProductName}
+                key={dataProductName}
                 className="legend-marketplace__search-bar__autocomplete-option"
               >
-                <div className="legend-marketplace__search-bar__autocomplete-option__content">
-                  <span className="legend-marketplace__search-bar__autocomplete-option__name">
-                    {result.dataProductName}
-                  </span>
-                  {description && (
-                    <>
-                      <span className="legend-marketplace__search-bar__autocomplete-option__separator">
-                        {' | '}
-                      </span>
-                      <span className="legend-marketplace__search-bar__autocomplete-option__description">
-                        {description}
-                      </span>
-                    </>
+                <div className="legend-marketplace__search-bar__autocomplete-option__data-product">
+                  <div className="legend-marketplace__search-bar__autocomplete-option__name">
+                    {dataProductName}
+                  </div>
+                  {dataProductDescription && (
+                    <div className="legend-marketplace__search-bar__autocomplete-option__description">
+                      {dataProductDescription}
+                    </div>
                   )}
                 </div>
               </Box>
@@ -389,9 +451,9 @@ export const LegendMarketplaceSearchBar = observer(
                   className: 'legend-marketplace__search-bar__input',
                   endAdornment: (
                     <>
-                      {loadingSuggestions ? (
-                        <CircularProgress color="inherit" size={20} />
-                      ) : null}
+                      {loadingSuggestions && (
+                        <CircularProgress color="inherit" size={28} />
+                      )}
                       {params.InputProps.endAdornment}
                       <InputAdornment position="end">
                         {showSettings && (

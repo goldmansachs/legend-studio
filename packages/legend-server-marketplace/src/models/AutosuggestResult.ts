@@ -14,12 +14,25 @@
  * limitations under the License.
  */
 
+export interface AutosuggestDataProductOrigin {
+  _type: string;
+  groupId: string;
+  artifactId: string;
+  versionId: string;
+  path: string;
+}
+
 export interface AutosuggestDataProductDetails {
   _type: string;
   groupId: string;
   artifactId: string;
   versionId: string;
   path: string;
+  dataProductId?: string;
+  deploymentId?: number;
+  producerEnvironmentName?: string;
+  producerEnvironmentType?: string;
+  origin?: AutosuggestDataProductOrigin;
 }
 
 export interface AutosuggestResult {

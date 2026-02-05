@@ -993,8 +993,12 @@
       }
     }
 
+    &__section-divider {
+      background-color: var(--color-light-grey-50);
+    }
+
     &__autocomplete-group-header {
-      background-color: var(--marketplace-dropdown-bg);
+      color: var(--color-light-grey-250);
     }
 
     &__autocomplete-option {
@@ -1003,6 +1007,17 @@
       &:hover {
         background-color: var(--marketplace-dropdown-hover-bg);
       }
+    }
+  }
+
+  // Override section for search bar dropdown with !important
+  .legend-marketplace__search-bar__dropdown.MuiAutocomplete-popper {
+    .MuiPaper-root {
+      background-color: var(--marketplace-dropdown-bg) !important;
+    }
+
+    .MuiAutocomplete-listbox {
+      background-color: var(--marketplace-dropdown-bg) !important;
     }
   }
 

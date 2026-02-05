@@ -70,9 +70,16 @@
 
       .MuiAutocomplete-listbox {
         width: 100%;
-        padding: 0;
+        padding: 0.8rem 0;
       }
     }
+  }
+
+  &__section-divider {
+    height: 0.1rem;
+    background-color: var(--color-dark-grey-500);
+    opacity: 0.5;
+    margin: 0;
   }
 
   &__autocomplete-group-header {
@@ -81,8 +88,7 @@
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.05rem;
-    color: var(--color-dark-grey-400);
-    background-color: var(--color-white);
+    color: var(--color-dark-grey-300);
     border-bottom: none;
     font-family: 'GS Sans', Helvetica, Arial, sans-serif;
   }
@@ -97,6 +103,41 @@
 
     &:hover {
       background-color: var(--marketplace-bg-secondary);
+    }
+
+    &__search-query {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      width: 100%;
+    }
+
+    &__search-icon {
+      font-size: 2rem;
+      color: var(--marketplace-text-secondary);
+      flex-shrink: 0;
+    }
+
+    &__loading {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      width: 100%;
+    }
+
+    &--loading {
+      pointer-events: none;
+
+      &:hover {
+        background-color: var(--marketplace-bg-primary) !important;
+      }
+    }
+
+    &__data-product {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      width: 100%;
     }
 
     &__content {
@@ -124,8 +165,13 @@
     }
 
     &__name {
+      font-size: 1.8rem;
       font-weight: 500;
       color: var(--marketplace-link-color);
+      font-family: 'GS Sans', Helvetica, Arial, sans-serif;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     &__separator {
@@ -134,7 +180,11 @@
 
     &__description {
       font-size: 1.4rem;
-      color: var(--marketplace-text-primary);
+      color: var(--marketplace-text-secondary);
+      font-family: 'GS Sans', Helvetica, Arial, sans-serif;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   }
 }
@@ -148,6 +198,6 @@
   }
 
   .MuiAutocomplete-listbox {
-    padding: 0 !important;
+    padding: 0.8rem 0 !important;
   }
 }

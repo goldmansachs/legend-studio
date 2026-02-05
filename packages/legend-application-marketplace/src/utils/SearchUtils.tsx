@@ -20,6 +20,7 @@ import {
   LakehouseDataProductSearchResultDetails,
   LakehouseSDLCDataProductSearchResultOrigin,
   LegacyDataProductSearchResultDetails,
+  type AutosuggestResult,
 } from '@finos/legend-server-marketplace';
 import {
   generateGAVCoordinates,
@@ -141,6 +142,50 @@ export const convertLegacyDataProductToSearchResult = (
   details.path = legacyDataProduct.path;
 
   searchResult.dataProductDetails = details;
+
+  return searchResult;
+};
+
+export const convertAutosuggestResultToSearchResult = (
+  autosuggestResult: AutosuggestResult,
+): DataProductSearchResult => {
+  const searchResult = new DataProductSearchResult();
+  searchResult.dataProductTitle = autosuggestResult.dataProductName;
+  searchResult.dataProductDescription =
+    autosuggestResult.dataProductDescription;
+
+  const details = autosuggestResult.dataProductDetails;
+
+  if (details._type === 'lakehouse') {
+    const lakehouseDetails = new LakehouseDataProductSearchResultDetails();
+    lakehouseDetails.dataProductId = details.dataProductId ?? '';
+    lakehouseDetails.deploymentId = details.deploymentId ?? 0;
+    lakehouseDetails.producerEnvironmentName =
+      details.producerEnvironmentName ?? '';
+    lakehouseDetails.producerEnvironmentType =
+      details.producerEnvironmentType as any;
+
+    if (details.origin) {
+      const sdlcOrigin = new LakehouseSDLCDataProductSearchResultOrigin();
+      sdlcOrigin.groupId = details.origin.groupId;
+      sdlcOrigin.artifactId = details.origin.artifactId;
+      sdlcOrigin.versionId = details.origin.versionId;
+      sdlcOrigin.path = details.origin.path;
+      lakehouseDetails.origin = sdlcOrigin;
+    } else {
+      lakehouseDetails.origin =
+        new LakehouseAdHocDataProductSearchResultOrigin();
+    }
+
+    searchResult.dataProductDetails = lakehouseDetails;
+  } else if (details._type === 'legacy') {
+    const legacyDetails = new LegacyDataProductSearchResultDetails();
+    legacyDetails.groupId = details.groupId;
+    legacyDetails.artifactId = details.artifactId;
+    legacyDetails.versionId = details.versionId;
+    legacyDetails.path = details.path;
+    searchResult.dataProductDetails = legacyDetails;
+  }
 
   return searchResult;
 };
