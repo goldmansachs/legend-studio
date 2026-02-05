@@ -225,7 +225,6 @@ export const LegendMarketplaceSearchBar = observer(
         return;
       }
 
-      // Ignore loading indicator clicks
       if (selectedSuggestion.type === SearchSuggestionType.LOADING) {
         return;
       }
@@ -284,14 +283,12 @@ export const LegendMarketplaceSearchBar = observer(
       if (typeof option === 'string') {
         return '';
       }
-      // Don't group search query and loading suggestions
       if (
         option.type === SearchSuggestionType.SEARCH_QUERY ||
         option.type === SearchSuggestionType.LOADING
       ) {
         return '';
       }
-      // Group by suggestion type
       return option.type === SearchSuggestionType.DEFAULT
         ? SEARCH_SUGGESTION_CONSTANTS.GROUP_HEADER_SUGGESTED_SEARCHES
         : SEARCH_SUGGESTION_CONSTANTS.GROUP_HEADER_DATA_PRODUCTS;
