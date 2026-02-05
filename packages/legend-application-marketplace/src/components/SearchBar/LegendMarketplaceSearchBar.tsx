@@ -50,9 +50,6 @@ import {
   convertAutosuggestResultToSearchResult,
 } from '../../utils/SearchUtils.js';
 
-const AUTOSUGGEST_LIMIT = 5;
-const AUTOSUGGEST_DEBOUNCE_DELAY = 300;
-
 export interface Vendor {
   provider: string;
   description: string;
@@ -100,14 +97,10 @@ export const LegendMarketplaceSearchBar = observer(
 
     const defaultSuggestionsFromConfig =
       applicationStore.config.options.defaultSearchSuggestions;
-    const showAutosuggest = useMemo(
-      () => enableAutosuggest,
-      [enableAutosuggest],
-    );
 
     const fetchAutosuggestions = useCallback(
       async (query: string, signal?: AbortSignal): Promise<void> => {
-        if (!showAutosuggest) {
+        if (!enableAutosuggest) {
           return;
         }
 
@@ -116,7 +109,7 @@ export const LegendMarketplaceSearchBar = observer(
             await legendMarketplaceBaseStore.marketplaceServerClient.getAutosuggestions(
               query,
               legendMarketplaceBaseStore.envState.lakehouseEnvironment,
-              AUTOSUGGEST_LIMIT,
+              SEARCH_SUGGESTION_CONSTANTS.AUTOSUGGEST_LIMIT,
               signal,
             );
 
@@ -149,7 +142,7 @@ export const LegendMarketplaceSearchBar = observer(
         }
       },
       [
-        showAutosuggest,
+        enableAutosuggest,
         legendMarketplaceBaseStore.marketplaceServerClient,
         legendMarketplaceBaseStore.envState.lakehouseEnvironment,
         applicationStore.logService,
@@ -157,9 +150,22 @@ export const LegendMarketplaceSearchBar = observer(
     );
 
     const debouncedFetchAutosuggestions = useMemo(
-      () => debounce(fetchAutosuggestions, AUTOSUGGEST_DEBOUNCE_DELAY),
+      () =>
+        debounce(
+          fetchAutosuggestions,
+          SEARCH_SUGGESTION_CONSTANTS.AUTOSUGGEST_DEBOUNCE_DELAY,
+        ),
       [fetchAutosuggestions],
     );
+
+    // Cleanup debounced function on unmount
+    useEffect(() => {
+      return () => {
+        if ('cancel' in debouncedFetchAutosuggestions) {
+          debouncedFetchAutosuggestions.cancel();
+        }
+      };
+    }, [debouncedFetchAutosuggestions]);
 
     // Ensure component's state is in sync with external state
     useEffect(() => {
@@ -210,48 +216,54 @@ export const LegendMarketplaceSearchBar = observer(
       _event: React.SyntheticEvent,
       selectedSuggestion: SearchSuggestion | string | null,
     ): void => {
+      if (!selectedSuggestion) {
+        return;
+      }
+
       if (typeof selectedSuggestion === 'string') {
         setSearchQuery(selectedSuggestion);
-      } else if (selectedSuggestion) {
-        if (selectedSuggestion.type === SearchSuggestionType.LOADING) {
-          return;
-        }
+        return;
+      }
 
-        const selectedQuery = selectedSuggestion.query;
-        setSearchQuery(selectedQuery);
+      // Ignore loading indicator clicks
+      if (selectedSuggestion.type === SearchSuggestionType.LOADING) {
+        return;
+      }
 
-        if (
-          selectedSuggestion.type === SearchSuggestionType.SEARCH_QUERY ||
-          selectedSuggestion.type === SearchSuggestionType.DEFAULT
-        ) {
-          onSearch?.(selectedQuery, useProducerSearch);
+      const selectedQuery = selectedSuggestion.query;
+      setSearchQuery(selectedQuery);
+
+      if (
+        selectedSuggestion.type === SearchSuggestionType.SEARCH_QUERY ||
+        selectedSuggestion.type === SearchSuggestionType.DEFAULT
+      ) {
+        onSearch?.(selectedQuery, useProducerSearch);
+        LegendMarketplaceTelemetryHelper.logEvent_SearchAutosuggestSelection(
+          applicationStore.telemetryService,
+          selectedQuery,
+          selectedSuggestion.type,
+        );
+      } else {
+        const autosuggestResult = selectedSuggestion.autosuggestResult;
+        if (autosuggestResult) {
+          const searchResult =
+            convertAutosuggestResultToSearchResult(autosuggestResult);
+          const dataProductViewerPath =
+            generatePathForDataProductSearchResult(searchResult);
+
+          if (dataProductViewerPath) {
+            applicationStore.navigationService.navigator.visitAddress(
+              applicationStore.navigationService.navigator.generateAddress(
+                dataProductViewerPath,
+              ),
+            );
+          }
+
           LegendMarketplaceTelemetryHelper.logEvent_SearchAutosuggestSelection(
             applicationStore.telemetryService,
             selectedQuery,
             selectedSuggestion.type,
           );
-        } else {
-          const autosuggestResult = selectedSuggestion.autosuggestResult;
-          if (autosuggestResult) {
-            const searchResult =
-              convertAutosuggestResultToSearchResult(autosuggestResult);
-            const dataProductViewerPath =
-              generatePathForDataProductSearchResult(searchResult);
-
-            if (dataProductViewerPath) {
-              applicationStore.navigationService.navigator.visitAddress(
-                applicationStore.navigationService.navigator.generateAddress(
-                  dataProductViewerPath,
-                ),
-              );
-            }
-
-            LegendMarketplaceTelemetryHelper.logEvent_SearchAutosuggestSelection(
-              applicationStore.telemetryService,
-              selectedQuery,
-              selectedSuggestion.type,
-            );
-          }
         }
       }
     };
@@ -261,15 +273,28 @@ export const LegendMarketplaceSearchBar = observer(
       onSearch?.(searchQuery, useProducerSearch);
     };
 
-    const getOptionLabel = (option: SearchSuggestion | string): string => {
-      if (typeof option === 'string') {
-        return option;
-      }
-      return option.query;
-    };
+    const getOptionLabel = (option: SearchSuggestion | string): string =>
+      typeof option === 'string' ? option : option.query;
 
     const filterOptions = (options: SearchSuggestion[]): SearchSuggestion[] => {
       return options;
+    };
+
+    const getGroupLabel = (option: SearchSuggestion | string): string => {
+      if (typeof option === 'string') {
+        return '';
+      }
+      // Don't group search query and loading suggestions
+      if (
+        option.type === SearchSuggestionType.SEARCH_QUERY ||
+        option.type === SearchSuggestionType.LOADING
+      ) {
+        return '';
+      }
+      // Group by suggestion type
+      return option.type === SearchSuggestionType.DEFAULT
+        ? SEARCH_SUGGESTION_CONSTANTS.GROUP_HEADER_SUGGESTED_SEARCHES
+        : SEARCH_SUGGESTION_CONSTANTS.GROUP_HEADER_DATA_PRODUCTS;
     };
 
     return (
@@ -280,9 +305,9 @@ export const LegendMarketplaceSearchBar = observer(
         <Autocomplete
           freeSolo={true}
           fullWidth={true}
-          open={showAutosuggest ? isAutosuggestPopupOpen : false}
+          open={enableAutosuggest ? isAutosuggestPopupOpen : false}
           onOpen={() => {
-            if (showAutosuggest) {
+            if (enableAutosuggest) {
               setIsAutosuggestPopupOpen(true);
             }
           }}
@@ -296,6 +321,7 @@ export const LegendMarketplaceSearchBar = observer(
           options={suggestions}
           filterOptions={filterOptions}
           getOptionLabel={getOptionLabel}
+          groupBy={getGroupLabel}
           slotProps={{
             popper: {
               className: 'legend-marketplace__search-bar__dropdown',
@@ -326,21 +352,6 @@ export const LegendMarketplaceSearchBar = observer(
               ],
               placement: 'bottom-start',
             },
-          }}
-          groupBy={(option) => {
-            if (typeof option === 'string') {
-              return '';
-            }
-            if (option.type === SearchSuggestionType.SEARCH_QUERY) {
-              return '';
-            }
-            if (option.type === SearchSuggestionType.LOADING) {
-              return '';
-            }
-            if (option.type === SearchSuggestionType.DEFAULT) {
-              return SEARCH_SUGGESTION_CONSTANTS.GROUP_HEADER_SUGGESTED_SEARCHES;
-            }
-            return SEARCH_SUGGESTION_CONSTANTS.GROUP_HEADER_DATA_PRODUCTS;
           }}
           renderGroup={(params) => (
             <Box key={params.key}>

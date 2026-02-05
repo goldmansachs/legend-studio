@@ -29,6 +29,8 @@ export const SEARCH_SUGGESTION_CONSTANTS = {
   GROUP_HEADER_DATA_PRODUCTS: 'Data Products',
   DEFAULT_PLACEHOLDER: 'Search',
   LOADING_KEY: 'loading',
+  AUTOSUGGEST_LIMIT: 5,
+  AUTOSUGGEST_DEBOUNCE_DELAY: 300,
 } as const;
 
 export interface SearchSuggestion {
