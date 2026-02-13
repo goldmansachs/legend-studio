@@ -496,6 +496,7 @@ export class QueryBuilderResultState {
         this.queryBuilderState.graphManagerState.graph,
       );
       const contextstate = this.queryBuilderState.executionContextState;
+      console.log('ex', this.queryBuilderState.executionContextState);
       promise = this.queryBuilderState.graphManagerState.graphManager.runQuery(
         query,
         contextstate.explicitMappingValue,
