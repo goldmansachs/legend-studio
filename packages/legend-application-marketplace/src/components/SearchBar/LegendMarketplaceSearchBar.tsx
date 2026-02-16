@@ -43,7 +43,12 @@ import {
   SEARCH_SUGGESTION_CONSTANTS,
   type SearchSuggestion,
 } from '../../utils/SearchSuggestions.js';
-import { debounce, assertErrorThrown, LogEvent } from '@finos/legend-shared';
+import {
+  debounce,
+  type DebouncedFunc,
+  assertErrorThrown,
+  LogEvent,
+} from '@finos/legend-shared';
 import { APPLICATION_EVENT } from '@finos/legend-application';
 import {
   generatePathForDataProductSearchResult,
@@ -149,7 +154,9 @@ export const LegendMarketplaceSearchBar = observer(
       ],
     );
 
-    const debouncedFetchAutosuggestions = useMemo(
+    const debouncedFetchAutosuggestions: DebouncedFunc<
+      typeof fetchAutosuggestions
+    > = useMemo(
       () =>
         debounce(
           fetchAutosuggestions,
@@ -161,9 +168,7 @@ export const LegendMarketplaceSearchBar = observer(
     // Cleanup debounced function on unmount
     useEffect(() => {
       return () => {
-        if ('cancel' in debouncedFetchAutosuggestions) {
-          debouncedFetchAutosuggestions.cancel();
-        }
+        debouncedFetchAutosuggestions.cancel();
       };
     }, [debouncedFetchAutosuggestions]);
 
