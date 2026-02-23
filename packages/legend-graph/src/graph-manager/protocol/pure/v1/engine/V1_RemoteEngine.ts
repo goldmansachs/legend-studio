@@ -613,9 +613,15 @@ export class V1_RemoteEngine implements V1_GraphManagerEngine {
           compilationResult.defects as
             | PlainObject<V1_CompilationWarning>[]
             | undefined
-        )?.map((defect) =>
-          V1_CompilationWarning.serialization.fromJson(defect),
-        ),
+        )
+          ?.map((defect) =>
+            V1_CompilationWarning.serialization.fromJson(defect),
+          )
+          .filter(
+            (defect) =>
+              !defect.defectSeverityLevel ||
+              defect.defectSeverityLevel.toUpperCase() === 'WARN',
+          ),
       };
     } catch (error) {
       assertErrorThrown(error);
@@ -669,9 +675,15 @@ export class V1_RemoteEngine implements V1_GraphManagerEngine {
           compilationResult.defects as
             | PlainObject<V1_CompilationWarning>[]
             | undefined
-        )?.map((defect) =>
-          V1_CompilationWarning.serialization.fromJson(defect),
-        ),
+        )
+          ?.map((defect) =>
+            V1_CompilationWarning.serialization.fromJson(defect),
+          )
+          .filter(
+            (defect) =>
+              !defect.defectSeverityLevel ||
+              defect.defectSeverityLevel.toUpperCase() === 'WARN',
+          ),
         sourceInformationIndex:
           this.extractElementSourceInformationIndexFromPureModelContextDataJSON(
             mainGraph,

@@ -23,7 +23,6 @@ import {
   GraphBuilderError,
   type CompilationResult,
   CompilationError,
-  CompilationWarning,
   extractSourceInformationCoordinates,
   reportGraphAnalytics,
 } from '@finos/legend-graph';
@@ -442,9 +441,9 @@ export class GraphEditFormModeState extends GraphEditorMode {
         )) as CompilationResult;
 
       this.editorStore.graphState.warnings = compilationResult.warnings
-        ? (this.editorStore.graphState.TEMPORARY__removeDependencyProblems(
+        ? this.editorStore.graphState.TEMPORARY__removeDependencyProblems(
             compilationResult.warnings,
-          ) as CompilationWarning[])
+          )
         : [];
 
       this.editorStore.graphState.setMostRecentCompilationGraphHash(
