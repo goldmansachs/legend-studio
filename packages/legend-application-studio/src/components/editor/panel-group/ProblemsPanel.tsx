@@ -22,15 +22,10 @@ import {
   Panel,
   ErrorIcon,
   WarningIcon,
-  InfoCircleIcon,
 } from '@finos/legend-art';
 import { useEditorStore } from '../EditorStoreProvider.js';
 import type { Problem } from '../../../stores/editor/EditorGraphState.js';
-import {
-  CompilationWarning,
-  DEFECT_SEVERITY_LEVEL,
-  EngineError,
-} from '@finos/legend-graph';
+import { CompilationWarning, EngineError } from '@finos/legend-graph';
 import { GRAPH_EDITOR_MODE } from '../../../stores/editor/EditorConfig.js';
 
 const ProblemItem = observer((props: { problem: Problem }) => {
@@ -39,34 +34,6 @@ const ProblemItem = observer((props: { problem: Problem }) => {
   const isStale = editorStore.graphState.areProblemsStale;
   const goToSource = (): void =>
     editorStore.graphEditorMode.goToProblem(problem);
-
-  const renderIcon = () => {
-    if (problem instanceof EngineError) {
-      return (
-        <ErrorIcon className="panel-group__problem__icon panel-group__problem__icon--error" />
-      );
-    }
-    if (problem instanceof CompilationWarning) {
-      const severityLevel = problem.defectSeverityLevel
-        ? problem.defectSeverityLevel.toUpperCase()
-        : undefined;
-      if (severityLevel === DEFECT_SEVERITY_LEVEL.ERROR) {
-        return (
-          <ErrorIcon className="panel-group__problem__icon panel-group__problem__icon--error" />
-        );
-      } else if (severityLevel === DEFECT_SEVERITY_LEVEL.INFO) {
-        return (
-          <InfoCircleIcon className="panel-group__problem__icon panel-group__problem__icon--info" />
-        );
-      } else {
-        // WARN or default
-        return (
-          <WarningIcon className="panel-group__problem__icon panel-group__problem__icon--warning" />
-        );
-      }
-    }
-    return null;
-  };
 
   return (
     <PanelListItem>
@@ -80,17 +47,20 @@ const ProblemItem = observer((props: { problem: Problem }) => {
         title={problem.message}
         onClick={goToSource}
       >
-        {renderIcon()}
-        <div className="panel-group__problem__content">
-          <div className="panel-group__problem__message">{problem.message}</div>
-          {problem.sourceInformation && (
-            <div className="panel-group__problem__source">
-              {editorStore.graphEditorMode.mode ===
-                GRAPH_EDITOR_MODE.GRAMMAR_TEXT &&
-                `[Ln ${problem.sourceInformation.startLine}, Col ${problem.sourceInformation.startColumn}]`}
-            </div>
-          )}
-        </div>
+        {problem instanceof EngineError && (
+          <ErrorIcon className="panel-group__problem__icon panel-group__problem__icon--error" />
+        )}
+        {problem instanceof CompilationWarning && (
+          <WarningIcon className="panel-group__problem__icon panel-group__problem__icon--warning" />
+        )}
+        <div className="panel-group__problem__message">{problem.message}</div>
+        {problem.sourceInformation && (
+          <div className="panel-group__problem__source">
+            {editorStore.graphEditorMode.mode ===
+              GRAPH_EDITOR_MODE.GRAMMAR_TEXT &&
+              `[Ln ${problem.sourceInformation.startLine}, Col ${problem.sourceInformation.startColumn}]`}
+          </div>
+        )}
       </button>
     </PanelListItem>
   );
