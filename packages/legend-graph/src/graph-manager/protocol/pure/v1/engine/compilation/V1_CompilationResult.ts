@@ -19,7 +19,7 @@ import type { V1_PureModelContextData } from '../../model/context/V1_PureModelCo
 import type { V1_CompilationWarning } from './V1_CompilationWarning.js';
 
 export interface V1_CompilationResult {
-  warnings: V1_CompilationWarning[] | undefined;
+  warnings?: V1_CompilationWarning[] | undefined;
 }
 
 export interface V1_TextCompilationResult extends V1_CompilationResult {

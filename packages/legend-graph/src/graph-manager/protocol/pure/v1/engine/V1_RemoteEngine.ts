@@ -609,14 +609,21 @@ export class V1_RemoteEngine implements V1_GraphManagerEngine {
       const compilationResult = await this.engineServerClient.compile(
         this.serializePureModelContext(model),
       );
+
       return {
         warnings: (
-          compilationResult.warnings as
+          compilationResult.defects as
             | PlainObject<V1_CompilationWarning>[]
             | undefined
-        )?.map((warning) =>
-          V1_CompilationWarning.serialization.fromJson(warning),
-        ),
+        )
+          ?.map((defect) =>
+            V1_CompilationWarning.serialization.fromJson(defect),
+          )
+          .filter(
+            (defect) =>
+              !defect.defectSeverityLevel ||
+              defect.defectSeverityLevel.toUpperCase() === 'WARN',
+          ),
       };
     } catch (error) {
       assertErrorThrown(error);
@@ -663,15 +670,22 @@ export class V1_RemoteEngine implements V1_GraphManagerEngine {
       ] = stopWatch.elapsed;
 
       const model = V1_deserializePureModelContextData(mainGraph);
+
       return {
         model,
         warnings: (
-          compilationResult.warnings as
+          compilationResult.defects as
             | PlainObject<V1_CompilationWarning>[]
             | undefined
-        )?.map((warning) =>
-          V1_CompilationWarning.serialization.fromJson(warning),
-        ),
+        )
+          ?.map((defect) =>
+            V1_CompilationWarning.serialization.fromJson(defect),
+          )
+          .filter(
+            (defect) =>
+              !defect.defectSeverityLevel ||
+              defect.defectSeverityLevel.toUpperCase() === 'WARN',
+          ),
         sourceInformationIndex:
           this.extractElementSourceInformationIndexFromPureModelContextDataJSON(
             mainGraph,

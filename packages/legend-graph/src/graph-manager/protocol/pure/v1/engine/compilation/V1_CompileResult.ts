@@ -26,5 +26,5 @@ import type { V1_CompilationWarning } from './V1_CompilationWarning.js';
  */
 export type V1_CompileResult = {
   message: string;
-  warnings?: V1_CompilationWarning[] | undefined;
+  defects?: V1_CompilationWarning[] | undefined;
 };

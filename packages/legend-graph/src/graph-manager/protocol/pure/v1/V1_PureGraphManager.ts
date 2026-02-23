@@ -2053,7 +2053,12 @@ export class V1_PureGraphManager extends AbstractPureGraphManager {
     return {
       warnings: compilationResult.warnings?.map(
         (warning) =>
-          new CompilationWarning(warning.message, warning.sourceInformation),
+          new CompilationWarning(
+            warning.message,
+            warning.sourceInformation,
+            warning.defectSeverityLevel,
+            warning.defectTypeId,
+          ),
       ),
     };
   }
@@ -2095,7 +2100,12 @@ export class V1_PureGraphManager extends AbstractPureGraphManager {
       entities,
       warnings: compilationResult.warnings?.map(
         (warning) =>
-          new CompilationWarning(warning.message, warning.sourceInformation),
+          new CompilationWarning(
+            warning.message,
+            warning.sourceInformation,
+            warning.defectSeverityLevel,
+            warning.defectTypeId,
+          ),
       ),
       sourceInformationIndex,
     };

@@ -17,17 +17,29 @@
 import { uuid } from '@finos/legend-shared';
 import type { SourceInformation } from '../SourceInformation.js';
 
+export enum DEFECT_SEVERITY_LEVEL {
+  ERROR = 'ERROR',
+  WARN = 'WARN',
+  INFO = 'INFO',
+}
+
 export class CompilationWarning {
   readonly uuid = uuid();
 
   message: string;
   sourceInformation?: SourceInformation | undefined;
+  defectSeverityLevel?: string | undefined;
+  defectTypeId?: string | undefined;
 
   constructor(
     message: string,
     sourceInformation: SourceInformation | undefined,
+    defectSeverityLevel: string | undefined,
+    defectTypeId: string | undefined,
   ) {
     this.message = message;
     this.sourceInformation = sourceInformation;
+    this.defectSeverityLevel = defectSeverityLevel;
+    this.defectTypeId = defectTypeId;
   }
 }
