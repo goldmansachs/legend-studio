@@ -20,7 +20,6 @@ import type { V1_CompilationWarning } from './V1_CompilationWarning.js';
 
 export interface V1_CompilationResult {
   warnings?: V1_CompilationWarning[] | undefined;
-  defects?: V1_CompilationWarning[] | undefined;
 }
 
 export interface V1_TextCompilationResult extends V1_CompilationResult {

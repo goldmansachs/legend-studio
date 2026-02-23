@@ -19,8 +19,8 @@ import type { SourceInformation } from '../SourceInformation.js';
 
 export enum DEFECT_SEVERITY_LEVEL {
   ERROR = 'ERROR',
-  WARN = 'WARN',
-  INFO = 'INFO',
+  WARN = 'WARNING',
+  INFO = 'INFORMATION',
 }
 
 export class CompilationWarning {

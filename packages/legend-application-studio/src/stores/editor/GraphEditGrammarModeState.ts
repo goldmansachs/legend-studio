@@ -398,16 +398,10 @@ export class GraphEditGrammarModeState extends GraphEditorMode {
       this.editorStore.graphState.setMostRecentCompilationGraphHash(
         currentGraphHash,
       );
-      // Filter to ensure only CompilationWarning instances are assigned to warnings array
-      // TEMPORARY__removeDependencyProblems returns Problem[] | CompilationWarning[]
-      // where Problem = CompilationWarning | EngineError, but warnings must be CompilationWarning[]
       this.editorStore.graphState.warnings = compilationResult.warnings
-        ? (this.editorStore.graphState
-            .TEMPORARY__removeDependencyProblems(compilationResult.warnings)
-            .filter(
-              (problem): problem is CompilationWarning =>
-                problem instanceof CompilationWarning,
-            ) as CompilationWarning[])
+        ? (this.editorStore.graphState.TEMPORARY__removeDependencyProblems(
+            compilationResult.warnings,
+          ) as CompilationWarning[])
         : [];
 
       // Auto-open PROBLEMS panel if there are defects
@@ -532,12 +526,9 @@ export class GraphEditGrammarModeState extends GraphEditorMode {
       );
 
       this.editorStore.graphState.warnings = compilationResult.warnings
-        ? (this.editorStore.graphState
-            .TEMPORARY__removeDependencyProblems(compilationResult.warnings)
-            .filter(
-              (problem): problem is CompilationWarning =>
-                problem instanceof CompilationWarning,
-            ) as CompilationWarning[])
+        ? (this.editorStore.graphState.TEMPORARY__removeDependencyProblems(
+            compilationResult.warnings,
+          ) as CompilationWarning[])
         : [];
 
       const entities = compilationResult.entities;

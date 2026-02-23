@@ -608,18 +608,14 @@ export class V1_RemoteEngine implements V1_GraphManagerEngine {
         this.serializePureModelContext(model),
       );
 
-      // Combine warnings and defects into a single array
-      const allWarnings = [
-        ...((compilationResult.warnings as
-          | PlainObject<V1_CompilationWarning>[]
-          | undefined) ?? []),
-        ...((compilationResult.defects as
-          | PlainObject<V1_CompilationWarning>[]
-          | undefined) ?? []),
-      ].map((warning) => V1_CompilationWarning.serialization.fromJson(warning));
-
       return {
-        warnings: allWarnings.length > 0 ? allWarnings : undefined,
+        warnings: (
+          compilationResult.defects as
+            | PlainObject<V1_CompilationWarning>[]
+            | undefined
+        )?.map((defect) =>
+          V1_CompilationWarning.serialization.fromJson(defect),
+        ),
       };
     } catch (error) {
       assertErrorThrown(error);
@@ -667,18 +663,15 @@ export class V1_RemoteEngine implements V1_GraphManagerEngine {
 
       const model = V1_deserializePureModelContextData(mainGraph);
 
-      const allWarnings = [
-        ...((compilationResult.warnings as
-          | PlainObject<V1_CompilationWarning>[]
-          | undefined) ?? []),
-        ...((compilationResult.defects as
-          | PlainObject<V1_CompilationWarning>[]
-          | undefined) ?? []),
-      ].map((warning) => V1_CompilationWarning.serialization.fromJson(warning));
-
       return {
         model,
-        warnings: allWarnings.length > 0 ? allWarnings : undefined,
+        warnings: (
+          compilationResult.defects as
+            | PlainObject<V1_CompilationWarning>[]
+            | undefined
+        )?.map((defect) =>
+          V1_CompilationWarning.serialization.fromJson(defect),
+        ),
         sourceInformationIndex:
           this.extractElementSourceInformationIndexFromPureModelContextDataJSON(
             mainGraph,

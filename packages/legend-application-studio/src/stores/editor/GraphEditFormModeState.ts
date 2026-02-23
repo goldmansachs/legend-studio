@@ -441,16 +441,10 @@ export class GraphEditFormModeState extends GraphEditorMode {
           report,
         )) as CompilationResult;
 
-      // Filter to ensure only CompilationWarning instances are assigned to warnings array
-      // TEMPORARY__removeDependencyProblems returns Problem[] | CompilationWarning[]
-      // where Problem = CompilationWarning | EngineError, but warnings must be CompilationWarning[]
       this.editorStore.graphState.warnings = compilationResult.warnings
-        ? (this.editorStore.graphState
-            .TEMPORARY__removeDependencyProblems(compilationResult.warnings)
-            .filter(
-              (problem): problem is CompilationWarning =>
-                problem instanceof CompilationWarning,
-            ) as CompilationWarning[])
+        ? (this.editorStore.graphState.TEMPORARY__removeDependencyProblems(
+            compilationResult.warnings,
+          ) as CompilationWarning[])
         : [];
 
       this.editorStore.graphState.setMostRecentCompilationGraphHash(
