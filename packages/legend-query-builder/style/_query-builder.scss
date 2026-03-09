@@ -1632,6 +1632,36 @@
     }
   }
 
+  &__cell-selection-stats {
+    @include flexVCenter;
+
+    height: 2.4rem;
+    padding: 0 1rem;
+    font-size: 1.2rem;
+    gap: 1.2rem;
+    background: var(--color-light-grey-100);
+    border-top: 0.1rem solid var(--color-light-grey-300);
+    color: var(--color-dark-grey-500);
+    flex-shrink: 0;
+
+    &--dark {
+      background: var(--color-dark-grey-100);
+      border-top: 0.1rem solid var(--color-dark-grey-200);
+      color: var(--color-light-grey-200);
+    }
+
+    &__item {
+      @include flexVCenter;
+
+      gap: 0.4rem;
+      white-space: nowrap;
+    }
+
+    &__label {
+      font-weight: 500;
+    }
+  }
+
   &__header__actions {
     @include flexVCenter;
   }

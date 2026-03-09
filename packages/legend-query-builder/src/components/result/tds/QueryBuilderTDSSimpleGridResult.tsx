@@ -25,6 +25,7 @@ import {
 import {
   getRowDataFromExecutionResult,
   QueryBuilderGridResultContextMenu,
+  QueryBuilderGridCellSelectionStats,
   type IQueryRendererParamsWithGridType,
 } from './QueryBuilderTDSResultShared.js';
 import { QueryBuilderTDSState } from '../../../stores/fetch-structure/tds/QueryBuilderTDSState.js';
@@ -473,6 +474,10 @@ export const QueryBuilderTDSSimpleGridResult = observer(
             columnDefs={colDefs}
           />
         </div>
+        <QueryBuilderGridCellSelectionStats
+          resultState={resultState}
+          tdsExecutionResult={executionResult}
+        />
       </div>
     );
   },

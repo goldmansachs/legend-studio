@@ -33,6 +33,7 @@ import {
   getRowDataFromExecutionResult,
   type IQueryRendererParamsWithGridType,
   filterByOrOutValues,
+  QueryBuilderGridCellSelectionStats,
 } from './QueryBuilderTDSResultShared.js';
 import {
   type QueryBuilderResultState,
@@ -568,6 +569,10 @@ export const QueryBuilderTDSGridResult = observer(
               getContextMenuItems={(params) => getContextMenuItems(params)}
             />
           )}
+          <QueryBuilderGridCellSelectionStats
+            resultState={resultState}
+            tdsExecutionResult={executionResult}
+          />
           {resultState.wavgAggregationState?.isApplyingWavg && (
             <Dialog
               open={resultState.wavgAggregationState.isApplyingWavg}

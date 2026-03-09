@@ -18,6 +18,7 @@ import {
   MenuContent,
   MenuContentItem,
   MenuContentDivider,
+  clsx,
 } from '@finos/legend-art';
 import { observer } from 'mobx-react-lite';
 import { flowResult } from 'mobx';
@@ -26,11 +27,13 @@ import {
   type Enumeration,
   type ExecutionResult,
   type TDSResultCellData,
+  type TDSResultCellDataType,
   type TDSRowDataType,
   type TDSExecutionResult,
   EnumValueExplicitReference,
   EnumValueInstanceValue,
   InstanceValue,
+  PRIMITIVE_TYPE,
   RelationalExecutionActivities,
 } from '@finos/legend-graph';
 import { format as formatSQL } from 'sql-formatter';
@@ -45,6 +48,7 @@ import {
   assertErrorThrown,
   guaranteeNonNullable,
   filterByType,
+  isNumber,
 } from '@finos/legend-shared';
 import { forwardRef } from 'react';
 import {
@@ -105,6 +109,8 @@ import {
 } from '../../../stores/filter/operators/QueryBuilderFilterOperator_IsEmpty.js';
 import type { QueryBuilderState } from '../../../stores/QueryBuilderState.js';
 import type { QueryBuilderPropertyExpressionState } from '../../../stores/QueryBuilderPropertyEditorState.js';
+import { DEFAULT_LOCALE } from '../../../graph-manager/QueryBuilderConst.js';
+import { MAXIMUM_FRACTION_DIGITS } from './QueryBuilderTDSSimpleGridResult.js';
 
 export const tryToFormatSql = (sql: string): string => {
   try {
@@ -719,6 +725,129 @@ export const filterByOrOutValues = async (
     );
   }
 };
+
+const NUMERIC_PRIMITIVE_TYPES = new Set<string>([
+  PRIMITIVE_TYPE.NUMBER,
+  PRIMITIVE_TYPE.INTEGER,
+  PRIMITIVE_TYPE.FLOAT,
+  PRIMITIVE_TYPE.DECIMAL,
+]);
+
+const formatStatNumber = (value: number): string =>
+  Intl.NumberFormat(DEFAULT_LOCALE, {
+    maximumFractionDigits: MAXIMUM_FRACTION_DIGITS,
+  }).format(value);
+
+export const QueryBuilderGridCellSelectionStats = observer(
+  (props: {
+    resultState: QueryBuilderResultState;
+    tdsExecutionResult: TDSExecutionResult;
+  }) => {
+    const { resultState, tdsExecutionResult } = props;
+    const selectedCells = resultState.selectedCells;
+
+    if (selectedCells.length <= 1) {
+      return null;
+    }
+
+    // Check if all selected cells belong to a single column
+    const columnNames = new Set(selectedCells.map((cell) => cell.columnName));
+    if (columnNames.size !== 1) {
+      return null;
+    }
+
+    const columnName = selectedCells[0]?.columnName;
+    if (columnName === undefined) {
+      return null;
+    }
+
+    const values: TDSResultCellDataType[] = selectedCells.map(
+      (cell) => cell.value,
+    );
+    const nonNullValues = values.filter(
+      (v): v is string | number | boolean => v !== null && v !== undefined,
+    );
+    const rowCount = selectedCells.length;
+    const uniqueCount = new Set(nonNullValues.map((v) => String(v))).size;
+
+    // Determine if the column type is numeric
+    const columnType = tdsExecutionResult.builder.columns.find(
+      (col) => col.name === columnName,
+    )?.type;
+    const isNumericColumn =
+      columnType !== undefined && NUMERIC_PRIMITIVE_TYPES.has(columnType);
+
+    // Compute numeric stats if applicable
+    const numericValues = isNumericColumn ? nonNullValues.filter(isNumber) : [];
+    const hasNumericStats = isNumericColumn && numericValues.length > 0;
+    const min = hasNumericStats ? Math.min(...numericValues) : undefined;
+    const max = hasNumericStats ? Math.max(...numericValues) : undefined;
+    const sum = hasNumericStats
+      ? numericValues.reduce((a, b) => a + b, 0)
+      : undefined;
+    const avg =
+      hasNumericStats && sum !== undefined
+        ? sum / numericValues.length
+        : undefined;
+
+    const darkMode =
+      !resultState.queryBuilderState.applicationStore.layoutService
+        .TEMPORARY__isLightColorThemeEnabled;
+
+    return (
+      <div
+        className={clsx('query-builder__result__cell-selection-stats', {
+          'query-builder__result__cell-selection-stats--dark': darkMode,
+        })}
+      >
+        <span className="query-builder__result__cell-selection-stats__item">
+          <span className="query-builder__result__cell-selection-stats__label">
+            Rows:
+          </span>
+          {rowCount}
+        </span>
+        <span className="query-builder__result__cell-selection-stats__item">
+          <span className="query-builder__result__cell-selection-stats__label">
+            Unique:
+          </span>
+          {uniqueCount}
+        </span>
+        {hasNumericStats && min !== undefined && (
+          <span className="query-builder__result__cell-selection-stats__item">
+            <span className="query-builder__result__cell-selection-stats__label">
+              Min:
+            </span>
+            {formatStatNumber(min)}
+          </span>
+        )}
+        {hasNumericStats && max !== undefined && (
+          <span className="query-builder__result__cell-selection-stats__item">
+            <span className="query-builder__result__cell-selection-stats__label">
+              Max:
+            </span>
+            {formatStatNumber(max)}
+          </span>
+        )}
+        {hasNumericStats && sum !== undefined && (
+          <span className="query-builder__result__cell-selection-stats__item">
+            <span className="query-builder__result__cell-selection-stats__label">
+              Sum:
+            </span>
+            {formatStatNumber(sum)}
+          </span>
+        )}
+        {hasNumericStats && avg !== undefined && (
+          <span className="query-builder__result__cell-selection-stats__item">
+            <span className="query-builder__result__cell-selection-stats__label">
+              Avg:
+            </span>
+            {formatStatNumber(avg)}
+          </span>
+        )}
+      </div>
+    );
+  },
+);
 
 export const QueryBuilderGridResultContextMenu = observer(
   forwardRef<
