@@ -312,21 +312,21 @@ export const EXTERNAL_APPLICATION_NAVIGATION__generateStudioProductionizeQueryUr
     `${studioApplicationUrl}/extensions/productionize-query/${queryId}`;
 
 /**
- * @external_application_navigation This depends on Legend Taxonomy routing and is hardcoded so it's potentially brittle
+ * @external_application_navigation This depends on Legend Marketplace routing and is hardcoded so it's potentially brittle
  */
-export const EXTERNAL_APPLICATION_NAVIGATION__generateTaxonomyDataspaceViewUrl =
+export const EXTERNAL_APPLICATION_NAVIGATION__generateMarketplaceLegacyDataProductUrl =
   (
-    taxonomyApplicationUrl: string,
+    marketplaceApplicationUrl: string,
     groupId: string,
     artifactId: string,
     versionId: string,
-    dataspacePath: string,
+    dataProductPath: string,
   ): string =>
-    `${taxonomyApplicationUrl}/dataspace/${generateGAVCoordinates(
+    `${marketplaceApplicationUrl}/dataProduct/legacy/${generateGAVCoordinates(
       groupId,
       artifactId,
       versionId,
-    )}/${dataspacePath}`;
+    )}/${dataProductPath}`;
 
 /**
  * @external_application_navigation This depends on Legend DataCube routing and is hardcoded so it's potentially brittle
