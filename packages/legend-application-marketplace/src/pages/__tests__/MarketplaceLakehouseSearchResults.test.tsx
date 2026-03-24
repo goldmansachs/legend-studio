@@ -110,7 +110,7 @@ const setupTestComponent = async (
   // Spies for producer search
   createSpy(
     MOCK__baseStore.lakehouseContractServerClient,
-    'getDataProductsLite',
+    'getAllLiteDataProducts',
   ).mockResolvedValue(mockDataProductsLiteResponse);
   createSpy(
     MOCK__baseStore.depotServerClient,
@@ -277,7 +277,7 @@ describe('MarketplaceLakehouseSearchResults', () => {
         MOCK__baseStore.marketplaceServerClient.dataProductSearch,
       ).toHaveBeenCalledTimes(1);
       expect(
-        MOCK__baseStore.lakehouseContractServerClient.getDataProductsLite,
+        MOCK__baseStore.lakehouseContractServerClient.getAllLiteDataProducts,
       ).not.toHaveBeenCalled();
       expect(
         MOCK__baseStore.depotServerClient.getEntitiesSummaryByClassifier,
@@ -455,7 +455,7 @@ describe('MarketplaceLakehouseSearchResults', () => {
       await screen.findByText('3 Products');
 
       expect(
-        MOCK__baseStore.lakehouseContractServerClient.getDataProductsLite,
+        MOCK__baseStore.lakehouseContractServerClient.getAllLiteDataProducts,
       ).toHaveBeenCalledTimes(1);
       expect(
         MOCK__baseStore.depotServerClient.getEntitiesSummaryByClassifier,
@@ -787,7 +787,7 @@ describe('MarketplaceLakehouseSearchResults', () => {
 
       createSpy(
         MOCK__baseStore.lakehouseContractServerClient,
-        'getDataProductsLite',
+        'getAllLiteDataProducts',
       ).mockResolvedValue(mockDataProductsLiteResponse);
       createSpy(
         MOCK__baseStore.depotServerClient,
