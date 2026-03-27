@@ -76,6 +76,14 @@ export interface FilterCounts {
   external_source_count: number;
 }
 
+export enum SearchResultsViewMode {
+  TILE = 'tile',
+  LIST = 'list',
+}
+
+const LEGEND_MARKETPLACE_SETTING_KEY_VIEW_MODE =
+  'marketplace.search-results.viewMode';
+
 export class LegendMarketplaceSearchResultsStore {
   readonly marketplaceBaseStore: LegendMarketplaceBaseStore;
   readonly marketplaceServerClient: MarketplaceServerClient;
@@ -86,6 +94,7 @@ export class LegendMarketplaceSearchResultsStore {
   producerSearchDataProductCardStates: ProductCardState[] = [];
   producerSearchLegacyDataProductCardStates: ProductCardState[] = [];
   sort: DataProductSort = DataProductSort.DEFAULT;
+  viewMode: SearchResultsViewMode;
   taxonomyTree: TaxonomyNode[] = [];
   selectedTaxonomyNodeIds: Set<string> = new Set<string>();
   selectedDataProductTypes: Set<DataProductTypeFilter> =
@@ -110,6 +119,15 @@ export class LegendMarketplaceSearchResultsStore {
     this.marketplaceBaseStore = marketplaceBaseStore;
     this.marketplaceServerClient = marketplaceBaseStore.marketplaceServerClient;
 
+    const persistedViewMode =
+      this.marketplaceBaseStore.applicationStore.settingService.getStringValue(
+        LEGEND_MARKETPLACE_SETTING_KEY_VIEW_MODE,
+      );
+    this.viewMode =
+      persistedViewMode === SearchResultsViewMode.LIST
+        ? SearchResultsViewMode.LIST
+        : SearchResultsViewMode.TILE;
+
     makeObservable<LegendMarketplaceSearchResultsStore, '_lastTaxonomyQuery'>(
       this,
       {
@@ -119,6 +137,7 @@ export class LegendMarketplaceSearchResultsStore {
         producerSearchDataProductCardStates: observable,
         producerSearchLegacyDataProductCardStates: observable,
         sort: observable,
+        viewMode: observable,
         taxonomyTree: observable,
         selectedTaxonomyNodeIds: observable,
         selectedDataProductTypes: observable,
@@ -134,6 +153,7 @@ export class LegendMarketplaceSearchResultsStore {
         setProducerSearchDataProductCardStates: action,
         setProducerSearchLegacyDataProductCardStates: action,
         setSort: action,
+        setViewMode: action,
         setPage: action,
         setItemsPerPage: action,
         setTotalItems: action,
@@ -241,6 +261,14 @@ export class LegendMarketplaceSearchResultsStore {
 
   setSort(sort: DataProductSort): void {
     this.sort = sort;
+  }
+
+  setViewMode(viewMode: SearchResultsViewMode): void {
+    this.viewMode = viewMode;
+    this.marketplaceBaseStore.applicationStore.settingService.persistValue(
+      LEGEND_MARKETPLACE_SETTING_KEY_VIEW_MODE,
+      viewMode,
+    );
   }
 
   setTaxonomyTree(tree: TaxonomyNode[]): void {
