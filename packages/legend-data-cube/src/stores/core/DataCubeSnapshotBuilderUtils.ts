@@ -38,7 +38,7 @@ import {
   V1_PackageableType,
   type V1_GenericType,
   V1_Collection,
-  type V1_Lambda,
+  V1_Lambda,
 } from '@finos/legend-graph';
 import { _findCol, type DataCubeColumn } from './model/DataCubeColumn.js';
 import {
@@ -334,11 +334,16 @@ export async function _extractExtendedColumns(
       _cols([
         _colSpec(
           colSpec.name,
-          guaranteeNonNullable(
+          guaranteeType(
             colSpec.function1,
+            V1_Lambda,
             `Can't process extend() expression: expected a transformation function expression for column '${colSpec.name}'`,
           ),
-          colSpec.function2,
+          guaranteeType(
+            colSpec.function2,
+            V1_Lambda,
+            `Can't process extend() expression: expected a transformation function expression for column '${colSpec.name}'`,
+          ),
         ),
       ]),
     ]),
@@ -670,8 +675,14 @@ export function _agg_base(
 ) {
   try {
     if (colSpec.function1 && colSpec.function2) {
-      const mapper = _unwrapLambda(colSpec.function1);
-      const reducer = _unwrapLambda(colSpec.function2);
+      const mapper = _unwrapLambda(guaranteeType(colSpec.function1, V1_Lambda));
+      const reducer = _unwrapLambda(
+        guaranteeType(
+          colSpec.function2,
+          V1_Lambda,
+          `Can't process aggregate column '${colSpec.name}': expected reduce function to be a lambda`,
+        ),
+      );
 
       if (
         mapper instanceof V1_AppliedProperty &&
