@@ -937,12 +937,13 @@ const ExplorerContextMenu = observer(
         )}
         {isRelationalDatabase(node.packageableElement) && (
           <>
-            <MenuContentItem onClick={generateModelsFromDatabaseSpecification}>
-              Build Models
-            </MenuContentItem>
             <MenuContentItem onClick={buildAccessorQuery}>
               Query...
             </MenuContentItem>
+            <MenuContentItem onClick={generateModelsFromDatabaseSpecification}>
+              Build Models
+            </MenuContentItem>
+
             <MenuContentItem onClick={buildDatabaseQuery}>
               Query (Beta)...
             </MenuContentItem>
