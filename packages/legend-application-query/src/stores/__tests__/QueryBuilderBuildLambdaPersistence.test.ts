@@ -39,7 +39,7 @@ import {
   NativeModelDataProductExecutionState,
   ModelAccessPointDataProductExecutionState,
   LakehouseDataProductExecutionState,
-  buildDataProductAccessor,
+  resolveDataProductAccessor,
   INTERNAL__BasicQueryBuilderState,
   TEST__LegendApplicationPluginManager,
   TEST__getGenericApplicationConfig,
@@ -275,11 +275,12 @@ const buildDataProductState = (
     relationMetadata.columns = [
       new RelationTypeColumnMetadata('String', 'col1', new Multiplicity(1, 1)),
     ];
-    const accessor = buildDataProductAccessor(
-      relationMetadata,
+    const accessor = resolveDataProductAccessor(
       dataProduct,
       executionValue,
       graphManagerState.graph,
+      undefined,
+      relationMetadata,
     );
     state.setSourceElement(accessor);
   } else {
@@ -740,7 +741,7 @@ describe(
         const execCtx = state.getQueryExecutionContext();
         expect(execCtx).toBeDefined();
         expect(execCtx.constructor.name).toBe(
-          'QueryDataProductLakehouseExecutionContext',
+          'dataProductLakehouseAccessExecutionContext',
         );
         expect((execCtx as { dataProductPath: string }).dataProductPath).toBe(
           'model::LakehouseDP',
