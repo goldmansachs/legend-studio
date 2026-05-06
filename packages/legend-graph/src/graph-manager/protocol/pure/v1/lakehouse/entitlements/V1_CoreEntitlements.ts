@@ -14,16 +14,8 @@
  * limitations under the License.
  */
 
-import {
-  hashArray,
-  type Hashable,
-  type PlainObject,
-} from '@finos/legend-shared';
+import type { PlainObject } from '@finos/legend-shared';
 import type { V1_StereotypePtr } from '../../model/packageableElements/domain/V1_StereotypePtr.js';
-import { AppDirLevel } from '../../../../../../graph/metamodel/pure/packageableElements/ingest/IngestDefinition.js';
-import { CORE_HASH_STRUCTURE } from '../../../../../../graph/Core_HashUtils.js';
-
-export { AppDirLevel as V1_AppDirLevel };
 
 // ---------------------------------------- Users & App Directory --------------------------------------
 
@@ -37,17 +29,17 @@ export enum V1_UserType {
   SYSTEM_ACCOUNT = 'SYSTEM_ACCOUNT',
 }
 
-export class V1_AppDirNode implements Hashable {
+export class V1_AppDirNode {
   appDirId!: number;
-  level!: AppDirLevel;
+  level!: V1_AppDirLevel;
+}
 
-  get hashCode(): string {
-    return hashArray([
-      CORE_HASH_STRUCTURE.APP_DIR_NODE,
-      this.appDirId.toString(),
-      this.level,
-    ]);
-  }
+export enum V1_AppDirLevel {
+  BUSINESS_UNIT = 'BUSINESS_UNIT',
+  SUB_BUSINESS_UNIT = 'SUB_BUSINESS_UNIT',
+  FAMILY = 'FAMILY',
+  APPLICATION = 'APPLICATION',
+  DEPLOYMENT = 'DEPLOYMENT',
 }
 
 // -------------------------------------------- Pagination ---------------------------------------------

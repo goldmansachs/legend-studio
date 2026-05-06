@@ -212,9 +212,6 @@ export {
   V1_ExternalDataProductType,
   V1_SupportInfo,
   V1_UnknownDataProductIcon,
-  V1_DataProductOwner,
-  V1_AppDirOwner,
-  V1_DataProductOwnerType,
 } from './graph-manager/protocol/pure/v1/model/packageableElements/dataProduct/V1_DataProduct.js';
 export {
   V1_ExecuteInput,
@@ -750,8 +747,6 @@ export {
   NativeModelExecutionContext,
   DataProductAccessType,
   DataProductOperationalMetadata,
-  DataProductOwner,
-  AppDirOwner,
 } from './graph/metamodel/pure/dataProduct/DataProduct.js';
 export * from './graph-manager/action/changeDetection/DataProductObserveHelper.js';
 

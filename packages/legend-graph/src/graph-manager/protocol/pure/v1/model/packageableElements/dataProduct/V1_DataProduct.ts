@@ -33,7 +33,6 @@ import {
 import type { V1_StereotypePtr } from '../domain/V1_StereotypePtr.js';
 import type { V1_TaggedValue } from '../domain/V1_TaggedValue.js';
 import type { V1_EmbeddedData } from '../../data/V1_EmbeddedData.js';
-import type { V1_AppDirNode } from '../../../lakehouse/entitlements/V1_CoreEntitlements.js';
 
 export const V1_DATA_PRODUCT_ELEMENT_PROTOCOL_TYPE = 'dataProduct';
 
@@ -370,9 +369,12 @@ export abstract class V1_DataProductType implements Hashable {
   }
 }
 
-export class V1_InternalDataProductType extends V1_DataProductType {}
+export class V1_InternalDataProductType extends V1_DataProductType {
+  _type = V1_DataProductTypeValue.INTERNAL;
+}
 
 export class V1_ExternalDataProductType extends V1_DataProductType {
+  _type = V1_DataProductTypeValue.EXTERNAL;
   link!: V1_DataProductLink;
 
   override get hashCode(): string {
@@ -407,27 +409,6 @@ export class V1_DataProductOperationalMetadata implements Hashable {
   }
 }
 
-export enum V1_DataProductOwnerType {
-  APP_DIR = 'appDir',
-}
-
-export abstract class V1_DataProductOwner implements Hashable {
-  abstract get hashCode(): string;
-}
-
-export class V1_AppDirOwner extends V1_DataProductOwner implements Hashable {
-  production: V1_AppDirNode | undefined;
-  prodParallel: V1_AppDirNode | undefined;
-
-  override get hashCode(): string {
-    return hashArray([
-      CORE_HASH_STRUCTURE.DATA_PRODUCT_OWNER,
-      this.production?.hashCode ?? '',
-      this.prodParallel?.hashCode ?? '',
-    ]);
-  }
-}
-
 export class V1_DataProduct extends V1_PackageableElement implements Hashable {
   title: string | undefined;
   description: string | undefined;
@@ -440,7 +421,6 @@ export class V1_DataProduct extends V1_PackageableElement implements Hashable {
   taggedValues: V1_TaggedValue[] = [];
   sampleValues: V1_EmbeddedData[] | undefined;
   operationalMetadata: V1_DataProductOperationalMetadata | undefined;
-  owner: V1_DataProductOwner | undefined;
 
   override get hashCode(): string {
     return hashArray([
@@ -456,7 +436,6 @@ export class V1_DataProduct extends V1_PackageableElement implements Hashable {
       hashArray(this.taggedValues),
       hashArray(this.sampleValues ?? []),
       this.operationalMetadata ?? '',
-      this.owner ?? '',
     ]);
   }
 
