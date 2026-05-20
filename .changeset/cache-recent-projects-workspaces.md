@@ -2,4 +2,8 @@
 '@finos/legend-application-studio': patch
 ---
 
-Cache recently-opened projects and workspaces on the workspace setup screen so users can re-open common work without waiting for project search to round-trip to SDLC. Recents are written from the editor at the moment a workspace is successfully opened (covers both Go-button and direct deep-link opens), persisted via the user data service, capped (10 projects / 20 workspaces, LRU), pruned automatically when the editor cannot find a referenced project or workspace, and can be cleared via a "Clear recents" action. Patch-based workspaces are intentionally excluded.
+Speed up the workspace setup screen with three further changes:
+
+- **Sandbox access + project id caching.** Cache per-user sandbox-access boolean + sandbox project id (24h TTL, persisted via the user data service) so the sandbox section can render without re-running the prototype-access graph manager call and the sandbox-tag project search on every mount. Cache self-invalidates on 404, on user switch, and after a freshly-created sandbox.
+- **Richer recent project metadata.** Persist project `description`, `webUrl`, and `tags` alongside the existing `projectId` / `name` on each recents entry. Recent tiles surface the description as a hover tooltip and render the first two tags as chips; the project dropdown stub built from a recents entry now carries real metadata instead of empty placeholders.
+- **Cleanup.** Remove the dead `showAdvancedWorkspaceFilterOptions` flag from `WorkspaceSetupStore` (defined but never read or toggled by any UI).
