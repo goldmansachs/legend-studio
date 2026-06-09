@@ -1,5 +1,6 @@
 ---
 '@finos/legend-query-builder': patch
+'@finos/legend-graph': patch
 ---
 
 Follow-up fixes for `is empty` / `is not empty` on accessor relation columns and projection→filter DnD:
