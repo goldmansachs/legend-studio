@@ -169,12 +169,11 @@ const buildRelationTypeFromIngestDataset = (
         buildV1GenericType(PRIMITIVE_TYPE.STRING),
       );
     const relationColumn = new RelationColumn(col.name, resolvedGenericType);
-    if (col.multiplicity) {
-      relationColumn.multiplicity = context.graph.getMultiplicity(
-        col.multiplicity.lowerBound,
-        col.multiplicity.upperBound,
-      );
-    }
+    relationColumn.multiplicity = context.graph.getMultiplicity(
+      col.multiplicity.lowerBound,
+      col.multiplicity.upperBound,
+    );
+
     return relationColumn;
   });
   addMilestonedColumnsForWriteMode(relationType, writeMode, context);
@@ -233,12 +232,12 @@ export const V1_buildRelationTypeFromAccessPointImplementation = (
         ),
       ),
     );
-    if (col.multiplicity) {
-      relationColumn.multiplicity = graph.getMultiplicity(
-        col.multiplicity.lowerBound,
-        col.multiplicity.upperBound,
-      );
-    }
+
+    relationColumn.multiplicity = graph.getMultiplicity(
+      col.multiplicity.lowerBound,
+      col.multiplicity.upperBound,
+    );
+
     return relationColumn;
   });
   return relationType;

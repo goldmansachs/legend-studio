@@ -345,9 +345,7 @@ describe(unitTest('AccessorQueryBuilder filter with relation columns'), () => {
       relationType.columns.find((c) => c.name === 'iso_code'),
     );
 
-    const getOperatorLabels = (
-      col: typeof requiredColumn,
-    ): string[] =>
+    const getOperatorLabels = (col: typeof requiredColumn): string[] =>
       new FilterConditionState(
         queryBuilderState.filterState,
         new FilterRelationColumnSourceState(
@@ -415,16 +413,18 @@ describe(unitTest('AccessorQueryBuilder filter with relation columns'), () => {
       relationType.columns.find((c) => c.name === 'iso_code'),
     );
 
-    const requiredColState = new QueryBuilderRelationColumnProjectionColumnState(
-      tdsState,
-      requiredColumn,
-      true,
-    );
-    const optionalColState = new QueryBuilderRelationColumnProjectionColumnState(
-      tdsState,
-      optionalColumn,
-      true,
-    );
+    const requiredColState =
+      new QueryBuilderRelationColumnProjectionColumnState(
+        tdsState,
+        requiredColumn,
+        true,
+      );
+    const optionalColState =
+      new QueryBuilderRelationColumnProjectionColumnState(
+        tdsState,
+        optionalColumn,
+        true,
+      );
 
     const requiredOperators = new PostFilterConditionState(
       tdsState.postFilterState,
@@ -500,10 +500,7 @@ describe(unitTest('AccessorQueryBuilder filter with relation columns'), () => {
       isEmptyOp,
     );
     const isEmptyExpr = guaranteeType(
-      isEmptyOp.buildPostFilterConditionExpression(
-        isEmptyCondition,
-        undefined,
-      ),
+      isEmptyOp.buildPostFilterConditionExpression(isEmptyCondition, undefined),
       SimpleFunctionExpression,
     );
     expect(isEmptyExpr.functionName).toBe('isEmpty');
@@ -534,5 +531,101 @@ describe(unitTest('AccessorQueryBuilder filter with relation columns'), () => {
       SimpleFunctionExpression,
     );
     expect(wrappedIsEmpty.functionName).toBe('isEmpty');
+  });
+
+  test('relation column projection state carries the data needed to build a filter source (DnD parity)', async () => {
+    const pluginManager = TEST__LegendApplicationPluginManager.create();
+    pluginManager
+      .usePresets([
+        new Core_GraphManagerPreset(),
+        new QueryBuilder_GraphManagerPreset(),
+      ])
+      .install();
+    const graphManagerState = TEST__getTestGraphManagerState(pluginManager);
+    await TEST__buildGraphWithEntities(
+      graphManagerState,
+      TEST_DATA__QueryBuilder_Accessors,
+    );
+
+    const applicationStore = new ApplicationStore(
+      TEST__getGenericApplicationConfig(),
+      pluginManager,
+    );
+
+    const queryBuilderState = new AccessorQueryBuilderState(
+      applicationStore,
+      undefined,
+      graphManagerState,
+      QueryBuilderAdvancedWorkflowState.INSTANCE,
+      QueryBuilderActionConfig.INSTANCE,
+    );
+
+    const ingest = guaranteeNonNullable(
+      queryBuilderState.graphManagerState.graph.ingests[0],
+    );
+    await queryBuilderState.changeAccessorOwner(ingest);
+
+    const tdsState = guaranteeType(
+      queryBuilderState.fetchStructureState.implementation,
+      QueryBuilderTDSState,
+    );
+    const optionalColumn = guaranteeNonNullable(
+      guaranteeNonNullable(queryBuilderState.sourceRelationType).columns.find(
+        (c) => c.name === 'iso_code',
+      ),
+    );
+
+    // Add the projection column to the fetch structure (this is the DnD source
+    // the filter panel sees when a user drags a relation projection column
+    // onto the filter panel).
+    const projColState = new QueryBuilderRelationColumnProjectionColumnState(
+      tdsState,
+      optionalColumn,
+      true,
+    );
+    tdsState.addColumn(projColState);
+
+    // Build the filter source state the same way the filter panel DnD handler
+    // does for a `QueryBuilderRelationColumnProjectionColumnState`.
+    const sourceState = new FilterRelationColumnSourceState(
+      projColState.column.name,
+      projColState.column.genericType.value.rawType,
+      projColState.column.multiplicity,
+    );
+    const filterConditionState = new FilterConditionState(
+      queryBuilderState.filterState,
+      sourceState,
+    );
+
+    // Source state should be a relation-column source carrying the right
+    // type / multiplicity so downstream operator-gating still works.
+    expect(filterConditionState.sourceState).toBeInstanceOf(
+      FilterRelationColumnSourceState,
+    );
+    expect(
+      (filterConditionState.sourceState as FilterRelationColumnSourceState)
+        .columnName,
+    ).toBe(optionalColumn.name);
+    expect(
+      (filterConditionState.sourceState as FilterRelationColumnSourceState)
+        .columnMultiplicity.lowerBound,
+    ).toBe(optionalColumn.multiplicity.lowerBound);
+
+    // The condition can be added to the filter tree just like the
+    // relation-explorer DnD path.
+    const treeNode = new QueryBuilderFilterTreeConditionNodeData(
+      undefined,
+      filterConditionState,
+    );
+    queryBuilderState.filterState.addNodeFromNode(treeNode, undefined);
+    expect(queryBuilderState.filterState.nodes.size).toBe(1);
+
+    // And `is empty` / `is not empty` are offered because the column is
+    // optional — same gating as the relation-explorer DnD path.
+    const operatorLabels = filterConditionState.operators.map((op) =>
+      op.getLabel(),
+    );
+    expect(operatorLabels).toContain('is empty');
+    expect(operatorLabels).toContain('is not empty');
   });
 });

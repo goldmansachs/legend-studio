@@ -115,6 +115,7 @@ import {
 import {
   type QueryBuilderProjectionColumnDragSource,
   QueryBuilderSimpleProjectionColumnState,
+  QueryBuilderRelationColumnProjectionColumnState,
   QUERY_BUILDER_PROJECTION_COLUMN_DND_TYPE,
 } from '../../stores/fetch-structure/tds/projection/QueryBuilderProjectionColumnState.js';
 import type { QueryBuilderFilterOperator } from '../../stores/filter/QueryBuilderFilterOperator.js';
@@ -1283,6 +1284,24 @@ const QueryBuilderFilterTreeNodeContainer = observer(
                 filterState,
                 sourceState,
               );
+            } else if (
+              type === QUERY_BUILDER_PROJECTION_COLUMN_DND_TYPE &&
+              (item as QueryBuilderProjectionColumnDragSource)
+                .columnState instanceof
+                QueryBuilderRelationColumnProjectionColumnState
+            ) {
+              const projColState = (
+                item as QueryBuilderProjectionColumnDragSource
+              ).columnState as QueryBuilderRelationColumnProjectionColumnState;
+              const sourceState = new FilterRelationColumnSourceState(
+                projColState.column.name,
+                projColState.column.genericType.value.rawType,
+                projColState.column.multiplicity,
+              );
+              filterConditionState = new FilterConditionState(
+                filterState,
+                sourceState,
+              );
             } else {
               let propertyExpression;
               if (type === QUERY_BUILDER_PROJECTION_COLUMN_DND_TYPE) {
@@ -1708,6 +1727,31 @@ export const QueryBuilderFilterPanel = observer(
               columnNode.column.name,
               columnNode.type,
               columnNode.column.multiplicity,
+            );
+            const filterConditionState = new FilterConditionState(
+              filterState,
+              sourceState,
+            );
+            const treeNode = new QueryBuilderFilterTreeConditionNodeData(
+              undefined,
+              filterConditionState,
+            );
+            treeNode.setIsNewlyAdded(true);
+            filterState.setSelectedNode(undefined);
+            filterState.addNodeFromNode(treeNode, undefined);
+          } else if (
+            type === QUERY_BUILDER_PROJECTION_COLUMN_DND_TYPE &&
+            (item as QueryBuilderProjectionColumnDragSource)
+              .columnState instanceof
+              QueryBuilderRelationColumnProjectionColumnState
+          ) {
+            const projColState = (
+              item as QueryBuilderProjectionColumnDragSource
+            ).columnState as QueryBuilderRelationColumnProjectionColumnState;
+            const sourceState = new FilterRelationColumnSourceState(
+              projColState.column.name,
+              projColState.column.genericType.value.rawType,
+              projColState.column.multiplicity,
             );
             const filterConditionState = new FilterConditionState(
               filterState,
