@@ -1277,6 +1277,7 @@ const QueryBuilderFilterTreeNodeContainer = observer(
               const sourceState = new FilterRelationColumnSourceState(
                 columnNode.column.name,
                 columnNode.type,
+                columnNode.column.multiplicity,
               );
               filterConditionState = new FilterConditionState(
                 filterState,
@@ -1706,6 +1707,7 @@ export const QueryBuilderFilterPanel = observer(
             const sourceState = new FilterRelationColumnSourceState(
               columnNode.column.name,
               columnNode.type,
+              columnNode.column.multiplicity,
             );
             const filterConditionState = new FilterConditionState(
               filterState,
