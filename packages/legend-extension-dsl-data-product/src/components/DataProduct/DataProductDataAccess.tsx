@@ -137,6 +137,7 @@ import {
 } from '../../__lib__/DataProductTelemetryHelper.js';
 import { flowResult } from 'mobx';
 import { DataContractViewerState } from '../../stores/DataProduct/DataAccess/DataContractViewerState.js';
+import { getRelationColumnDescription } from '../../utils/LakehouseUtils.js';
 import {
   type ContractErrorLayer,
   DataAccessRequestViewer,
