@@ -17,7 +17,6 @@
 import {
   type V1_ContractUserEventRecord,
   type V1_LiteDataContract,
-  GraphManagerState,
   V1_ApprovalType,
   V1_ResourceType,
 } from '@finos/legend-graph';
@@ -41,8 +40,13 @@ import {
   DialogTitle,
   Tooltip,
 } from '@mui/material';
-import { useCallback, useMemo, useState, type ChangeEvent } from 'react';
-import type { EntitlementsDashboardState } from '../../../stores/lakehouse/entitlements/EntitlementsDashboardState.js';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+} from 'react';
 import { useLegendMarketplaceBaseStore } from '../../../application/providers/LegendMarketplaceFrameworkProvider.js';
 import {
   CubesLoadingIndicator,
@@ -60,17 +64,25 @@ import {
   getOrganizationalScopeTypeName,
   getOrganizationalScopeTypeDetails,
   DataAccessRequestViewer,
-  DataContractViewerState,
 } from '@finos/legend-extension-dsl-data-product';
-import {
-  generateContractPagePath,
-  generateLakehouseDataProductPath,
-} from '../../../__lib__/LegendMarketplaceNavigation.js';
 import {
   CONTRACT_ACTION,
   LegendMarketplaceTelemetryHelper,
 } from '../../../__lib__/LegendMarketplaceTelemetryHelper.js';
 import { formatOrderDate } from '../../../stores/orders/OrderHelpers.js';
+import {
+  ContractCreatedByUserDetails,
+  type EntitlementsDashboardState,
+} from '../../../stores/lakehouse/entitlements/EntitlementsDashboardState.js';
+import {
+  type EntitlementsRow,
+  ROW_KIND_CONTRACT,
+  ROW_KIND_REQUEST,
+  getSelectedRowId,
+  getSelectedContractGuid,
+  useSelectedViewerState,
+  useGetDataProductUrl,
+} from '../../../utils/EntitlementsUtils.js';
 
 const EntitlementsDashboardActionModal = (props: {
   open: boolean;
@@ -285,8 +297,8 @@ export const EntitlementsPendingTasksDashboard = observer(
       'approve' | 'deny' | undefined
     >();
     const selectedTaskIdsSet = dashboardState.selectedTaskIds;
-    const [selectedContract, setSelectedContract] = useState<
-      V1_LiteDataContract | undefined
+    const [selectedRow, setSelectedRow] = useState<
+      EntitlementsRow | undefined
     >();
     const [selectedContractTargetUser, setSelectedContractTargetUser] =
       useState<string | undefined>();
@@ -295,6 +307,25 @@ export const EntitlementsPendingTasksDashboard = observer(
     >(undefined);
 
     const auth = useAuth();
+    const getDataProductUrl = useGetDataProductUrl();
+
+    const selectedRowId = getSelectedRowId(selectedRow);
+    const selectedViewerState = useSelectedViewerState(
+      selectedRow,
+      selectedRowId,
+    );
+    const selectedContractGuid = getSelectedContractGuid(selectedRow);
+
+    useEffect(() => {
+      setContractErrors(undefined);
+      if (selectedRow?.kind === ROW_KIND_CONTRACT) {
+        const contract = selectedRow.data.contractResultLite;
+        dashboardState
+          .getContractErrors(contract.guid, auth.user?.access_token)
+          .then((result) => setContractErrors(result))
+          .catch(() => setContractErrors(undefined));
+      }
+    }, [selectedRow, auth.user?.access_token, dashboardState]);
 
     // Callbacks
 
@@ -313,22 +344,33 @@ export const EntitlementsPendingTasksDashboard = observer(
       event.api.setNodesSelected({ nodes: nodesToSelect, newValue: true });
     };
 
-    const handleCellClicked = async (
+    const handleCellClicked = (
       event: DataGridCellClickedEvent<V1_ContractUserEventRecord, unknown>,
     ) => {
       if (event.colDef.colId !== 'selection') {
-        const contract = pendingTaskContracts.find(
-          (c) => c.guid === event.data?.dataContractId,
-        );
-        setSelectedContract(contract);
         setSelectedContractTargetUser(event.data?.consumer);
-        setContractErrors(undefined);
-        if (contract !== undefined) {
-          const result = await dashboardState.getContractErrors(
-            contract.guid,
-            auth.user?.access_token,
+
+        const dataRequestId = event.data?.dataContractId;
+        const isDataRequest =
+          dataRequestId !== undefined &&
+          dashboardState.pendingDataRequestIds.has(dataRequestId);
+
+        if (isDataRequest && dataRequestId) {
+          const detail =
+            dashboardState.pendingDataRequestDetailsMap.get(dataRequestId);
+          if (detail) {
+            setSelectedRow({ kind: ROW_KIND_REQUEST, data: detail });
+          }
+        } else {
+          const contract = pendingTaskContracts.find(
+            (c) => c.guid === event.data?.dataContractId,
           );
-          setContractErrors(result);
+          if (contract) {
+            setSelectedRow({
+              kind: ROW_KIND_CONTRACT,
+              data: new ContractCreatedByUserDetails(contract),
+            });
+          }
         }
       }
     };
@@ -749,17 +791,9 @@ export const EntitlementsPendingTasksDashboard = observer(
                   rowHeight={45}
                   rowSelection={rowSelection}
                   onFirstDataRendered={handleFirstDataRendered}
-                  onCellClicked={(
-                    event: DataGridCellClickedEvent<
-                      V1_ContractUserEventRecord,
-                      unknown
-                    >,
-                  ) =>
-                    // eslint-disable-next-line no-void
-                    void handleCellClicked(event)
-                  }
+                  onCellClicked={handleCellClicked}
                   columnDefs={privilegeManagerColDefs}
-                  overlayNoRowsTemplate="You have no contracts to approve as a Privilege Manager"
+                  overlayNoRowsTemplate="You have no contracts or data requests to approve as a Privilege Manager"
                   loading={loading}
                   overlayLoadingTemplate="Loading contracts"
                 />
@@ -792,17 +826,9 @@ export const EntitlementsPendingTasksDashboard = observer(
                   rowHeight={45}
                   rowSelection={rowSelection}
                   onFirstDataRendered={handleFirstDataRendered}
-                  onCellClicked={(
-                    event: DataGridCellClickedEvent<
-                      V1_ContractUserEventRecord,
-                      unknown
-                    >,
-                  ) =>
-                    // eslint-disable-next-line no-void
-                    void handleCellClicked(event)
-                  }
+                  onCellClicked={handleCellClicked}
                   columnDefs={dataOwnerColDefs}
-                  overlayNoRowsTemplate="You have no contracts to approve as a Data Owner"
+                  overlayNoRowsTemplate="You have no contracts or data requests to approve as a Data Owner"
                   loading={loading}
                   overlayLoadingTemplate="Loading contracts"
                 />
@@ -824,15 +850,7 @@ export const EntitlementsPendingTasksDashboard = observer(
                     rowHeight={45}
                     rowSelection={rowSelection}
                     onFirstDataRendered={handleFirstDataRendered}
-                    onCellClicked={(
-                      event: DataGridCellClickedEvent<
-                        V1_ContractUserEventRecord,
-                        unknown
-                      >,
-                    ) =>
-                      // eslint-disable-next-line no-void
-                      void handleCellClicked(event)
-                    }
+                    onCellClicked={handleCellClicked}
                     columnDefs={otherTasksColDefs}
                     loading={loading}
                     overlayLoadingTemplate="Loading contracts"
@@ -855,44 +873,28 @@ export const EntitlementsPendingTasksDashboard = observer(
           pendingTaskContracts={pendingTaskContracts}
           marketplaceBaseStore={marketplaceBaseStore}
         />
-        {selectedContract !== undefined && (
+        {selectedRow !== undefined && selectedViewerState !== undefined && (
           <DataAccessRequestViewer
             open={true}
             onClose={() => {
-              setSelectedContract(undefined);
+              setSelectedRow(undefined);
               setContractErrors(undefined);
             }}
             contractErrors={contractErrors}
-            viewerState={
-              new DataContractViewerState(
-                selectedContract,
-                (contractId: string, taskId: string) =>
-                  marketplaceBaseStore.applicationStore.navigationService.navigator.generateAddress(
-                    generateContractPagePath(contractId, taskId),
-                  ),
-                undefined,
-                marketplaceBaseStore.applicationStore,
-                marketplaceBaseStore.lakehouseContractServerClient,
-                new GraphManagerState(
-                  marketplaceBaseStore.applicationStore.pluginManager,
-                  marketplaceBaseStore.applicationStore.logService,
-                ),
-                marketplaceBaseStore.userSearchService,
-              )
-            }
-            onRefresh={async () => {
-              await flowResult(
-                dashboardState.updateContract(
-                  selectedContract.guid,
-                  auth.user?.access_token,
-                ),
-              );
-            }}
-            getDataProductUrl={(dataProductId: string, deploymentId: number) =>
-              marketplaceBaseStore.applicationStore.navigationService.navigator.generateAddress(
-                generateLakehouseDataProductPath(dataProductId, deploymentId),
-              )
-            }
+            viewerState={selectedViewerState}
+            {...(selectedContractGuid
+              ? {
+                  onRefresh: async () => {
+                    await flowResult(
+                      dashboardState.updateContract(
+                        selectedContractGuid,
+                        auth.user?.access_token,
+                      ),
+                    );
+                  },
+                }
+              : {})}
+            getDataProductUrl={getDataProductUrl}
             initialSelectedUser={selectedContractTargetUser}
             //Derives environment from the fact that other environments are filtered out
             dataProductEnvironment={
