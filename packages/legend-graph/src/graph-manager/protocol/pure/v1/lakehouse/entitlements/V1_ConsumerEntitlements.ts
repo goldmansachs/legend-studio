@@ -62,13 +62,15 @@ export class V1_InvalidateDataContractResponse {
   requestId!: string;
 }
 
-// -------------------------------------- Lite Data Contracts ------------------------------------------
+// -------------------------------------- Lite Access Requests (base) ----------------------------------
 
-export class V1_LiteDataContract {
-  description!: string;
+/**
+ * Base class for lightweight access request representations (contracts and data requests)
+ * used in the pending tasks grid.
+ */
+export class V1_LiteAccessRequest {
   guid!: string;
-  version!: number;
-  state!: V1_ContractState;
+  description!: string;
   members: V1_ContractUserMembership[] = [];
   consumer!: V1_OrganizationalScope;
   createdBy!: string;
@@ -77,6 +79,19 @@ export class V1_LiteDataContract {
   resourceType!: V1_ResourceType;
   deploymentId!: number;
   accessPointGroup?: string;
+}
+
+// -------------------------------------- Lite Data Contracts ------------------------------------------
+
+export class V1_LiteDataContract extends V1_LiteAccessRequest {
+  version!: number;
+  state!: V1_ContractState;
+}
+
+// -------------------------------------- Lite Data Access Requests ------------------------------------
+
+export class V1_LiteDataAccessRequest extends V1_LiteAccessRequest {
+  state!: string;
 }
 
 export class V1_LiteDataContractsResponse {

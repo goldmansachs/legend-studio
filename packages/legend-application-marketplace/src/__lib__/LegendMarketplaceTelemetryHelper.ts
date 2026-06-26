@@ -16,7 +16,7 @@
 
 import type { TelemetryService } from '@finos/legend-application';
 import {
-  type V1_LiteDataContract,
+  type V1_LiteAccessRequest,
   V1_ResourceType,
   type V1_ContractUserEventRecord,
   type V1_EntitlementsLakehouseEnvironmentType,
@@ -159,7 +159,7 @@ export class LegendMarketplaceTelemetryHelper {
   static logEvent_ActionDataContracts(
     telemetryService: TelemetryService,
     selectedContracts: V1_ContractUserEventRecord[],
-    pendingTaskContracts: V1_LiteDataContract[] | undefined,
+    pendingTaskContracts: V1_LiteAccessRequest[] | undefined,
     action: CONTRACT_ACTION,
     actionTakenBy: string,
     errors: string[] | undefined,

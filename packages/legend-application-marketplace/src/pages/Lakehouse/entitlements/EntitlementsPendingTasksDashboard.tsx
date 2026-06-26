@@ -16,7 +16,7 @@
 
 import {
   type V1_ContractUserEventRecord,
-  type V1_LiteDataContract,
+  type V1_LiteAccessRequest,
   V1_ApprovalType,
   V1_ResourceType,
 } from '@finos/legend-graph';
@@ -90,7 +90,7 @@ const EntitlementsDashboardActionModal = (props: {
   dashboardState: EntitlementsDashboardState;
   onClose: () => void;
   action: 'approve' | 'deny' | undefined;
-  pendingTaskContracts: V1_LiteDataContract[];
+  pendingTaskContracts: V1_LiteAccessRequest[];
   marketplaceBaseStore: LegendMarketplaceBaseStore;
 }) => {
   const {
