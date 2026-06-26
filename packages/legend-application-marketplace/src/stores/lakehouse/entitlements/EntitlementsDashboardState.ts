@@ -541,7 +541,7 @@ export class EntitlementsDashboardState {
   }
 
   private static parseDeploymentId(did: string): number {
-    return parseInt(did, 10) || 0;
+    return Number.parseInt(did, 10) || 0;
   }
 
   *fetchPendingTaskContracts(
@@ -1073,6 +1073,15 @@ export class EntitlementsDashboardState {
     });
   }
 
+  private getDataRequestWorkflowId(dataRequestId: string): string {
+    const detail = this.pendingDataRequestDetailsMap.get(dataRequestId);
+    const workflowId = detail?.workflows[0]?.workflowId;
+    if (!workflowId) {
+      throw new Error(`No workflow found for data request ${dataRequestId}`);
+    }
+    return workflowId;
+  }
+
   private *changeTaskStatus(
     task: V1_ContractUserEventRecord,
     token: string | undefined,
@@ -1081,14 +1090,7 @@ export class EntitlementsDashboardState {
     const isApprove = taskAction === 'approve';
 
     if (this.pendingDataRequestIds.has(task.dataContractId)) {
-      // Data request: use permit workflow server
-      const detail = this.pendingDataRequestDetailsMap.get(task.dataContractId);
-      const workflowId = detail?.workflows[0]?.workflowId;
-      if (!workflowId) {
-        throw new Error(
-          `No workflow found for data request ${task.dataContractId}`,
-        );
-      }
+      const workflowId = this.getDataRequestWorkflowId(task.dataContractId);
       const permitClient =
         this.lakehouseEntitlementsStore.marketplaceBaseStore
           .permitWorkflowServerClient;
@@ -1106,7 +1108,6 @@ export class EntitlementsDashboardState {
         ? V1_UserApprovalStatus.APPROVED
         : V1_UserApprovalStatus.DENIED;
     } else {
-      // Data contract: use contract server
       const contractClient =
         this.lakehouseEntitlementsStore.lakehouseContractServerClient;
       const response = (yield isApprove
