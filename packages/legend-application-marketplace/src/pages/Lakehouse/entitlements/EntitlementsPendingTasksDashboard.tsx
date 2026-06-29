@@ -40,13 +40,7 @@ import {
   DialogTitle,
   Tooltip,
 } from '@mui/material';
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type ChangeEvent,
-} from 'react';
+import { useCallback, useMemo, useState, type ChangeEvent } from 'react';
 import { useLegendMarketplaceBaseStore } from '../../../application/providers/LegendMarketplaceFrameworkProvider.js';
 import {
   CubesLoadingIndicator,
@@ -316,17 +310,6 @@ export const EntitlementsPendingTasksDashboard = observer(
     );
     const selectedContractGuid = getSelectedContractGuid(selectedRow);
 
-    useEffect(() => {
-      setContractErrors(undefined);
-      if (selectedRow?.kind === ROW_KIND_CONTRACT) {
-        const contract = selectedRow.data.contractResultLite;
-        dashboardState
-          .getContractErrors(contract.guid, auth.user?.access_token)
-          .then((result) => setContractErrors(result))
-          .catch(() => setContractErrors(undefined));
-      }
-    }, [selectedRow, auth.user?.access_token, dashboardState]);
-
     // Callbacks
 
     const handleFirstDataRendered = (
@@ -359,6 +342,7 @@ export const EntitlementsPendingTasksDashboard = observer(
           const detail =
             dashboardState.pendingDataRequestDetailsMap.get(dataRequestId);
           if (detail) {
+            setContractErrors(undefined);
             setSelectedRow({ kind: ROW_KIND_REQUEST, data: detail });
           }
         } else {
@@ -366,10 +350,15 @@ export const EntitlementsPendingTasksDashboard = observer(
             (c) => c.guid === event.data?.dataContractId,
           );
           if (contract) {
+            setContractErrors(undefined);
             setSelectedRow({
               kind: ROW_KIND_CONTRACT,
               data: new ContractCreatedByUserDetails(contract),
             });
+            dashboardState
+              .getContractErrors(contract.guid, auth.user?.access_token)
+              .then((result) => setContractErrors(result))
+              .catch(() => setContractErrors(undefined));
           }
         }
       }
