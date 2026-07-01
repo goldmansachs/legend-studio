@@ -205,16 +205,33 @@ export class V1_ContractUserEventDataProducerPayload extends V1_ContractUserEven
   taskId!: string;
 }
 
-export class V1_ContractUserEventRecord {
+export abstract class V1_PendingTaskRecord {
   taskId!: string;
-  dataContractId!: string;
   status!: V1_UserApprovalStatus;
   consumer!: string;
-  eventPayload!: V1_ContractUserEventPayload | undefined;
   type!: V1_ApprovalType;
+
+  abstract get accessRequestId(): string;
+}
+
+export class V1_ContractUserEventRecord extends V1_PendingTaskRecord {
+  dataContractId!: string;
+  eventPayload!: V1_ContractUserEventPayload | undefined;
   effectiveFrom!: string;
   effectiveTo!: string;
   isEscalated!: boolean;
+
+  override get accessRequestId(): string {
+    return this.dataContractId;
+  }
+}
+
+export class V1_DataRequestUserEventRecord extends V1_PendingTaskRecord {
+  dataRequestId!: string;
+
+  override get accessRequestId(): string {
+    return this.dataRequestId;
+  }
 }
 
 export class V1_PendingTasksResponse {

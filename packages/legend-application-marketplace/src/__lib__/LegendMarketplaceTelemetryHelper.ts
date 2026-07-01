@@ -18,7 +18,7 @@ import type { TelemetryService } from '@finos/legend-application';
 import {
   type V1_LiteAccessRequest,
   V1_ResourceType,
-  type V1_ContractUserEventRecord,
+  type V1_PendingTaskRecord,
   type V1_EntitlementsLakehouseEnvironmentType,
 } from '@finos/legend-graph';
 import { LEGEND_MARKETPLACE_APP_EVENT } from './LegendMarketplaceAppEvent.js';
@@ -158,7 +158,7 @@ export class LegendMarketplaceTelemetryHelper {
 
   static logEvent_ActionDataContracts(
     telemetryService: TelemetryService,
-    selectedContracts: V1_ContractUserEventRecord[],
+    selectedContracts: V1_PendingTaskRecord[],
     pendingTaskContracts: V1_LiteAccessRequest[] | undefined,
     action: CONTRACT_ACTION,
     actionTakenBy: string,
@@ -168,7 +168,7 @@ export class LegendMarketplaceTelemetryHelper {
     const session = this.getOrCreateUserSession();
     const actionedContractsDetails = selectedContracts.map((contract) => {
       const dataContract = pendingTaskContracts?.find(
-        (c) => c.guid === contract.dataContractId,
+        (c) => c.guid === contract.accessRequestId,
       );
       const accessPointGroup =
         dataContract?.resourceType === V1_ResourceType.ACCESS_POINT_GROUP
@@ -176,7 +176,7 @@ export class LegendMarketplaceTelemetryHelper {
           : `${dataContract?.accessPointGroup ?? 'Unknown'} (${dataContract?.resourceType ?? 'Unknown Type'})`;
       return {
         taskId: contract.taskId,
-        dataContractId: contract.dataContractId,
+        accessRequestId: contract.accessRequestId,
         consumer: contract.consumer,
         type: contract.type,
         targetDataProduct: dataContract?.resourceId ?? 'Unknown',

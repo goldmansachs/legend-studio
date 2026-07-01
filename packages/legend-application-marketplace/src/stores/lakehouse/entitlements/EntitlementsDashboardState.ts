@@ -54,7 +54,9 @@ import {
   type V1_PendingDataRequestTaskEntry,
   type V1_PendingDataRequestTasksResponse,
   V1_deserializePendingDataRequestTasksResponse,
-  V1_ContractUserEventRecord,
+  type V1_ContractUserEventRecord,
+  V1_DataRequestUserEventRecord,
+  type V1_PendingTaskRecord,
   V1_ApprovalType,
   V1_UserApprovalStatus,
   type V1_LiteDataContract,
@@ -205,7 +207,7 @@ export class ContractCreatedByUserDetails {
 
 export class EntitlementsDashboardState {
   readonly lakehouseEntitlementsStore: LakehouseEntitlementsStore;
-  pendingTasks: V1_ContractUserEventRecord[] | undefined;
+  pendingTasks: V1_PendingTaskRecord[] | undefined;
   pendingTaskContractMap: Map<string, V1_LiteAccessRequest> = new Map();
   allContractsForUser: V1_LiteDataContractWithUserStatus[] | undefined;
   // The contracts createdBy user API returns an entry for each task, not just for each contract.
@@ -296,7 +298,7 @@ export class EntitlementsDashboardState {
               error,
             );
             return {
-              tasks: [] as V1_ContractUserEventRecord[],
+              tasks: [] as V1_PendingTaskRecord[],
               taskContractMap: new Map<string, V1_LiteAccessRequest>(),
             };
           }
@@ -307,14 +309,14 @@ export class EntitlementsDashboardState {
         flowResult(this.fetchPendingDataRequestTasks(token)),
       ])) as [
         {
-          tasks: V1_ContractUserEventRecord[];
+          tasks: V1_PendingTaskRecord[];
           taskContractMap: Map<string, V1_LiteAccessRequest>;
         },
         V1_LiteDataContractWithUserStatus[],
         Map<string, ContractCreatedByUserDetails>,
         V1_DataRequestWithWorkflow[],
         {
-          tasks: V1_ContractUserEventRecord[];
+          tasks: V1_PendingTaskRecord[];
           taskContractMap: Map<string, V1_LiteAccessRequest>;
         },
       ];
@@ -323,7 +325,7 @@ export class EntitlementsDashboardState {
       const dataRequestIds = new Set<string>();
       for (const task of pendingDataRequestTasksResponse.tasks) {
         pendingTasksData.tasks.push(task);
-        dataRequestIds.add(task.dataContractId);
+        dataRequestIds.add(task.accessRequestId);
       }
       for (const [
         id,
@@ -397,7 +399,7 @@ export class EntitlementsDashboardState {
   }
 
   *fetchPendingDataRequestTasks(token: string | undefined): GeneratorFn<{
-    tasks: V1_ContractUserEventRecord[];
+    tasks: V1_DataRequestUserEventRecord[];
     taskContractMap: Map<string, V1_LiteAccessRequest>;
   }> {
     try {
@@ -449,7 +451,7 @@ export class EntitlementsDashboardState {
       );
       this.pendingDataRequestDetailsMap = dataRequestDetailsMap;
 
-      const tasks: V1_ContractUserEventRecord[] = [];
+      const tasks: V1_DataRequestUserEventRecord[] = [];
       const taskContractMap = new Map<string, V1_LiteAccessRequest>();
 
       const processEntries = (
@@ -460,17 +462,13 @@ export class EntitlementsDashboardState {
           const task = entry.task;
           const detail = dataRequestDetailsMap.get(entry.dataRequestId);
 
-          // Create V1_ContractUserEventRecord for grid row data
-          const record = new V1_ContractUserEventRecord();
+          // Create V1_DataRequestUserEventRecord for grid row data
+          const record = new V1_DataRequestUserEventRecord();
           record.taskId = task.taskId;
-          record.dataContractId = entry.dataRequestId;
+          record.dataRequestId = entry.dataRequestId;
           record.status = V1_UserApprovalStatus.PENDING;
           record.consumer = this.getConsumerDisplayString(task.consumer);
           record.type = approvalType;
-          record.effectiveFrom = '';
-          record.effectiveTo = '';
-          record.isEscalated = false;
-          record.eventPayload = undefined;
           tasks.push(record);
 
           // Create V1_LiteDataAccessRequest for grid column lookups
@@ -523,10 +521,10 @@ export class EntitlementsDashboardState {
 
   *fetchPendingTaskContracts(
     token: string | undefined,
-    pendingTasks: V1_ContractUserEventRecord[],
+    pendingTasks: V1_PendingTaskRecord[],
   ): GeneratorFn<Map<string, V1_LiteAccessRequest>> {
     const pendingTaskContractIds = Array.from(
-      new Set(pendingTasks.map((t) => t.dataContractId)),
+      new Set(pendingTasks.map((t) => t.accessRequestId)),
     );
     const contractClient =
       this.lakehouseEntitlementsStore.lakehouseContractServerClient;
@@ -925,7 +923,7 @@ export class EntitlementsDashboardState {
 
   filterByUserEnvironment(
     pendingData: {
-      tasks: V1_ContractUserEventRecord[];
+      tasks: V1_PendingTaskRecord[];
       taskContractMap: Map<string, V1_LiteAccessRequest>;
     },
     contractsForUser: V1_LiteDataContractWithUserStatus[],
@@ -933,7 +931,7 @@ export class EntitlementsDashboardState {
     dataRequests: V1_DataRequestWithWorkflow[],
     envMap: Map<number, string>,
   ): {
-    filteredTasks: V1_ContractUserEventRecord[];
+    filteredTasks: V1_PendingTaskRecord[];
     filteredContractsForUser: V1_LiteDataContractWithUserStatus[];
     filteredCreatedByUserMap: Map<string, ContractCreatedByUserDetails>;
     filteredDataRequests: V1_DataRequestWithWorkflow[];
@@ -947,7 +945,7 @@ export class EntitlementsDashboardState {
     };
 
     const filteredTasks = pendingData.tasks.filter((task) => {
-      const contract = pendingData.taskContractMap.get(task.dataContractId);
+      const contract = pendingData.taskContractMap.get(task.accessRequestId);
       return !contract || envMatchesForDeploymentId(contract.deploymentId);
     });
     const filteredContractsForUser = contractsForUser.filter((c) =>
@@ -1060,14 +1058,14 @@ export class EntitlementsDashboardState {
   }
 
   private *changeTaskStatus(
-    task: V1_ContractUserEventRecord,
+    task: V1_PendingTaskRecord,
     token: string | undefined,
     taskAction: 'approve' | 'deny',
   ): GeneratorFn<void> {
     const isApprove = taskAction === 'approve';
 
-    if (this.pendingDataRequestIds.has(task.dataContractId)) {
-      const workflowId = this.getDataRequestWorkflowId(task.dataContractId);
+    if (task instanceof V1_DataRequestUserEventRecord) {
+      const workflowId = this.getDataRequestWorkflowId(task.dataRequestId);
       const permitClient =
         this.lakehouseEntitlementsStore.marketplaceBaseStore
           .permitWorkflowServerClient;
@@ -1109,7 +1107,7 @@ export class EntitlementsDashboardState {
   }
 
   *approve(
-    task: V1_ContractUserEventRecord,
+    task: V1_PendingTaskRecord,
     token: string | undefined,
   ): GeneratorFn<void> {
     try {
@@ -1126,7 +1124,7 @@ export class EntitlementsDashboardState {
   }
 
   *deny(
-    task: V1_ContractUserEventRecord,
+    task: V1_PendingTaskRecord,
     token: string | undefined,
   ): GeneratorFn<void> {
     try {

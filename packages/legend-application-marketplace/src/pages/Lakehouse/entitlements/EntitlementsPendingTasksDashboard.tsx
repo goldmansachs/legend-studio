@@ -15,7 +15,7 @@
  */
 
 import {
-  type V1_ContractUserEventRecord,
+  type V1_PendingTaskRecord,
   type V1_LiteAccessRequest,
   V1_ApprovalType,
   V1_ResourceType,
@@ -80,7 +80,7 @@ import {
 
 const EntitlementsDashboardActionModal = (props: {
   open: boolean;
-  selectedTasks: V1_ContractUserEventRecord[];
+  selectedTasks: V1_PendingTaskRecord[];
   dashboardState: EntitlementsDashboardState;
   onClose: () => void;
   action: 'approve' | 'deny' | undefined;
@@ -100,7 +100,7 @@ const EntitlementsDashboardActionModal = (props: {
   const auth = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessages, setErrorMessages] = useState<
-    [V1_ContractUserEventRecord, string][]
+    [V1_PendingTaskRecord, string][]
   >([]);
   const [successCount, setSuccessCount] = useState(0);
 
@@ -194,7 +194,7 @@ const EntitlementsDashboardActionModal = (props: {
               </Box>
             )}
             {errorMessages.map(([task, errorMessage]) => {
-              const contractId = task.dataContractId;
+              const contractId = task.accessRequestId;
               const contract = pendingTaskContracts.find(
                 (c) => c.guid === contractId,
               );
@@ -313,12 +313,9 @@ export const EntitlementsPendingTasksDashboard = observer(
     // Callbacks
 
     const handleFirstDataRendered = (
-      event: DataGridFirstDataRenderedEvent<
-        V1_ContractUserEventRecord,
-        unknown
-      >,
+      event: DataGridFirstDataRenderedEvent<V1_PendingTaskRecord, unknown>,
     ) => {
-      const nodesToSelect: DataGridIRowNode<V1_ContractUserEventRecord>[] = [];
+      const nodesToSelect: DataGridIRowNode<V1_PendingTaskRecord>[] = [];
       event.api.forEachNode((node) => {
         if (node.data && selectedTaskIdsSet.has(node.data.taskId)) {
           nodesToSelect.push(node);
@@ -328,12 +325,12 @@ export const EntitlementsPendingTasksDashboard = observer(
     };
 
     const handleCellClicked = (
-      event: DataGridCellClickedEvent<V1_ContractUserEventRecord, unknown>,
+      event: DataGridCellClickedEvent<V1_PendingTaskRecord, unknown>,
     ) => {
       if (event.colDef.colId !== 'selection') {
         setSelectedContractTargetUser(event.data?.consumer);
 
-        const dataRequestId = event.data?.dataContractId;
+        const dataRequestId = event.data?.accessRequestId;
         const isDataRequest =
           dataRequestId !== undefined &&
           dashboardState.pendingDataRequestIds.has(dataRequestId);
@@ -347,7 +344,7 @@ export const EntitlementsPendingTasksDashboard = observer(
           }
         } else {
           const contract = pendingTaskContracts.find(
-            (c) => c.guid === event.data?.dataContractId,
+            (c) => c.guid === event.data?.accessRequestId,
           );
           if (contract) {
             setContractErrors(undefined);
@@ -376,7 +373,7 @@ export const EntitlementsPendingTasksDashboard = observer(
     );
 
     const CustomSelectionRenderer = useCallback(
-      (params: DataGridCellRendererParams<V1_ContractUserEventRecord>) => {
+      (params: DataGridCellRendererParams<V1_PendingTaskRecord>) => {
         const handleChange = (_: ChangeEvent<HTMLInputElement>) => {
           if (params.data) {
             const newSet = new Set<string>(selectedTaskIdsSet);
@@ -403,8 +400,8 @@ export const EntitlementsPendingTasksDashboard = observer(
 
     const CustomSelectionHeaderRenderer = useCallback(
       (_props: {
-        params: DataGridCustomHeaderProps<V1_ContractUserEventRecord>;
-        taskSet: V1_ContractUserEventRecord[];
+        params: DataGridCustomHeaderProps<V1_PendingTaskRecord>;
+        taskSet: V1_PendingTaskRecord[];
       }) => {
         const { taskSet } = _props;
         const checked =
@@ -441,213 +438,212 @@ export const EntitlementsPendingTasksDashboard = observer(
       [selectedTaskIdsSet, dashboardState],
     );
 
-    const colDefs: DataGridColumnDefinition<V1_ContractUserEventRecord>[] =
-      useMemo(
-        () => [
-          {
-            headerName: 'Date Created',
-            colId: 'dateCreated',
-            valueGetter: (params) => {
-              const contractId = params.data?.dataContractId;
-              const createdAt = pendingTaskContracts.find(
-                (c) => c.guid === contractId,
-              )?.createdAt;
-              return formatOrderDate(createdAt) ?? 'Unknown';
-            },
-            sortable: true,
-            sort: 'desc',
-            comparator: (_, __, val1, val2) => {
-              const contractId1 = val1.data?.dataContractId;
-              const contractId2 = val2.data?.dataContractId;
-              const createdAt1 = pendingTaskContracts.find(
-                (c) => c.guid === contractId1,
-              )?.createdAt;
-              const createdAt2 = pendingTaskContracts.find(
-                (c) => c.guid === contractId2,
-              )?.createdAt;
-              const dateA = createdAt1 ? new Date(createdAt1).getTime() : 0;
-              const dateB = createdAt2 ? new Date(createdAt2).getTime() : 0;
-              return dateA - dateB;
-            },
+    const colDefs: DataGridColumnDefinition<V1_PendingTaskRecord>[] = useMemo(
+      () => [
+        {
+          headerName: 'Date Created',
+          colId: 'dateCreated',
+          valueGetter: (params) => {
+            const contractId = params.data?.accessRequestId;
+            const createdAt = pendingTaskContracts.find(
+              (c) => c.guid === contractId,
+            )?.createdAt;
+            return formatOrderDate(createdAt) ?? 'Unknown';
           },
-          {
-            minWidth: 25,
-            sortable: true,
-            resizable: true,
-            colId: 'consumerType',
-            headerName: 'Consumer Type',
-            flex: 1,
-            valueGetter: (params) => {
-              const contractId = params.data?.dataContractId;
-              const consumer = pendingTaskContracts.find(
-                (c) => c.guid === contractId,
-              )?.consumer;
-              const typeName = consumer
-                ? getOrganizationalScopeTypeName(
-                    consumer,
-                    dashboardState.lakehouseEntitlementsStore.applicationStore.pluginManager.getApplicationPlugins(),
-                  )
-                : undefined;
-              return typeName ?? 'Unknown';
-            },
-            cellRenderer: (
-              params: DataGridCellRendererParams<V1_ContractUserEventRecord>,
-            ) => {
-              const contractId = params.data?.dataContractId;
-              const consumer = pendingTaskContracts.find(
-                (c) => c.guid === contractId,
-              )?.consumer;
-              const typeName = consumer
-                ? getOrganizationalScopeTypeName(
-                    consumer,
-                    dashboardState.lakehouseEntitlementsStore.applicationStore.pluginManager.getApplicationPlugins(),
-                  )
-                : undefined;
-              const typeDetails = consumer
-                ? getOrganizationalScopeTypeDetails(
-                    consumer,
-                    dashboardState.lakehouseEntitlementsStore.applicationStore.pluginManager.getApplicationPlugins(),
-                  )
-                : undefined;
-              return (
-                <>
-                  {typeName ?? 'Unknown'}
-                  {typeDetails !== undefined && (
-                    <Tooltip
-                      className="marketplace-lakehouse-entitlements__grid__consumer-type__tooltip__icon"
-                      title={typeDetails}
-                    >
-                      <InfoCircleIcon />
-                    </Tooltip>
-                  )}
-                </>
-              );
-            },
+          sortable: true,
+          sort: 'desc',
+          comparator: (_, __, val1, val2) => {
+            const contractId1 = val1.data?.accessRequestId;
+            const contractId2 = val2.data?.accessRequestId;
+            const createdAt1 = pendingTaskContracts.find(
+              (c) => c.guid === contractId1,
+            )?.createdAt;
+            const createdAt2 = pendingTaskContracts.find(
+              (c) => c.guid === contractId2,
+            )?.createdAt;
+            const dateA = createdAt1 ? new Date(createdAt1).getTime() : 0;
+            const dateB = createdAt2 ? new Date(createdAt2).getTime() : 0;
+            return dateA - dateB;
           },
-          {
-            minWidth: 50,
-            sortable: true,
-            resizable: true,
-            colId: 'targetUser',
-            headerName: 'Target User',
-            flex: 1,
-            valueGetter: (params) => {
-              return params.data?.consumer ?? 'Unknown';
-            },
-            cellRenderer: (
-              params: DataGridCellRendererParams<V1_ContractUserEventRecord>,
-            ) => {
-              return (
-                <UserRenderer
-                  userId={params.data?.consumer}
-                  applicationStore={marketplaceBaseStore.applicationStore}
-                  userSearchService={marketplaceBaseStore.userSearchService}
-                  disableOnClick={true}
-                  className="marketplace-lakehouse-entitlements__grid__user-display"
-                />
-              );
-            },
+        },
+        {
+          minWidth: 25,
+          sortable: true,
+          resizable: true,
+          colId: 'consumerType',
+          headerName: 'Consumer Type',
+          flex: 1,
+          valueGetter: (params) => {
+            const contractId = params.data?.accessRequestId;
+            const consumer = pendingTaskContracts.find(
+              (c) => c.guid === contractId,
+            )?.consumer;
+            const typeName = consumer
+              ? getOrganizationalScopeTypeName(
+                  consumer,
+                  dashboardState.lakehouseEntitlementsStore.applicationStore.pluginManager.getApplicationPlugins(),
+                )
+              : undefined;
+            return typeName ?? 'Unknown';
           },
-          {
-            minWidth: 50,
-            sortable: true,
-            resizable: true,
-            colId: 'requester',
-            headerName: 'Requester',
-            flex: 1,
-            valueGetter: (params) => {
-              const contractId = params.data?.dataContractId;
-              const requester = pendingTaskContracts.find(
-                (c) => c.guid === contractId,
-              )?.createdBy;
-              return requester ?? 'Unknown';
-            },
-            cellRenderer: (
-              params: DataGridCellRendererParams<V1_ContractUserEventRecord>,
-            ) => {
-              const contractId = params.data?.dataContractId;
-              const requester = pendingTaskContracts.find(
-                (c) => c.guid === contractId,
-              )?.createdBy;
-              return requester ? (
-                <UserRenderer
-                  userId={requester}
-                  applicationStore={marketplaceBaseStore.applicationStore}
-                  userSearchService={marketplaceBaseStore.userSearchService}
-                  disableOnClick={true}
-                  className="marketplace-lakehouse-entitlements__grid__user-display"
-                />
-              ) : (
-                <>Unknown</>
-              );
-            },
+          cellRenderer: (
+            params: DataGridCellRendererParams<V1_PendingTaskRecord>,
+          ) => {
+            const contractId = params.data?.accessRequestId;
+            const consumer = pendingTaskContracts.find(
+              (c) => c.guid === contractId,
+            )?.consumer;
+            const typeName = consumer
+              ? getOrganizationalScopeTypeName(
+                  consumer,
+                  dashboardState.lakehouseEntitlementsStore.applicationStore.pluginManager.getApplicationPlugins(),
+                )
+              : undefined;
+            const typeDetails = consumer
+              ? getOrganizationalScopeTypeDetails(
+                  consumer,
+                  dashboardState.lakehouseEntitlementsStore.applicationStore.pluginManager.getApplicationPlugins(),
+                )
+              : undefined;
+            return (
+              <>
+                {typeName ?? 'Unknown'}
+                {typeDetails !== undefined && (
+                  <Tooltip
+                    className="marketplace-lakehouse-entitlements__grid__consumer-type__tooltip__icon"
+                    title={typeDetails}
+                  >
+                    <InfoCircleIcon />
+                  </Tooltip>
+                )}
+              </>
+            );
           },
-          {
-            minWidth: 50,
-            sortable: true,
-            resizable: true,
-            headerName: 'Target Data Product',
-            flex: 1,
-            valueGetter: (params) => {
-              const contractId = params.data?.dataContractId;
-              const contract = pendingTaskContracts.find(
-                (c) => c.guid === contractId,
-              );
-              return contract?.resourceId ?? 'Unknown';
-            },
+        },
+        {
+          minWidth: 50,
+          sortable: true,
+          resizable: true,
+          colId: 'targetUser',
+          headerName: 'Target User',
+          flex: 1,
+          valueGetter: (params) => {
+            return params.data?.consumer ?? 'Unknown';
           },
-          {
-            minWidth: 50,
-            sortable: true,
-            resizable: true,
-            headerName: 'Target Access Point Group',
-            flex: 1,
-            valueGetter: (params) => {
-              const contractId = params.data?.dataContractId;
-              const contract = pendingTaskContracts.find(
-                (c) => c.guid === contractId,
-              );
-              const accessPointGroup =
-                contract?.resourceType === V1_ResourceType.ACCESS_POINT_GROUP
-                  ? contract.accessPointGroup
-                  : `${contract?.accessPointGroup ?? 'Unknown'} (${contract?.resourceType ?? 'Unknown Type'})`;
-              return accessPointGroup ?? 'Unknown';
-            },
+          cellRenderer: (
+            params: DataGridCellRendererParams<V1_PendingTaskRecord>,
+          ) => {
+            return (
+              <UserRenderer
+                userId={params.data?.consumer}
+                applicationStore={marketplaceBaseStore.applicationStore}
+                userSearchService={marketplaceBaseStore.userSearchService}
+                disableOnClick={true}
+                className="marketplace-lakehouse-entitlements__grid__user-display"
+              />
+            );
           },
-          {
-            minWidth: 50,
-            sortable: true,
-            resizable: true,
-            headerName: 'Business Justification',
-            flex: 2,
-            valueGetter: (params) => {
-              const contractId = params.data?.dataContractId;
-              const businessJustification = pendingTaskContracts.find(
-                (c) => c.guid === contractId,
-              )?.description;
-              return businessJustification ?? 'Unknown';
-            },
+        },
+        {
+          minWidth: 50,
+          sortable: true,
+          resizable: true,
+          colId: 'requester',
+          headerName: 'Requester',
+          flex: 1,
+          valueGetter: (params) => {
+            const contractId = params.data?.accessRequestId;
+            const requester = pendingTaskContracts.find(
+              (c) => c.guid === contractId,
+            )?.createdBy;
+            return requester ?? 'Unknown';
           },
-          {
-            minWidth: 50,
-            sortable: true,
-            resizable: true,
-            hide: true,
-            headerName: 'Contract ID',
-            flex: 2,
-            valueGetter: (params) => params.data?.dataContractId ?? 'Unknown',
+          cellRenderer: (
+            params: DataGridCellRendererParams<V1_PendingTaskRecord>,
+          ) => {
+            const contractId = params.data?.accessRequestId;
+            const requester = pendingTaskContracts.find(
+              (c) => c.guid === contractId,
+            )?.createdBy;
+            return requester ? (
+              <UserRenderer
+                userId={requester}
+                applicationStore={marketplaceBaseStore.applicationStore}
+                userSearchService={marketplaceBaseStore.userSearchService}
+                disableOnClick={true}
+                className="marketplace-lakehouse-entitlements__grid__user-display"
+              />
+            ) : (
+              <>Unknown</>
+            );
           },
-        ],
-        [
-          dashboardState.lakehouseEntitlementsStore.applicationStore
-            .pluginManager,
-          marketplaceBaseStore.applicationStore,
-          marketplaceBaseStore.userSearchService,
-          pendingTaskContracts,
-        ],
-      );
+        },
+        {
+          minWidth: 50,
+          sortable: true,
+          resizable: true,
+          headerName: 'Target Data Product',
+          flex: 1,
+          valueGetter: (params) => {
+            const contractId = params.data?.accessRequestId;
+            const contract = pendingTaskContracts.find(
+              (c) => c.guid === contractId,
+            );
+            return contract?.resourceId ?? 'Unknown';
+          },
+        },
+        {
+          minWidth: 50,
+          sortable: true,
+          resizable: true,
+          headerName: 'Target Access Point Group',
+          flex: 1,
+          valueGetter: (params) => {
+            const contractId = params.data?.accessRequestId;
+            const contract = pendingTaskContracts.find(
+              (c) => c.guid === contractId,
+            );
+            const accessPointGroup =
+              contract?.resourceType === V1_ResourceType.ACCESS_POINT_GROUP
+                ? contract.accessPointGroup
+                : `${contract?.accessPointGroup ?? 'Unknown'} (${contract?.resourceType ?? 'Unknown Type'})`;
+            return accessPointGroup ?? 'Unknown';
+          },
+        },
+        {
+          minWidth: 50,
+          sortable: true,
+          resizable: true,
+          headerName: 'Business Justification',
+          flex: 2,
+          valueGetter: (params) => {
+            const contractId = params.data?.accessRequestId;
+            const businessJustification = pendingTaskContracts.find(
+              (c) => c.guid === contractId,
+            )?.description;
+            return businessJustification ?? 'Unknown';
+          },
+        },
+        {
+          minWidth: 50,
+          sortable: true,
+          resizable: true,
+          hide: true,
+          headerName: 'Contract ID',
+          flex: 2,
+          valueGetter: (params) => params.data?.accessRequestId ?? 'Unknown',
+        },
+      ],
+      [
+        dashboardState.lakehouseEntitlementsStore.applicationStore
+          .pluginManager,
+        marketplaceBaseStore.applicationStore,
+        marketplaceBaseStore.userSearchService,
+        pendingTaskContracts,
+      ],
+    );
 
-    const privilegeManagerColDefs: DataGridColumnDefinition<V1_ContractUserEventRecord>[] =
+    const privilegeManagerColDefs: DataGridColumnDefinition<V1_PendingTaskRecord>[] =
       useMemo(
         () => [
           {
@@ -656,7 +652,7 @@ export const EntitlementsPendingTasksDashboard = observer(
             width: 50,
             cellRenderer: CustomSelectionRenderer,
             headerComponent: (
-              params: DataGridCustomHeaderProps<V1_ContractUserEventRecord>,
+              params: DataGridCustomHeaderProps<V1_PendingTaskRecord>,
             ) => (
               <CustomSelectionHeaderRenderer
                 params={params}
@@ -675,7 +671,7 @@ export const EntitlementsPendingTasksDashboard = observer(
         ],
       );
 
-    const dataOwnerColDefs: DataGridColumnDefinition<V1_ContractUserEventRecord>[] =
+    const dataOwnerColDefs: DataGridColumnDefinition<V1_PendingTaskRecord>[] =
       useMemo(
         () => [
           {
@@ -684,7 +680,7 @@ export const EntitlementsPendingTasksDashboard = observer(
             width: 50,
             cellRenderer: CustomSelectionRenderer,
             headerComponent: (
-              params: DataGridCustomHeaderProps<V1_ContractUserEventRecord>,
+              params: DataGridCustomHeaderProps<V1_PendingTaskRecord>,
             ) => (
               <CustomSelectionHeaderRenderer
                 params={params}
@@ -703,7 +699,7 @@ export const EntitlementsPendingTasksDashboard = observer(
         ],
       );
 
-    const otherTasksColDefs: DataGridColumnDefinition<V1_ContractUserEventRecord>[] =
+    const otherTasksColDefs: DataGridColumnDefinition<V1_PendingTaskRecord>[] =
       useMemo(
         () => [
           {
@@ -712,7 +708,7 @@ export const EntitlementsPendingTasksDashboard = observer(
             width: 50,
             cellRenderer: CustomSelectionRenderer,
             headerComponent: (
-              params: DataGridCustomHeaderProps<V1_ContractUserEventRecord>,
+              params: DataGridCustomHeaderProps<V1_PendingTaskRecord>,
             ) => (
               <CustomSelectionHeaderRenderer
                 params={params}

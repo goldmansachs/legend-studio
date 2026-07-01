@@ -21,6 +21,7 @@ import {
   V1_ContractUserEventRecord,
   V1_EntitlementsLakehouseEnvironmentType,
   type V1_DataRequestWithWorkflow,
+  type V1_PendingTaskRecord,
 } from '@finos/legend-graph';
 import { TEST__provideMockLegendMarketplaceBaseStore } from '../../../../components/__test-utils__/LegendMarketplaceStoreTestUtils.js';
 import {
@@ -66,7 +67,7 @@ const createMockTask = (
 const callFilterByUserEnvironment = (
   dashboardState: EntitlementsDashboardState,
   pendingData: {
-    tasks: V1_ContractUserEventRecord[];
+    tasks: V1_PendingTaskRecord[];
     taskContractMap: Map<string, V1_LiteDataContract>;
   },
   contractsForUser: V1_LiteDataContractWithUserStatus[],
@@ -74,7 +75,7 @@ const callFilterByUserEnvironment = (
   envMap: Map<number, string>,
   dataRequests: V1_DataRequestWithWorkflow[] = [],
 ): {
-  filteredTasks: V1_ContractUserEventRecord[];
+  filteredTasks: V1_PendingTaskRecord[];
   filteredContractsForUser: V1_LiteDataContractWithUserStatus[];
   filteredCreatedByUserMap: Map<string, ContractCreatedByUserDetails>;
   filteredDataRequests: V1_DataRequestWithWorkflow[];
@@ -83,7 +84,7 @@ const callFilterByUserEnvironment = (
     dashboardState as unknown as {
       filterByUserEnvironment: (
         pendingData: {
-          tasks: V1_ContractUserEventRecord[];
+          tasks: V1_PendingTaskRecord[];
           taskContractMap: Map<string, V1_LiteDataContract>;
         },
         contractsForUser: V1_LiteDataContractWithUserStatus[],
@@ -91,7 +92,7 @@ const callFilterByUserEnvironment = (
         dataRequests: V1_DataRequestWithWorkflow[],
         envMap: Map<number, string>,
       ) => {
-        filteredTasks: V1_ContractUserEventRecord[];
+        filteredTasks: V1_PendingTaskRecord[];
         filteredContractsForUser: V1_LiteDataContractWithUserStatus[];
         filteredCreatedByUserMap: Map<string, ContractCreatedByUserDetails>;
         filteredDataRequests: V1_DataRequestWithWorkflow[];
@@ -222,8 +223,8 @@ describe('EntitlementsDashboardState', () => {
       );
 
       expect(result.filteredTasks).toHaveLength(2);
-      expect(result.filteredTasks[0]?.dataContractId).toBe('prod-1');
-      expect(result.filteredTasks[1]?.dataContractId).toBe('prod-2');
+      expect(result.filteredTasks[0]?.accessRequestId).toBe('prod-1');
+      expect(result.filteredTasks[1]?.accessRequestId).toBe('prod-2');
 
       expect(result.filteredContractsForUser).toHaveLength(2);
       expect(result.filteredContractsForUser[0]?.contractResultLite.guid).toBe(
@@ -258,8 +259,8 @@ describe('EntitlementsDashboardState', () => {
       );
 
       expect(result.filteredTasks).toHaveLength(2);
-      expect(result.filteredTasks[0]?.dataContractId).toBe('pp-1');
-      expect(result.filteredTasks[1]?.dataContractId).toBe('pp-2');
+      expect(result.filteredTasks[0]?.accessRequestId).toBe('pp-1');
+      expect(result.filteredTasks[1]?.accessRequestId).toBe('pp-2');
 
       expect(result.filteredContractsForUser).toHaveLength(2);
       expect(result.filteredContractsForUser[0]?.contractResultLite.guid).toBe(
