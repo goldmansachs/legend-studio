@@ -51,6 +51,7 @@ import {
   V1_transformDataRequestWithWorkflowToLiteDataAccessRequest,
   V1_deserializeDataRequestsWithWorkflowResponse,
   type V1_DataRequestsWithWorkflowResponse,
+  type V1_PendingDataRequestTaskEntry,
   type V1_PendingDataRequestTasksResponse,
   V1_deserializePendingDataRequestTasksResponse,
   V1_ContractUserEventRecord,
@@ -452,7 +453,7 @@ export class EntitlementsDashboardState {
       const taskContractMap = new Map<string, V1_LiteAccessRequest>();
 
       const processEntries = (
-        entries: typeof response.dataOwner,
+        entries: V1_PendingDataRequestTaskEntry[],
         approvalType: V1_ApprovalType,
       ): void => {
         for (const entry of entries) {
