@@ -80,7 +80,10 @@ import type { DataProductDataAccess_LegendApplicationPlugin_Extension } from '..
 import type { DataProductAccessPointState } from './DataProductAccessPointState.js';
 import { PermitDataAccessRequestState } from './DataAccess/PermitDataAccessRequestState.js';
 import { type DataAccessRequestState } from './DataAccess/DataAccessRequestState.js';
-import { runMissingIngestsCheckForArtifact } from '../../utils/DataProductIngestUtils.js';
+import {
+  runMissingIngestsCheckForArtifact,
+  openOperationUrlLink,
+} from '../../utils/DataProductIngestUtils.js';
 
 export enum DataAccessRequestType {
   CONTRACT = 'CONTRACT',
@@ -258,6 +261,24 @@ export class DataProductDataAccessState {
       return this.filteredDataProductQueryEnvs[0];
     }
     return undefined;
+  }
+
+  generateOperationalUrlForIngestUrn(
+    producerUrn?: string,
+    ingestDefinitionUrn?: string,
+  ): string | undefined {
+    const baseUrl =
+      this.dataProductViewerState.dataProductConfig?.operationalUrl;
+    const ingestEnvironmentUrn = this.lakehouseIngestEnv?.ingestEnvironmentUrn;
+    if (!baseUrl || !ingestEnvironmentUrn) {
+      return undefined;
+    }
+    return openOperationUrlLink(
+      baseUrl,
+      ingestEnvironmentUrn,
+      producerUrn,
+      ingestDefinitionUrn,
+    );
   }
 
   setAssociatedContracts(val: V1_LiteDataContract[] | undefined): void {
