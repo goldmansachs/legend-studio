@@ -45,6 +45,7 @@ import {
   V1_AdHocDeploymentDataProductOrigin,
   V1_DataProductOriginType,
   V1_SdlcDeploymentDataProductOrigin,
+  EXECUTION_SERIALIZATION_FORMAT,
 } from '@finos/legend-graph';
 import type { DataProductViewerState } from './DataProductViewerState.js';
 import {
@@ -101,7 +102,10 @@ export enum DataAccessRequestType {
   WORKFLOW = 'WORKFLOW',
   PERMIT = 'PERMIT',
 }
-
+export type DeploymentNameResponse = {
+  'Deployment Id': number;
+  'Deployment Name': string;
+};
 export type ContractCreationRendererResult = {
   component: React.ReactNode;
   requestType: DataAccessRequestType;
@@ -180,11 +184,13 @@ export class DataProductDataAccessState {
   lakehouseIngestEnvironmentDetails: V1_IngestEnvironment[] = [];
   userEntitlementsEnv: V1_EntitlementsUserEnv[] | undefined;
   dataProductOwners: string[] = [];
+  deploymentNameResponse: DeploymentNameResponse | undefined = undefined;
 
   readonly creatingContractState = ActionState.create();
   readonly creatingWorkflowRequestState = ActionState.create();
   readonly ingestEnvironmentFetchState = ActionState.create();
   readonly fetchingDataProductOwnersState = ActionState.create();
+  readonly fetchingDeploymentNameState = ActionState.create();
 
   constructor(
     entitlementsDataProductDetails: V1_EntitlementsDataProductDetails,
@@ -206,6 +212,8 @@ export class DataProductDataAccessState {
       lakehouseIngestEnvironmentDetails: observable,
       userEntitlementsEnv: observable,
       dataProductOwners: observable,
+      deploymentNameResponse: observable,
+      setDeploymentName: action,
       setContractViewerContractAndSubscription: action,
       setDataAccessRequestViewerState: action,
       setAssociatedContracts: action,
@@ -371,7 +379,7 @@ export class DataProductDataAccessState {
     ingestDefinitionUrn?: string,
   ): string | undefined {
     const baseUrl =
-      this.dataProductViewerState.dataProductConfig?.operationalUrl;
+      this.dataProductViewerState.dataProductConfig?.producer?.operationalUrl;
     const ingestEnvironmentUrn = this.lakehouseIngestEnv?.ingestEnvironmentUrn;
     if (!baseUrl || !ingestEnvironmentUrn) {
       return undefined;
@@ -515,6 +523,7 @@ export class DataProductDataAccessState {
       this.fetchContracts(tokenProvider),
       this.fetchIngestEnvironmentDetails(tokenProvider),
       this.fetchDataProductOwners(tokenProvider),
+      this.fetchDataProductDeploymentName(),
       ...this.dataProductViewerState.apgStates.map((apgState) =>
         flowResult(apgState.fetchMissingIngests(tokenProvider)),
       ),
@@ -893,6 +902,60 @@ export class DataProductDataAccessState {
       );
     } finally {
       this.fetchingDataProductOwnersState.complete();
+    }
+  }
+
+  async fetchDeploymentNames(
+    deploymentIds: number[],
+  ): Promise<DeploymentNameResponse[]> {
+    const deploymentLegendServiceUrl =
+      this.dataProductViewerState.dataProductConfig?.producer
+        ?.deploymentLegendServiceUrl;
+    if (!deploymentLegendServiceUrl || !deploymentIds.length) {
+      return [];
+    }
+    try {
+      const result =
+        (await this.graphManagerState.graphManager.executeLegendUserService(
+          deploymentLegendServiceUrl,
+          { env: 'PROD', deploymentIds },
+          EXECUTION_SERIALIZATION_FORMAT.PURE_TDSOBJECT,
+        )) as DeploymentNameResponse[];
+      return result;
+    } catch (error) {
+      assertErrorThrown(error);
+      this.applicationStore.logService.warn(
+        LogEvent.create('data-product.fetchDeploymentNames.failure'),
+        `Unable to fetch deployment names: ${error.message}`,
+      );
+      return [];
+    }
+  }
+
+  setDeploymentName(val: DeploymentNameResponse | undefined): void {
+    this.deploymentNameResponse = val;
+  }
+
+  async fetchDataProductDeploymentName(): Promise<void> {
+    if (this.fetchingDeploymentNameState.isInProgress) {
+      return;
+    }
+    this.fetchingDeploymentNameState.inProgress();
+    try {
+      const deploymentId = this.entitlementsDataProductDetails.deploymentId;
+      const result = await this.fetchDeploymentNames([deploymentId]);
+      const match = result.find(
+        (appDir) => appDir['Deployment Id'] === deploymentId,
+      );
+      this.setDeploymentName(match);
+    } catch (error) {
+      assertErrorThrown(error);
+      this.applicationStore.logService.warn(
+        LogEvent.create('data-product.fetchDataProductDeploymentName.failure'),
+        `Unable to fetch data product deployment name: ${error.message}`,
+      );
+    } finally {
+      this.fetchingDeploymentNameState.complete();
     }
   }
 }
