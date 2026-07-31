@@ -546,6 +546,7 @@ export {
   TDSExecutionResult,
   RawExecutionResult,
   EXECUTION_SERIALIZATION_FORMAT,
+  type RecordValue,
   TDSRow,
   getTDSRowRankByColumnInAsc,
   TabularDataSet,
