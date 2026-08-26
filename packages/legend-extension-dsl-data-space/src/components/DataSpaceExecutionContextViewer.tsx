@@ -17,11 +17,15 @@
 import { observer } from 'mobx-react-lite';
 import {
   CustomSelectorInput,
+  PURE_DataProductIcon,
   PURE_MappingIcon,
   PURE_RuntimeIcon,
   PlayIcon,
 } from '@finos/legend-art';
-import { type PackageableRuntime } from '@finos/legend-graph';
+import {
+  extractElementNameFromPath,
+  type PackageableRuntime,
+} from '@finos/legend-graph';
 import { type DataSpaceViewerState } from '../stores/DataSpaceViewerState.js';
 import type { DataSpaceExecutionContextAnalysisResult } from '../graph-manager/action/analytics/DataSpaceAnalysis.js';
 import { useApplicationStore } from '@finos/legend-application';
@@ -46,6 +50,34 @@ const buildRuntimeOption = (value: PackageableRuntime): RuntimeOption => ({
   value: value,
 });
 
+export const DataSpaceExecutionContextMappingIcon: React.FC<{
+  executionContext: DataSpaceExecutionContextAnalysisResult;
+}> = ({ executionContext }) =>
+  executionContext.mappingProvider ? (
+    <PURE_DataProductIcon />
+  ) : (
+    <PURE_MappingIcon />
+  );
+
+export const DataSpaceExecutionContextMappingLabel: React.FC<{
+  executionContext: DataSpaceExecutionContextAnalysisResult;
+}> = ({ executionContext }) => {
+  const mappingProvider = executionContext.mappingProvider;
+  return (
+    <div
+      className="data-space__viewer__execution-context__entry__content data-space__viewer__execution-context__entry__content__text"
+      title={
+        mappingProvider
+          ? `Data Product: ${mappingProvider.element}`
+          : `Mapping: ${executionContext.mapping.path}`
+      }
+    >
+      {mappingProvider
+        ? extractElementNameFromPath(mappingProvider.element)
+        : executionContext.mapping.path}
+    </div>
+  );
+};
 export const DataSpaceExecutionContextViewer = observer(
   (props: { dataSpaceViewerState: DataSpaceViewerState }) => {
     const { dataSpaceViewerState } = props;
@@ -142,11 +174,15 @@ export const DataSpaceExecutionContextViewer = observer(
             </div>
             <div className="data-space__viewer__execution-context__entry data-space__viewer__execution-context__mapping">
               <div className="data-space__viewer__execution-context__entry__icon">
-                <PURE_MappingIcon />
+                <DataSpaceExecutionContextMappingIcon
+                  executionContext={
+                    dataSpaceViewerState.currentExecutionContext
+                  }
+                />
               </div>
-              <div className="data-space__viewer__execution-context__entry__content data-space__viewer__execution-context__entry__content__text">
-                {dataSpaceViewerState.currentExecutionContext.mapping.path}
-              </div>
+              <DataSpaceExecutionContextMappingLabel
+                executionContext={dataSpaceViewerState.currentExecutionContext}
+              />
             </div>
             <div className="data-space__viewer__execution-context__entry">
               <div className="data-space__viewer__execution-context__entry__icon">

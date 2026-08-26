@@ -168,8 +168,10 @@ const V1_dataSpaceExecutionContextAnalysisResultModelSchema = (
     ),
     name: primitive(),
     title: optional(primitive()),
-    runtimeMetadata: usingModelSchema(
-      V1_DataSpaceExecutionContextRuntimeMetadata.serialization.schema,
+    runtimeMetadata: optional(
+      usingModelSchema(
+        V1_DataSpaceExecutionContextRuntimeMetadata.serialization.schema,
+      ),
     ),
   });
 
