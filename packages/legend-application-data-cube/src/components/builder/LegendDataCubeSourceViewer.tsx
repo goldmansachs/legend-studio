@@ -201,6 +201,7 @@ const LegendQuerySourceViewer = observer(
       }
 
       setIsUpdatingParameters(true);
+      const task = store.taskService.newTask('Updating query parameters...');
 
       try {
         // Create the new raw source with new parameter values
@@ -251,6 +252,7 @@ const LegendQuerySourceViewer = observer(
         store.sourceViewerDisplay.close();
       } finally {
         setIsUpdatingParameters(false);
+        store.taskService.endTask(task);
       }
     };
 

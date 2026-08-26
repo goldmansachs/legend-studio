@@ -72,7 +72,10 @@ export const LegendDataCubeSaver = observer(() => {
                 autoFocus={true}
               />
             </div>
-            <div className="mt-2 flex h-5 w-full items-center">
+            <div
+              className="mt-2 flex h-5 w-full items-center"
+              title="When checked, renaming this DataCube later will automatically rename the report too"
+            >
               <div className="flex h-full w-20 flex-shrink-0" />
               <FormCheckbox
                 label="Ensure report name is in sync with DataCube name"
@@ -83,7 +86,10 @@ export const LegendDataCubeSaver = observer(() => {
             {showAdvancedSettings && (
               <>
                 <div className="my-2 h-[1px] w-full bg-neutral-200" />
-                <div className="mt-2 flex h-5 w-full items-center">
+                <div
+                  className="mt-2 flex h-5 w-full items-center"
+                  title="Automatically cache this DataCube's data locally next time it's opened, for faster performance"
+                >
                   <div className="flex h-full w-20 flex-shrink-0 items-center text-sm">
                     Caching:
                   </div>
@@ -100,7 +106,10 @@ export const LegendDataCubeSaver = observer(() => {
         </div>
       </div>
       <div className="flex h-10 items-center justify-between px-2">
-        <div className="flex h-full items-center pl-1">
+        <div
+          className="flex h-full items-center pl-1"
+          title="Show additional save options, like caching"
+        >
           <FormCheckbox
             label="Show advanced settings?"
             checked={showAdvancedSettings}
@@ -118,6 +127,7 @@ export const LegendDataCubeSaver = observer(() => {
               <FormButton
                 className="ml-2"
                 loading={store.saveState.isInProgress}
+                title="Save changes to this DataCube"
                 disabled={
                   !builder.dataCube ||
                   !store.canCurrentUserManageDataCube(
@@ -142,6 +152,7 @@ export const LegendDataCubeSaver = observer(() => {
                 className="ml-2"
                 disabled={!builder.dataCube}
                 loading={store.saveState.isInProgress}
+                title="Save a new copy of this DataCube under a different name"
                 onClick={() => {
                   store
                     .saveDataCube(name, {
@@ -164,6 +175,7 @@ export const LegendDataCubeSaver = observer(() => {
                 className="ml-2"
                 disabled={!builder.dataCube}
                 loading={store.saveState.isInProgress}
+                title="Save changes to this DataCube"
                 onClick={() => {
                   store
                     .createNewDataCube(name, {

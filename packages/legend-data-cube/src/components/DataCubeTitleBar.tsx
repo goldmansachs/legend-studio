@@ -51,6 +51,7 @@ export const DataCubeTitleBar = observer(
         <div className="flex w-full flex-auto">
           {children}
           <button
+            aria-label="More actions"
             className="flex aspect-square h-full flex-shrink-0 items-center justify-center text-lg disabled:text-neutral-400"
             onClick={(event) => {
               const extraItems = getMenuItems?.() ?? [];
@@ -86,6 +87,7 @@ export const DataCubeTitleBar = observer(
                       item.action();
                       closeMenuDropdown();
                     }}
+                    title={item.title}
                     disabled={Boolean(item.disabled)}
                   >
                     {item.label}

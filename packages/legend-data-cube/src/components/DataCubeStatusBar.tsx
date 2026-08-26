@@ -31,7 +31,22 @@ export const DataCubeStatusBar = observer(
     taskManager?: TaskManager | undefined;
   }) => {
     const { view, taskManager } = props;
-    const tasks = view?.taskService.tasks ?? taskManager?.tasks;
+    // NOTE: show every task sharing the underlying task manager, not just the ones
+    // owned by this particular view, since sibling scopes (e.g. the app-level
+    // save/load/create DataCube flows) register tasks against the same manager
+    // but with a different owner ID.
+    const tasks = view?.taskService.manager.tasks ?? taskManager?.tasks;
+    const hasTasks = tasks !== undefined && tasks.length > 0;
+    const tasksTooltip = hasTasks
+      ? tasks.length > 1
+        ? tasks
+            .map(
+              (task, idx) =>
+                `Task ${idx + 1}/${tasks.length}: ${task.description}`,
+            )
+            .join('\n')
+        : at(tasks, 0).description
+      : undefined;
 
     const logOpeningPropertiesEditor = () => {
       view?.dataCube.telemetryService.sendTelemetry(
@@ -58,6 +73,7 @@ export const DataCubeStatusBar = observer(
         <div className="flex">
           <button
             className="flex items-center px-2 text-sky-600 hover:text-sky-700 disabled:text-neutral-400"
+            title="Open general and column display properties for this grid"
             onClick={() => {
               view?.editor.display.open();
               logOpeningPropertiesEditor();
@@ -70,6 +86,7 @@ export const DataCubeStatusBar = observer(
           <div className="flex">
             <button
               className="flex items-center text-sky-600 hover:text-sky-700 disabled:text-neutral-400"
+              title="Open the filter editor to filter rows in this grid"
               onClick={() => {
                 view?.filter.display.open();
                 logOpeningFilterEditor();
@@ -88,20 +105,9 @@ export const DataCubeStatusBar = observer(
         <div className="flex items-center px-2">
           <div
             className="flex h-3.5 w-48 border-[0.5px] border-neutral-300"
-            title={
-              tasks !== undefined && tasks.length > 0
-                ? tasks.length > 1
-                  ? tasks
-                      .map(
-                        (task, idx) =>
-                          `Task ${idx + 1}/${tasks.length}: ${task.description}`,
-                      )
-                      .join('\n')
-                  : at(tasks, 0).description
-                : undefined
-            }
+            title={tasksTooltip}
           >
-            {tasks !== undefined && tasks.length > 0 && (
+            {hasTasks && (
               <ProgressBar
                 classes={{
                   root: 'h-3.5 w-full bg-transparent',

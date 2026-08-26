@@ -55,12 +55,17 @@ const LegendDataCubeBuilderHeader = observer(() => {
         .getApplicationPlugins()
         .map((plugin) => plugin.builderInnerHeaderRenderer?.(store.builder))}
       <div className="flex h-full w-fit flex-auto items-center justify-end text-nowrap pl-2">
-        <FormButton compact={true} onClick={() => store.loader.display.open()}>
-          Load DataCube
+        <FormButton
+          compact={true}
+          title="Search for and open a DataCube you've saved before"
+          onClick={() => store.loader.display.open()}
+        >
+          Open DataCube
         </FormButton>
         <FormButton
           compact={true}
           className="ml-1.5 text-nowrap"
+          title="Create a new DataCube from a query, table, or function"
           onClick={() => store.creator.display.open()}
         >
           New DataCube
@@ -68,6 +73,7 @@ const LegendDataCubeBuilderHeader = observer(() => {
         <FormButton
           compact={true}
           className="ml-1.5 text-nowrap"
+          title="Save your changes, or save a copy of this DataCube under a new name"
           disabled={!store.builder?.dataCube}
           onClick={() => store.saverDisplay.open()}
         >
@@ -214,6 +220,8 @@ function generateMenuItems(store: LegendDataCubeBuilderStore) {
           ? [
               {
                 label: DataCubeTitleBarMenuItems.VIEW_SOURCE,
+                title:
+                  'See the underlying data source and connection details for this DataCube',
                 action: () => {
                   const sourceViewerHeight =
                     store.application.pluginManager
@@ -230,6 +238,8 @@ function generateMenuItems(store: LegendDataCubeBuilderStore) {
               },
               {
                 label: DataCubeTitleBarMenuItems.EDIT_SOURCE_QUERY,
+                title:
+                  "Edit the Pure query behind this DataCube's Lakehouse data source",
                 action: () => {
                   store.queryEditorDisplay.open();
                   logMenuItem(DataCubeTitleBarMenuItems.EDIT_SOURCE_QUERY);
@@ -242,6 +252,8 @@ function generateMenuItems(store: LegendDataCubeBuilderStore) {
           ? [
               {
                 label: DataCubeTitleBarMenuItems.RESET_TO_LATEST_SAVE,
+                title:
+                  'Discard unsaved changes and revert to the last saved version',
                 action: () => {
                   const latestSpecification =
                     DataCubeSpecification.serialization.fromJson(
@@ -257,6 +269,8 @@ function generateMenuItems(store: LegendDataCubeBuilderStore) {
               },
               {
                 label: DataCubeTitleBarMenuItems.EDIT_QUERY,
+                title:
+                  'View and edit the full query and configuration of the last saved version',
                 action: () => {
                   store.codeEditorDisplay.open();
                   logMenuItem(DataCubeTitleBarMenuItems.EDIT_QUERY);
@@ -264,6 +278,8 @@ function generateMenuItems(store: LegendDataCubeBuilderStore) {
               },
               {
                 label: DataCubeTitleBarMenuItems.UPDATE_INFO,
+                title:
+                  'Rename this DataCube or change save settings (e.g. caching) without creating a new copy',
                 action: () => {
                   // effectively, we open the save window to let user update the DataCube info, such as name, auto-enable caching, etc.
                   store.saverDisplay.open();
@@ -274,6 +290,7 @@ function generateMenuItems(store: LegendDataCubeBuilderStore) {
               },
               {
                 label: DataCubeTitleBarMenuItems.DELETE_DATACUBE,
+                title: 'Permanently delete this saved DataCube for all users',
                 action: () => {
                   store.setDataCubeToDelete(builder.persistentDataCube);
                   store.deleteConfirmationDisplay.open();
@@ -415,6 +432,7 @@ export const LegendDataCubeBuilder = withLegendDataCubeBuilderStore(
             <div>Create a new DataCube to start</div>
             <FormButton
               className="mt-1.5"
+              title="Create a new DataCube from a query, table, or function"
               onClick={() => store.creator.display.open()}
             >
               New DataCube

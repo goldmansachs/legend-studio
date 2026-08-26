@@ -39,6 +39,24 @@ import { LakehouseProducerDataCubeSourceBuilder } from './source/LakehouseProduc
 import { LakehouseConsumerDataCubeSourceBuilderState } from '../../stores/builder/source/LakehouseConsumerDataCubeSourceBuilderState.js';
 import { LakehouseConsumerDataCubeSourceBuilder } from './source/LakehouseConsumerDataCubeSourceBuilder.js';
 
+const SOURCE_TYPE_DESCRIPTIONS: Record<
+  LegendDataCubeSourceBuilderType,
+  string
+> = {
+  [LegendDataCubeSourceBuilderType.LEGEND_QUERY]:
+    'Build this DataCube from an existing saved query in Legend Query',
+  [LegendDataCubeSourceBuilderType.LAKEHOUSE_CONSUMER]:
+    'Subscribe to and read data from a Lakehouse Data Product you have access to',
+  [LegendDataCubeSourceBuilderType.USER_DEFINED_FUNCTION]:
+    'Build this DataCube from an existing Pure function that returns tabular data',
+  [LegendDataCubeSourceBuilderType.FREEFORM_TDS_EXPRESSION]:
+    'Write a custom Pure expression that returns tabular data',
+  [LegendDataCubeSourceBuilderType.LAKEHOUSE_PRODUCER]:
+    'Build this DataCube from a Lakehouse Data Product you own or manage',
+  [LegendDataCubeSourceBuilderType.LOCAL_FILE]:
+    'Upload a local CSV file as the data source (experimental)',
+};
+
 export const LegendDataCubeCreator = observer(() => {
   const store = useLegendDataCubeBuilderStore();
   const state = store.creator;
@@ -78,6 +96,7 @@ export const LegendDataCubeCreator = observer(() => {
                 className="w-80"
                 onClick={openSourceTypeDropdown}
                 open={sourceTypeDropdownPropsOpen}
+                title={SOURCE_TYPE_DESCRIPTIONS[selectedSourceType]}
               >
                 <div className="flex items-center">
                   {selectedSourceType}
@@ -102,6 +121,7 @@ export const LegendDataCubeCreator = observer(() => {
                       closeSourceTypeDropdown();
                     }}
                     autoFocus={type === selectedSourceType}
+                    title={SOURCE_TYPE_DESCRIPTIONS[type]}
                   >
                     {type}
                     {WIPSourceTypes.includes(type) && <FormBadge_WIP />}

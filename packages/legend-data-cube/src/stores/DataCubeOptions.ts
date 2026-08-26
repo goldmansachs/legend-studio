@@ -45,6 +45,7 @@ type DataCubeSettingsData = {
 
 export type DataCubeMenuItem = {
   label: string;
+  title?: string | undefined;
   disabled?: boolean | undefined;
   action: () => void;
 };

@@ -221,6 +221,7 @@ export abstract class DataCubeColumnBaseEditorState extends DataCubeCodeEditorSt
     this.clearError();
     this.setReturnType(undefined);
 
+    const task = this.view.taskService.newTask('Validating expression...');
     try {
       const returnRelationType =
         await this.view.engine.getQueryCodeRelationReturnType(
@@ -269,6 +270,7 @@ export abstract class DataCubeColumnBaseEditorState extends DataCubeCodeEditorSt
       });
     } finally {
       this.validationState.complete();
+      this.view.taskService.endTask(task);
     }
 
     return undefined;
@@ -340,6 +342,7 @@ export class DataCubeNewColumnState extends DataCubeColumnBaseEditorState {
 
     this.finalizationState.inProgress();
 
+    const task = this.view.taskService.newTask('Applying column changes...');
     let query: V1_ValueSpecification;
     let returnType: string | undefined;
     try {
@@ -355,6 +358,7 @@ export class DataCubeNewColumnState extends DataCubeColumnBaseEditorState {
       return;
     } finally {
       this.finalizationState.complete();
+      this.view.taskService.endTask(task);
     }
 
     if (!(query instanceof V1_Lambda)) {
@@ -424,10 +428,15 @@ export class DataCubeExistingColumnEditorState extends DataCubeColumnBaseEditorS
   }
 
   override async getInitialCode(): Promise<string> {
-    return this.view.engine.getValueSpecificationCode(
-      this.view.engine.deserializeValueSpecification(this.initialData.mapFn),
-      true,
-    );
+    const task = this.view.taskService.newTask('Loading expression...');
+    try {
+      return await this.view.engine.getValueSpecificationCode(
+        this.view.engine.deserializeValueSpecification(this.initialData.mapFn),
+        true,
+      );
+    } finally {
+      this.view.taskService.endTask(task);
+    }
   }
 
   override newDisplay(state: DataCubeColumnBaseEditorState): DisplayState {
@@ -465,6 +474,7 @@ export class DataCubeExistingColumnEditorState extends DataCubeColumnBaseEditorS
 
     this.finalizationState.inProgress();
 
+    const task = this.view.taskService.newTask('Applying column changes...');
     let query: V1_ValueSpecification;
     let returnType: string | undefined;
     try {
@@ -480,6 +490,7 @@ export class DataCubeExistingColumnEditorState extends DataCubeColumnBaseEditorS
       return;
     } finally {
       this.finalizationState.complete();
+      this.view.taskService.endTask(task);
     }
 
     if (!(query instanceof V1_Lambda)) {

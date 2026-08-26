@@ -198,16 +198,22 @@ export class FreeformTDSExpressionDataCubeSourceBuilderState extends LegendDataC
   };
 
   async compileQueryHelper() {
-    const query = await this.queryLambdaHelper();
-    const lambda = this.builderStore.engine.serializeValueSpecification(query);
-    return Boolean(
-      (
-        await this.builderStore.engine._getLambdaRelationType(
-          lambda,
-          guaranteeNonNullable(this.modelPointer),
-        )
-      ).columns,
-    );
+    const task = this.builderStore.taskService.newTask('Validating query...');
+    try {
+      const query = await this.queryLambdaHelper();
+      const lambda =
+        this.builderStore.engine.serializeValueSpecification(query);
+      return Boolean(
+        (
+          await this.builderStore.engine._getLambdaRelationType(
+            lambda,
+            guaranteeNonNullable(this.modelPointer),
+          )
+        ).columns,
+      );
+    } finally {
+      this.builderStore.taskService.endTask(task);
+    }
   }
 
   buildPureModelContextPointer():

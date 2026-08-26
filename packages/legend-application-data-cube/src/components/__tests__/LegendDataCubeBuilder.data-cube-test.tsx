@@ -1980,3 +1980,181 @@ test(
     expect(screen.queryByText('Release Notes')).toBeNull();
   },
 );
+
+// -------------------- WIDGET CLARITY TESTS --------------------
+// Renames and tooltips added to make DataCube widgets easier to understand.
+
+test(
+  integrationTest('Header buttons show the updated label and tooltip'),
+  async () => {
+    const mockedLegendDataCubeBuilderStore =
+      await TEST__provideMockedLegendDataCubeBuilderStore();
+    await TEST__setUpDataCubeBuilder(mockedLegendDataCubeBuilderStore);
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+
+    expect(screen.queryByRole('button', { name: 'Load DataCube' })).toBeNull();
+    const openButton = await screen.findByRole('button', {
+      name: 'Open DataCube',
+    });
+    expect(openButton.getAttribute('title')).toBe(
+      "Search for and open a DataCube you've saved before",
+    );
+
+    const newButtons = await screen.findAllByRole('button', {
+      name: 'New DataCube',
+    });
+    newButtons.forEach((button) =>
+      expect(button.getAttribute('title')).toBe(
+        'Create a new DataCube from a query, table, or function',
+      ),
+    );
+
+    const saveButton = await screen.findByRole('button', {
+      name: 'Save DataCube',
+    });
+    expect(saveButton.getAttribute('title')).toBe(
+      'Save your changes, or save a copy of this DataCube under a new name',
+    );
+  },
+);
+
+test(
+  integrationTest('New DataCube source type options show tooltips'),
+  async () => {
+    const mockedLegendDataCubeBuilderStore =
+      await TEST__provideMockedLegendDataCubeBuilderStore();
+    await TEST__setUpDataCubeBuilder(mockedLegendDataCubeBuilderStore);
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+    fireEvent.click(
+      guaranteeNonNullable(
+        (await screen.findAllByRole('button', { name: 'New DataCube' }))[0],
+      ),
+    );
+    await screen.findByText('Choose Source Type:');
+
+    // the trigger shows the tooltip for the currently selected type (default: Legend Query)
+    const trigger = await screen.findByTitle(
+      'Build this DataCube from an existing saved query in Legend Query',
+    );
+    fireEvent.click(trigger);
+    await screen.findByText('Freeform TDS Expression');
+
+    const otherSourceTypeTooltips = [
+      'Subscribe to and read data from a Lakehouse Data Product you have access to',
+      'Build this DataCube from an existing Pure function that returns tabular data',
+      'Write a custom Pure expression that returns tabular data',
+      'Build this DataCube from a Lakehouse Data Product you own or manage',
+      'Upload a local CSV file as the data source (experimental)',
+    ];
+    for (const tooltip of otherSourceTypeTooltips) {
+      expect(
+        (await screen.findAllByTitle(tooltip)).length,
+      ).toBeGreaterThanOrEqual(1);
+    }
+  },
+);
+
+test(
+  integrationTest(
+    "A persisted DataCube's hamburger menu, save dialog, and status bar show tooltips",
+  ),
+  async () => {
+    MockedMonacoEditorAPI.remeasureFonts.mockReturnValue(undefined);
+
+    const mockDataCubeId = 'test-data-cube-id';
+    const mockDataCube: PersistentDataCube =
+      PersistentDataCube.serialization.fromJson({
+        id: mockDataCubeId,
+        name: `${mockDataCubeId}-name`,
+        description: undefined,
+        content: {
+          query: `select(~[Id, 'Case Type'])`,
+          source: {
+            queryId: `${mockDataCubeId}-query-id`,
+            _type: 'legendQuery',
+          },
+          configuration: {
+            name: `${mockDataCubeId}-query-name`,
+            columns: [
+              { name: 'Id', type: 'Integer' },
+              { name: 'Case Type', type: 'String' },
+            ],
+          },
+        },
+      });
+    const mockQuery: V1_Query = V1_Query.serialization.fromJson({
+      name: `${mockDataCubeId}-query-name`,
+      id: `${mockDataCubeId}-query-id`,
+      versionId: 'latest',
+      groupId: 'com.legend',
+      artifactId: 'test-project',
+      content: `|domain::COVIDData.all()->project(~[Id:x|$x.id, 'Case Type':x|$x.caseType])`,
+      executionContext: {
+        dataSpacePath: 'domain::COVIDDatapace',
+        executionKey: 'dummyContext',
+        _type: 'dataSpaceExecutionContext',
+      },
+    });
+    const mockedLegendDataCubeBuilderStore =
+      await TEST__provideMockedLegendDataCubeBuilderStore();
+    await TEST__setUpDataCubeBuilder(
+      guaranteeNonNullable(mockedLegendDataCubeBuilderStore),
+      mockDataCube,
+      mockQuery,
+      depotEntities,
+    );
+    await screen.findByText('test-data-cube-id-query-name');
+    await screen.findByText('Id', {}, { timeout: 10000 });
+
+    // hamburger menu tooltips
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'More actions' }),
+    );
+    await screen.findByTitle(
+      'See the underlying data source and connection details for this DataCube',
+    );
+    await screen.findByTitle(
+      "Edit the Pure query behind this DataCube's Lakehouse data source",
+    );
+    await screen.findByTitle(
+      'Discard unsaved changes and revert to the last saved version',
+    );
+    await screen.findByTitle(
+      'View and edit the full query and configuration of the last saved version',
+    );
+    await screen.findByTitle(
+      'Rename this DataCube or change save settings (e.g. caching) without creating a new copy',
+    );
+    await screen.findByTitle(
+      'Permanently delete this saved DataCube for all users',
+    );
+    fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' });
+
+    // save dialog tooltips
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Save DataCube' }),
+    );
+    const syncNameCheckbox = await screen.findByText(
+      'Ensure report name is in sync with DataCube name',
+    );
+    expect(syncNameCheckbox.closest('div')?.getAttribute('title')).toBe(
+      'When checked, renaming this DataCube later will automatically rename the report too',
+    );
+    fireEvent.click(await screen.findByText('Show advanced settings?'));
+    await screen.findByTitle(
+      "Automatically cache this DataCube's data locally next time it's opened, for faster performance",
+    );
+    await screen.findByTitle('Save changes to this DataCube');
+    await screen.findByTitle(
+      'Save a new copy of this DataCube under a different name',
+    );
+
+    // status bar tooltips
+    await screen.findByTitle(
+      'Open general and column display properties for this grid',
+    );
+    await screen.findByTitle(
+      'Open the filter editor to filter rows in this grid',
+    );
+  },
+);

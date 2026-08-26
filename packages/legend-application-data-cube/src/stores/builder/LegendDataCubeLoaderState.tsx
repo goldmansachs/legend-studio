@@ -91,7 +91,7 @@ export class LegendDataCubeLoaderState {
     this._alertService = store.alertService;
 
     this.display = store.layoutService.newDisplay(
-      'Load DataCube',
+      'Open DataCube',
       () => <LegendDataCubeLoader />,
       {
         ...DEFAULT_TOOL_PANEL_WINDOW_CONFIG,
