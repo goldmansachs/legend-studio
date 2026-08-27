@@ -57,7 +57,7 @@ const LegendDataCubeBuilderHeader = observer(() => {
       <div className="flex h-full w-fit flex-auto items-center justify-end text-nowrap pl-2">
         <FormButton
           compact={true}
-          title="Search for and open a DataCube you've saved before"
+          title="Open a saved DataCube grid"
           onClick={() => store.loader.display.open()}
         >
           Open DataCube
@@ -73,7 +73,7 @@ const LegendDataCubeBuilderHeader = observer(() => {
         <FormButton
           compact={true}
           className="ml-1.5 text-nowrap"
-          title="Save your changes, or save a copy of this DataCube under a new name"
+          title="Save this DataCube grid, or save a copy under a new name"
           disabled={!store.builder?.dataCube}
           onClick={() => store.saverDisplay.open()}
         >

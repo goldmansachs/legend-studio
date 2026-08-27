@@ -1996,9 +1996,7 @@ test(
     const openButton = await screen.findByRole('button', {
       name: 'Open DataCube',
     });
-    expect(openButton.getAttribute('title')).toBe(
-      "Search for and open a DataCube you've saved before",
-    );
+    expect(openButton.getAttribute('title')).toBe('Open a saved DataCube grid');
 
     const newButtons = await screen.findAllByRole('button', {
       name: 'New DataCube',
@@ -2013,7 +2011,7 @@ test(
       name: 'Save DataCube',
     });
     expect(saveButton.getAttribute('title')).toBe(
-      'Save your changes, or save a copy of this DataCube under a new name',
+      'Save this DataCube grid, or save a copy under a new name',
     );
   },
 );
