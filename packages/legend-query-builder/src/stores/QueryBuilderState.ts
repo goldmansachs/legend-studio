@@ -421,9 +421,7 @@ export abstract class QueryBuilderState implements CommandRegistrar {
   }
 
   get requiresEmbeddedExecutionContext(): boolean {
-    return (
-      this.isFetchStructureTyped && Boolean(this.executionContextState.mapping)
-    );
+    return this.isFetchStructureTyped && Boolean(this.executionContextState);
   }
 
   get forceFromExpressionForExec(): boolean {

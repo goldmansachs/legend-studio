@@ -811,7 +811,7 @@ export abstract class QueryEditorStore {
       supportBuildMinimalGraph
     ) {
       try {
-        this.initState.setMessage('Fetching data product analysis result...');
+        this.initState.setMessage('Fetching data space analysis result...');
         const project = StoreProjectData.serialization.fromJson(
           await this.depotServerClient.getProject(groupId, artifactId),
         );
@@ -2239,7 +2239,7 @@ export class ExistingQueryEditorStore extends QueryEditorStore {
           !matchingExecutionContextMapping
         ) {
           throw new Error(
-            `Execution context '${matchingExecutionContext.name}' in data product '${dataSpace.path}' sources its mapping from an access point group that does not exist.`,
+            `Execution context '${matchingExecutionContext.name}' in data space '${dataSpace.path}' sources its mapping from a data product access point group that does not exist.`,
           );
         }
         const matchingExecutionContextRuntime = guaranteeNonNullable(
@@ -2269,7 +2269,7 @@ export class ExistingQueryEditorStore extends QueryEditorStore {
         return dataSpaceQueryBuilderState;
       } else {
         throw new Error(
-          `Execution context '${exec.executionKey}' does not exist in data product '${dataSpace.path}'.`,
+          `Execution context '${exec.executionKey}' does not exist in data space '${dataSpace.path}'.`,
         );
       }
     } else if (exec instanceof QueryExplicitExecutionContextInfo) {
