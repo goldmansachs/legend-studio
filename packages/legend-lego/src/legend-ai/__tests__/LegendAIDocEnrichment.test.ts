@@ -57,6 +57,7 @@ import type {
   TDSColumnSchema,
   TDSServiceSchema,
   LegendAIModelContext,
+  LegendAIModelProperty,
 } from '../LegendAITypes.js';
 
 function makePropertyDoc(
@@ -327,10 +328,10 @@ describe(unitTest('extractLambdaPreFilters'), () => {
                 parameters: [
                   {
                     _type: 'property',
-                    property: 'fsymId',
+                    property: 'symbolId',
                     parameters: [{ _type: 'var', name: 'x' }],
                   },
-                  { _type: 'string', value: 'D7HG0X-S' },
+                  { _type: 'string', value: 'AAAAAAA-S' },
                 ],
               },
             ],
@@ -341,7 +342,7 @@ describe(unitTest('extractLambdaPreFilters'), () => {
     ];
     const result = extractLambdaPreFilters(body);
     expect(result).toEqual([
-      { property: 'fsymId', operator: 'equal', value: 'D7HG0X-S' },
+      { property: 'symbolId', operator: 'equal', value: 'AAAAAAA-S' },
     ]);
   });
 
@@ -361,15 +362,15 @@ describe(unitTest('extractLambdaPreFilters'), () => {
                 parameters: [
                   {
                     _type: 'property',
-                    property: 'fsymId',
+                    property: 'symbolId',
                     parameters: [
                       {
                         _type: 'property',
-                        property: 'SymSecEntityPublic',
+                        property: 'SecurityEntity',
                         parameters: [
                           {
                             _type: 'property',
-                            property: 'FeSecCoveragePublic',
+                            property: 'SecurityCoverage',
                             parameters: [{ _type: 'var', name: 'x' }],
                           },
                         ],
@@ -388,7 +389,7 @@ describe(unitTest('extractLambdaPreFilters'), () => {
     const result = extractLambdaPreFilters(body);
     expect(result).toEqual([
       {
-        property: 'FeSecCoveragePublic.SymSecEntityPublic.fsymId',
+        property: 'SecurityCoverage.SecurityEntity.symbolId',
         operator: 'equal',
         value: 'ABC-123',
       },
@@ -461,10 +462,10 @@ describe(unitTest('extractLambdaPreFilters'), () => {
                         parameters: [
                           {
                             _type: 'property',
-                            property: 'factsetEntityId',
+                            property: 'vendorEntityId',
                             parameters: [{ _type: 'var', name: 'x' }],
                           },
-                          { _type: 'string', value: '05J1CM-E' },
+                          { _type: 'string', value: 'BBBBBBB-E' },
                         ],
                       },
                       {
@@ -473,10 +474,10 @@ describe(unitTest('extractLambdaPreFilters'), () => {
                         parameters: [
                           {
                             _type: 'property',
-                            property: 'fsymId',
+                            property: 'symbolId',
                             parameters: [{ _type: 'var', name: 'x' }],
                           },
-                          { _type: 'string', value: 'CKYY1K-R' },
+                          { _type: 'string', value: 'CCCCCCC-R' },
                         ],
                       },
                     ],
@@ -492,8 +493,8 @@ describe(unitTest('extractLambdaPreFilters'), () => {
     const result = extractLambdaPreFilters(body);
     expect(result).toEqual([
       { property: 'consEndDate', operator: 'isEmpty' },
-      { property: 'factsetEntityId', operator: 'equal', value: '05J1CM-E' },
-      { property: 'fsymId', operator: 'equal', value: 'CKYY1K-R' },
+      { property: 'vendorEntityId', operator: 'equal', value: 'BBBBBBB-E' },
+      { property: 'symbolId', operator: 'equal', value: 'CCCCCCC-R' },
     ]);
   });
 
@@ -520,7 +521,7 @@ describe(unitTest('extractLambdaPreFilters'), () => {
                     property: 'isNotNull',
                     parameters: [
                       { _type: 'var', name: 'row' },
-                      { _type: 'string', value: 'Fe Mean' },
+                      { _type: 'string', value: 'Mean Estimate' },
                     ],
                   },
                   {
@@ -541,7 +542,7 @@ describe(unitTest('extractLambdaPreFilters'), () => {
     ];
     const result = extractLambdaPreFilters(body);
     expect(result).toContainEqual({
-      property: 'Fe Mean',
+      property: 'Mean Estimate',
       operator: 'isNotNull',
     });
     expect(result).toContainEqual({
@@ -1605,379 +1606,128 @@ describe(unitTest('buildSemanticPropertyIndex'), () => {
   });
 });
 
+/** Builds a single-valued, required model property fixture. */
+function makeProperty(name: string, type: string): LegendAIModelProperty {
+  return { name, type, isCollection: false, isOptional: false };
+}
+
+/** Builds a TDS service fixture exposing the given columns as strings. */
+function makeService(title: string, columnNames: string[]): TDSServiceSchema {
+  return {
+    title,
+    pattern: `/${title}`,
+    columns: columnNames.map(
+      (name): TDSColumnSchema => ({ name, type: 'String' }),
+    ),
+    parameters: [],
+  };
+}
+
 describe(unitTest('buildEnrichedBusinessContext with executables'), () => {
-  test('includes queryable_hint for queryable entities', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [
-        {
-          path: 'model::Loan',
-          name: 'Loan',
-          properties: [
-            {
-              name: 'amount',
-              type: 'Float',
-              isCollection: false,
-              isOptional: false,
-            },
-          ],
-          isQueryable: true,
-        },
-      ],
-      associations: [],
-      executables: [
-        {
-          title: 'Loan Service',
-          rootEntityPath: 'model::Loan',
-        },
-      ],
-    };
-    const result = buildEnrichedBusinessContext(
-      'show loans',
-      'model::Loan',
-      [],
-      ctx,
+  const executableCtx: LegendAIModelContext = {
+    entities: [
+      {
+        path: 'model::Holdings',
+        name: 'Holdings',
+        isQueryable: true,
+        properties: [
+          makeProperty('fundIsin', 'String'),
+          makeProperty('longCompName', 'String'),
+        ],
+      },
+      {
+        path: 'model::Sales',
+        name: 'Sales',
+        properties: [
+          makeProperty('cntryOfDomicile', 'String'),
+          makeProperty('longCompName', 'String'),
+        ],
+      },
+    ],
+    associations: [],
+    dataspaceDescription:
+      '# Welcome\nProvides mortgage-backed securities data.',
+    executables: [
+      {
+        title: 'Holdings Service',
+        rootEntityPath: 'model::Holdings',
+        queryTemplate:
+          'model::Holdings.all()->filter({x|$x.fundIsin == $isin})',
+        requiredParameters: [
+          { name: 'processingDate', type: 'Date' },
+          { name: 'fundIsins', type: 'String' },
+        ],
+        columnPropertyMappings: [
+          { columnName: 'LONG COMP NAME', propertyPath: 'longCompName' },
+        ],
+      },
+      { title: 'Archive Service', rootEntityPath: 'model::Archive' },
+    ],
+  };
+
+  /** Collects the NL context hints emitted for a question against a root entity. */
+  function hintsFor(question: string, rootEntity: string) {
+    return (
+      buildEnrichedBusinessContext(question, rootEntity, [], executableCtx)
+        .businessContextMatch?.additionalNlModelContext ?? []
     );
-    const hints = result.businessContextMatch?.additionalNlModelContext ?? [];
-    const queryableHint = hints.find((h) => h.category === 'queryable_hint');
-    expect(queryableHint).toBeDefined();
-    expect(queryableHint?.description).toContain('Loan Service');
+  }
+
+  test('emits a hint per executable facet of the resolved root entity', () => {
+    const hints = hintsFor('show holdings', 'model::Holdings');
+    const byCategory = new Map(hints.map((h) => [h.category, h.description]));
+
+    expect([...byCategory.keys()]).toEqual(
+      expect.arrayContaining([
+        'queryable_hint',
+        'product_context',
+        'query_template',
+        'required_parameters',
+        'column_mappings',
+        'executable_summary',
+      ]),
+    );
+    expect(byCategory.get('queryable_hint')).toContain('Holdings Service');
+    expect(byCategory.get('product_context')).toContain(
+      'mortgage-backed securities',
+    );
+    expect(byCategory.get('query_template')).toContain('Holdings.all()');
+    expect(byCategory.get('required_parameters')).toContain(
+      'processingDate (Date), fundIsins (String)',
+    );
+    expect(byCategory.get('column_mappings')).toContain(
+      '"LONG COMP NAME" → longCompName',
+    );
+    expect(byCategory.get('executable_summary')).toContain(
+      '"Holdings Service" → Holdings (requires: processingDate, fundIsins)',
+    );
+    expect(byCategory.get('executable_summary')).toContain(
+      '"Archive Service" → Archive',
+    );
   });
 
-  test('includes product_context from dataspaceDescription', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [
-        {
-          path: 'model::Data',
-          name: 'Data',
-          properties: [],
-        },
-      ],
-      associations: [],
-      dataspaceDescription:
-        '# Welcome\nThis dataspace provides mortgage-backed securities data.',
-    };
-    const result = buildEnrichedBusinessContext(
-      'show data',
-      'model::Data',
-      [],
-      ctx,
+  test('omits root-specific executable hints when no executable maps to the root', () => {
+    const categories = hintsFor('show sales', 'model::Sales').map(
+      (h) => h.category,
     );
-    const hints = result.businessContextMatch?.additionalNlModelContext ?? [];
-    const productCtx = hints.find((h) => h.category === 'product_context');
-    expect(productCtx).toBeDefined();
-    expect(productCtx?.description).toContain('mortgage-backed securities');
+
+    expect(categories).not.toContain('query_template');
+    expect(categories).not.toContain('required_parameters');
+    expect(categories).not.toContain('column_mappings');
+    expect(categories).toContain('executable_summary');
   });
 
-  test('includes query_template for matching executable', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [
-        {
-          path: 'model::Loan',
-          name: 'Loan',
-          properties: [
-            {
-              name: 'amount',
-              type: 'Float',
-              isCollection: false,
-              isOptional: false,
-            },
-          ],
-          isQueryable: true,
-        },
-      ],
-      associations: [],
-      executables: [
-        {
-          title: 'Loan Service',
-          rootEntityPath: 'model::Loan',
-          queryTemplate:
-            'model::Loan.all()->filter({x|$x.amount > 1000})->project(~[Amount: {x|$x.amount}])',
-        },
-      ],
-    };
-    const result = buildEnrichedBusinessContext(
-      'show loans over 1000',
-      'model::Loan',
-      [],
-      ctx,
-    );
-    const hints = result.businessContextMatch?.additionalNlModelContext ?? [];
-    const template = hints.find((h) => h.category === 'query_template');
-    expect(template).toBeDefined();
-    expect(template?.description).toContain('Loan.all()');
-    expect(template?.description).toContain('filter');
-  });
+  test('warns only about question properties absent from the root entity', () => {
+    const warningFor = (question: string) =>
+      hintsFor(question, 'model::Holdings').find(
+        (h) => h.category === 'cross_class_warning',
+      );
 
-  test('includes required_parameters for executable with params', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [
-        {
-          path: 'model::Holdings',
-          name: 'Holdings',
-          properties: [
-            {
-              name: 'fundIsin',
-              type: 'String',
-              isCollection: false,
-              isOptional: false,
-            },
-          ],
-          isQueryable: true,
-        },
-      ],
-      associations: [],
-      executables: [
-        {
-          title: 'BBG Holdings Service',
-          rootEntityPath: 'model::Holdings',
-          requiredParameters: [
-            { name: 'processingDate', type: 'Date' },
-            { name: 'fundIsins', type: 'String' },
-          ],
-        },
-      ],
-    };
-    const result = buildEnrichedBusinessContext(
-      'show holdings',
-      'model::Holdings',
-      [],
-      ctx,
-    );
-    const hints = result.businessContextMatch?.additionalNlModelContext ?? [];
-    const reqParams = hints.find((h) => h.category === 'required_parameters');
-    expect(reqParams).toBeDefined();
-    expect(reqParams?.description).toContain('processingDate (Date)');
-    expect(reqParams?.description).toContain('fundIsins (String)');
-    expect(reqParams?.description).toContain('MUST include filters');
-  });
-
-  test('includes column_mappings for executable with column-property mappings', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [
-        {
-          path: 'model::Holdings',
-          name: 'Holdings',
-          properties: [
-            {
-              name: 'longCompName',
-              type: 'String',
-              isCollection: false,
-              isOptional: false,
-            },
-          ],
-          isQueryable: true,
-        },
-      ],
-      associations: [],
-      executables: [
-        {
-          title: 'Holdings Service',
-          rootEntityPath: 'model::Holdings',
-          columnPropertyMappings: [
-            {
-              columnName: 'LONG COMP NAME',
-              propertyPath: 'longCompName',
-            },
-          ],
-        },
-      ],
-    };
-    const result = buildEnrichedBusinessContext(
-      'show holdings',
-      'model::Holdings',
-      [],
-      ctx,
-    );
-    const hints = result.businessContextMatch?.additionalNlModelContext ?? [];
-    const colMap = hints.find((h) => h.category === 'column_mappings');
-    expect(colMap).toBeDefined();
-    expect(colMap?.description).toContain('"LONG COMP NAME" → longCompName');
-  });
-
-  test('includes executable_summary listing all executables', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [
-        {
-          path: 'model::Loan',
-          name: 'Loan',
-          properties: [],
-          isQueryable: true,
-        },
-        {
-          path: 'model::Security',
-          name: 'Security',
-          properties: [],
-          isQueryable: true,
-        },
-      ],
-      associations: [],
-      executables: [
-        {
-          title: 'Loan Service',
-          rootEntityPath: 'model::Loan',
-          requiredParameters: [{ name: 'cusip', type: 'String' }],
-        },
-        {
-          title: 'Sec Service',
-          rootEntityPath: 'model::Security',
-        },
-      ],
-    };
-    const result = buildEnrichedBusinessContext(
-      'show loans',
-      'model::Loan',
-      ['model::Security'],
-      ctx,
-    );
-    const hints = result.businessContextMatch?.additionalNlModelContext ?? [];
-    const summary = hints.find((h) => h.category === 'executable_summary');
-    expect(summary).toBeDefined();
-    expect(summary?.description).toContain('"Loan Service" → Loan');
-    expect(summary?.description).toContain('"Sec Service" → Security');
-    expect(summary?.description).toContain('requires: cusip');
-  });
-
-  test('does not include executable hints when no executables match root', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [
-        {
-          path: 'model::Other',
-          name: 'Other',
-          properties: [],
-        },
-      ],
-      associations: [],
-      executables: [
-        {
-          title: 'Loan Service',
-          rootEntityPath: 'model::Loan',
-        },
-      ],
-    };
-    const result = buildEnrichedBusinessContext(
-      'show other',
-      'model::Other',
-      [],
-      ctx,
-    );
-    const hints = result.businessContextMatch?.additionalNlModelContext ?? [];
-    // Should have executable_summary but no query_template for Other
-    const template = hints.find((h) => h.category === 'query_template');
-    expect(template).toBeUndefined();
-    // executable_summary should still exist
-    const summary = hints.find((h) => h.category === 'executable_summary');
-    expect(summary).toBeDefined();
-  });
-
-  test('includes cross_class_warning when question mentions properties on other entities', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [
-        {
-          path: 'model::CombinedHoldings',
-          name: 'CombinedHoldings',
-          properties: [
-            {
-              name: 'fundTicker',
-              type: 'String',
-              isCollection: false,
-              isOptional: false,
-            },
-            {
-              name: 'positionClass',
-              type: 'String',
-              isCollection: false,
-              isOptional: false,
-            },
-          ],
-          isQueryable: true,
-        },
-        {
-          path: 'model::FiccSales',
-          name: 'FiccSales',
-          properties: [
-            {
-              name: 'cntryOfDomicile',
-              type: 'String',
-              isCollection: false,
-              isOptional: false,
-            },
-            {
-              name: 'cntryOfRisk',
-              type: 'String',
-              isCollection: false,
-              isOptional: false,
-            },
-            {
-              name: 'longUltParentCompName',
-              type: 'String',
-              isCollection: false,
-              isOptional: false,
-            },
-          ],
-        },
-      ],
-      associations: [],
-    };
-    const result = buildEnrichedBusinessContext(
-      'show fund holdings domiciled in the United States',
-      'model::CombinedHoldings',
-      [],
-      ctx,
-    );
-    const hints = result.businessContextMatch?.additionalNlModelContext ?? [];
-    const warning = hints.find((h) => h.category === 'cross_class_warning');
-    expect(warning).toBeDefined();
+    const warning = warningFor('show holdings domiciled in the United States');
     expect(warning?.description).toContain('cntryOfDomicile');
-    expect(warning?.description).toContain('FiccSales');
-    expect(warning?.description).toContain('NOT on CombinedHoldings');
-  });
-
-  test('does not include cross_class_warning when property exists on root', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [
-        {
-          path: 'model::Holdings',
-          name: 'Holdings',
-          properties: [
-            {
-              name: 'fundTicker',
-              type: 'String',
-              isCollection: false,
-              isOptional: false,
-            },
-            {
-              name: 'positionClass',
-              type: 'String',
-              isCollection: false,
-              isOptional: false,
-            },
-          ],
-          isQueryable: true,
-        },
-        {
-          path: 'model::Other',
-          name: 'Other',
-          properties: [
-            {
-              name: 'someOtherProp',
-              type: 'String',
-              isCollection: false,
-              isOptional: false,
-            },
-          ],
-        },
-      ],
-      associations: [],
-    };
-    const result = buildEnrichedBusinessContext(
-      'show fund ticker information',
-      'model::Holdings',
-      [],
-      ctx,
-    );
-    const hints = result.businessContextMatch?.additionalNlModelContext ?? [];
-    const warning = hints.find((h) => h.category === 'cross_class_warning');
-    expect(warning).toBeUndefined();
+    expect(warning?.description).toContain('Sales');
+    expect(warning?.description).toContain('NOT on Holdings');
+    expect(warningFor('show the long comp name')).toBeUndefined();
   });
 });
 
@@ -1985,694 +1735,237 @@ describe(unitTest('buildEnrichedBusinessContext with executables'), () => {
 // buildModelContextEnrichmentText
 // ────────────────────────────────────────────────────────────────────────────
 
+const enrichmentCtx: LegendAIModelContext = {
+  entities: [
+    {
+      path: 'model::Plain',
+      name: 'Plain',
+      properties: [makeProperty('note', 'String')],
+    },
+    {
+      path: 'model::Order',
+      name: 'Order',
+      description: 'Customer order',
+      isQueryable: true,
+      isRootMapped: true,
+      properties: [
+        makeProperty('orderId', 'Integer'),
+        makeProperty('status', 'model::OrderStatus'),
+        { ...makeProperty('lineItems', 'LineItem'), isCollection: true },
+      ],
+    },
+    {
+      path: 'model::Product',
+      name: 'Product',
+      properties: [
+        makeProperty('productId', 'String'),
+        makeProperty('productName', 'String'),
+      ],
+    },
+  ],
+  associations: [
+    {
+      name: 'Order_Product',
+      leftEntity: 'model::Order',
+      rightEntity: 'model::Product',
+      leftProperty: 'product',
+      rightProperty: 'orders',
+    },
+  ],
+  enumerations: [
+    {
+      path: 'model::OrderStatus',
+      name: 'OrderStatus',
+      values: ['NEW', 'FILLED', 'CANCELLED'],
+    },
+  ],
+  executables: [
+    {
+      title: 'Order History',
+      rootEntityPath: 'model::Order',
+      description: 'Daily order report',
+      requiredParameters: [{ name: 'startDate', type: 'StrictDate' }],
+    },
+  ],
+  dataspaceDescription: 'Order management data',
+};
+
+const orderService = makeService('OrderService', ['orderId', 'status']);
+const orderServiceV2 = makeService('OrderServiceV2', ['orderId', 'status']);
+const productService = makeService('ProductService', [
+  'productId',
+  'productName',
+]);
+
 describe(unitTest('buildModelContextEnrichmentText'), () => {
-  test('returns undefined for empty model context', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [],
-      associations: [],
-    };
-    expect(buildModelContextEnrichmentText(ctx)).toBeUndefined();
-  });
+  test('emits every model section for a fully populated context', () => {
+    const result =
+      buildModelContextEnrichmentText(enrichmentCtx, [
+        orderService,
+        productService,
+      ]) ?? '';
 
-  test('includes dataspace description', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [
-        {
-          path: 'model::Order',
-          name: 'Order',
-          properties: [
-            {
-              name: 'orderId',
-              type: 'Integer',
-              isCollection: false,
-              isOptional: false,
-            },
-          ],
-        },
-      ],
-      associations: [],
-      dataspaceDescription: 'This dataspace contains order data.',
-    };
-    const result = buildModelContextEnrichmentText(ctx);
-    expect(result).toBeDefined();
-    expect(result).toContain('DATA MODEL CONTEXT');
-    expect(result).toContain('This dataspace contains order data');
-    expect(result).toContain('Model Entities');
-    expect(result).toContain('Order');
-    expect(result).toContain('orderId');
-  });
-
-  test('includes entity properties with types', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [
-        {
-          path: 'model::Trade',
-          name: 'Trade',
-          properties: [
-            {
-              name: 'tradeId',
-              type: 'String',
-              isCollection: false,
-              isOptional: false,
-            },
-            {
-              name: 'amount',
-              type: 'Float',
-              isCollection: false,
-              isOptional: true,
-            },
-          ],
-          description: 'Represents a single trade execution',
-          isQueryable: true,
-          isRootMapped: true,
-        },
-      ],
-      associations: [],
-    };
-    const result = buildModelContextEnrichmentText(ctx) ?? '';
-    expect(result).toContain('Trade');
-    expect(result).toContain('[QUERYABLE, ROOT_MAPPED]');
-    expect(result).toContain('tradeId: String');
-    expect(result).toContain('amount: Float');
-    expect(result).toContain('Represents a single trade execution');
-  });
-
-  test('includes enumerations with values', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [],
-      associations: [],
-      enumerations: [
-        {
-          path: 'model::Status',
-          name: 'Status',
-          values: ['ACTIVE', 'INACTIVE', 'PENDING'],
-        },
-      ],
-    };
-    const result = buildModelContextEnrichmentText(ctx) ?? '';
-    expect(result).toContain('Enumerations');
-    expect(result).toContain('Status');
-    expect(result).toContain('ACTIVE, INACTIVE, PENDING');
-  });
-
-  test('includes associations', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [],
-      associations: [
-        {
-          name: 'OrderProduct',
-          leftEntity: 'model::Order',
-          rightEntity: 'model::Product',
-          leftProperty: 'product',
-          rightProperty: 'orders',
-        },
-      ],
-    };
-    const result = buildModelContextEnrichmentText(ctx) ?? '';
-    expect(result).toContain('Entity Relationships');
-    expect(result).toContain('Order.product');
-    expect(result).toContain('Product.orders');
-  });
-
-  test('includes executable intelligence', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [],
-      associations: [],
-      executables: [
-        {
-          title: 'Fund Holdings Report',
-          rootEntityPath: 'model::FundHolding',
-          description: 'Daily fund position report',
-          requiredParameters: [{ name: 'asOfDate', type: 'StrictDate' }],
-        },
-      ],
-    };
-    const result = buildModelContextEnrichmentText(ctx) ?? '';
-    expect(result).toContain('Available Executables');
-    expect(result).toContain('Fund Holdings Report');
-    expect(result).toContain('FundHolding');
-    expect(result).toContain('Daily fund position report');
-    expect(result).toContain('asOfDate (StrictDate)');
-  });
-
-  test('truncates executables beyond the cap and notes the omission', () => {
-    const EXEC_COUNT = 30;
-    const ctx: LegendAIModelContext = {
-      entities: [],
-      associations: [],
-      executables: Array.from({ length: EXEC_COUNT }, (_, i) => ({
-        title: `Service ${i}`,
-        rootEntityPath: `model::Entity${i}`,
-      })),
-    };
-    const result = buildModelContextEnrichmentText(ctx) ?? '';
-    expect(result).toContain('Available Executables');
-    expect(result).toContain('"Service 0"');
-    expect(result).toContain('"Service 24"');
-    expect(result).not.toContain('"Service 25"');
-    expect(result).toContain('(5 additional executables omitted)');
-  });
-
-  test('prioritizes queryable entities over non-queryable', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [
-        {
-          path: 'model::Alpha',
-          name: 'Alpha',
-          properties: [],
-        },
-        {
-          path: 'model::Beta',
-          name: 'Beta',
-          properties: [],
-          isQueryable: true,
-        },
-      ],
-      associations: [],
-    };
-    const result = buildModelContextEnrichmentText(ctx) ?? '';
-    const alphaIdx = result.indexOf('Alpha');
-    const betaIdx = result.indexOf('Beta');
-    // Beta should appear before Alpha because it's queryable
-    expect(betaIdx).toBeLessThan(alphaIdx);
-  });
-
-  test('handles collection properties with (many) annotation', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [
-        {
-          path: 'model::Portfolio',
-          name: 'Portfolio',
-          properties: [
-            {
-              name: 'holdings',
-              type: 'Holding',
-              isCollection: true,
-              isOptional: false,
-            },
-          ],
-        },
-      ],
-      associations: [],
-    };
-    const result = buildModelContextEnrichmentText(ctx) ?? '';
-    expect(result).toContain('holdings: Holding (many)');
-  });
-
-  test('full model context produces complete enrichment', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [
-        {
-          path: 'model::Order',
-          name: 'Order',
-          properties: [
-            {
-              name: 'orderId',
-              type: 'Integer',
-              isCollection: false,
-              isOptional: false,
-            },
-            {
-              name: 'status',
-              type: 'model::OrderStatus',
-              isCollection: false,
-              isOptional: false,
-            },
-          ],
-          isQueryable: true,
-          isRootMapped: true,
-          description: 'Customer order',
-        },
-      ],
-      associations: [
-        {
-          name: 'OrderLineItems',
-          leftEntity: 'model::Order',
-          rightEntity: 'model::LineItem',
-          leftProperty: 'lineItems',
-          rightProperty: 'order',
-        },
-      ],
-      enumerations: [
-        {
-          path: 'model::OrderStatus',
-          name: 'OrderStatus',
-          values: ['NEW', 'FILLED', 'CANCELLED'],
-        },
-      ],
-      executables: [
-        {
-          title: 'Order History',
-          rootEntityPath: 'model::Order',
-          requiredParameters: [{ name: 'startDate', type: 'StrictDate' }],
-        },
-      ],
-      dataspaceDescription: 'Order management data',
-    };
-    const result = buildModelContextEnrichmentText(ctx) ?? '';
-    expect(result).toContain('DATA MODEL CONTEXT');
-    expect(result).toContain('Data Model Overview');
-    expect(result).toContain('Order management data');
-    expect(result).toContain('Model Entities');
-    expect(result).toContain('Order');
-    expect(result).toContain('[QUERYABLE, ROOT_MAPPED]');
-    expect(result).toContain('Enumerations');
-    expect(result).toContain('NEW, FILLED, CANCELLED');
-    expect(result).toContain('Entity Relationships');
-    expect(result).toContain('Order.lineItems');
-    expect(result).toContain('Available Executables');
-    expect(result).toContain('Order History');
-    expect(result).toContain('startDate (StrictDate)');
-  });
-
-  test('maps column names to enum values when services provided', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [
-        {
-          path: 'model::Order',
-          name: 'Order',
-          properties: [
-            {
-              name: 'status',
-              type: 'model::OrderStatus',
-              isCollection: false,
-              isOptional: false,
-            },
-            {
-              name: 'region',
-              type: 'model::Region',
-              isCollection: false,
-              isOptional: false,
-            },
-            {
-              name: 'orderId',
-              type: 'Integer',
-              isCollection: false,
-              isOptional: false,
-            },
-          ],
-        },
-      ],
-      associations: [],
-      enumerations: [
-        {
-          path: 'model::OrderStatus',
-          name: 'OrderStatus',
-          values: ['NEW', 'FILLED', 'CANCELLED'],
-        },
-        {
-          path: 'model::Region',
-          name: 'Region',
-          values: ['US', 'EU', 'APAC', 'LATAM'],
-        },
-      ],
-    };
-    const services: TDSServiceSchema[] = [
-      {
-        title: 'OrderService',
-        pattern: '/orders',
-        columns: [
-          { name: 'orderId', type: 'Integer' },
-          { name: 'status', type: 'String' },
-          { name: 'region', type: 'String' },
-          { name: 'amount', type: 'Float' },
-        ] as TDSColumnSchema[],
-        parameters: [],
-      } as TDSServiceSchema,
-    ];
-    const result = buildModelContextEnrichmentText(ctx, services) ?? '';
-    expect(result).toContain('Column Filter Value Mappings');
-    expect(result).toContain('Column "status" accepts: NEW, FILLED, CANCELLED');
-    expect(result).toContain('Column "region" accepts: US, EU, APAC, LATAM');
-    // orderId is an Integer, not an enum — should NOT appear
-    expect(result).not.toContain('Column "orderId"');
-    // amount has no model property match — should NOT appear
-    expect(result).not.toContain('Column "amount"');
-  });
-
-  test('does not produce enum mappings without services', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [
-        {
-          path: 'model::Trade',
-          name: 'Trade',
-          properties: [
-            {
-              name: 'status',
-              type: 'model::Status',
-              isCollection: false,
-              isOptional: false,
-            },
-          ],
-        },
-      ],
-      associations: [],
-      enumerations: [
-        { path: 'model::Status', name: 'Status', values: ['ACTIVE', 'CLOSED'] },
-      ],
-    };
-    const result = buildModelContextEnrichmentText(ctx) ?? '';
-    // Enumerations section should exist but NOT column mappings
-    expect(result).toContain('Enumerations');
-    expect(result).not.toContain('Column Filter Value Mappings');
-  });
-
-  test('deduplicates column enum mappings across services', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [
-        {
-          path: 'model::Trade',
-          name: 'Trade',
-          properties: [
-            {
-              name: 'status',
-              type: 'model::Status',
-              isCollection: false,
-              isOptional: false,
-            },
-          ],
-        },
-      ],
-      associations: [],
-      enumerations: [
-        { path: 'model::Status', name: 'Status', values: ['OPEN', 'CLOSED'] },
-      ],
-    };
-    const services: TDSServiceSchema[] = [
-      {
-        title: 'Service1',
-        pattern: '/svc1',
-        columns: [{ name: 'status', type: 'String' }] as TDSColumnSchema[],
-        parameters: [],
-      } as TDSServiceSchema,
-      {
-        title: 'Service2',
-        pattern: '/svc2',
-        columns: [{ name: 'status', type: 'String' }] as TDSColumnSchema[],
-        parameters: [],
-      } as TDSServiceSchema,
-    ];
-    const result = buildModelContextEnrichmentText(ctx, services) ?? '';
-    // Should appear exactly once, not duplicated
-    const matches = result.match(/Column "status" accepts/g);
-    expect(matches).toHaveLength(1);
-  });
-
-  test('generates service-to-entity JOIN hints when services and associations present', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [
-        {
-          path: 'model::Order',
-          name: 'Order',
-          properties: [
-            {
-              name: 'orderId',
-              type: 'Integer',
-              isCollection: false,
-              isOptional: false,
-            },
-            {
-              name: 'quantity',
-              type: 'Integer',
-              isCollection: false,
-              isOptional: false,
-            },
-            {
-              name: 'customerId',
-              type: 'String',
-              isCollection: false,
-              isOptional: false,
-            },
-          ],
-        },
-        {
-          path: 'model::Product',
-          name: 'Product',
-          properties: [
-            {
-              name: 'productId',
-              type: 'String',
-              isCollection: false,
-              isOptional: false,
-            },
-            {
-              name: 'productName',
-              type: 'String',
-              isCollection: false,
-              isOptional: false,
-            },
-            {
-              name: 'price',
-              type: 'Float',
-              isCollection: false,
-              isOptional: false,
-            },
-          ],
-        },
-      ],
-      associations: [
-        {
-          name: 'Order_Product',
-          leftEntity: 'model::Order',
-          rightEntity: 'model::Product',
-          leftProperty: 'product',
-          rightProperty: 'orders',
-        },
-      ],
-    };
-    const services: TDSServiceSchema[] = [
-      {
-        title: 'OrderService',
-        pattern: '/orders',
-        columns: [
-          { name: 'orderId', type: 'Integer' },
-          { name: 'quantity', type: 'Integer' },
-          { name: 'customerId', type: 'String' },
-        ] as TDSColumnSchema[],
-        parameters: [],
-      } as TDSServiceSchema,
-      {
-        title: 'ProductService',
-        pattern: '/products',
-        columns: [
-          { name: 'productId', type: 'String' },
-          { name: 'productName', type: 'String' },
-          { name: 'price', type: 'Float' },
-        ] as TDSColumnSchema[],
-        parameters: [],
-      } as TDSServiceSchema,
-    ];
-    const result = buildModelContextEnrichmentText(ctx, services) ?? '';
-    expect(result).toContain('Model-Aware Service JOIN Guide');
-    expect(result).toContain('OrderService');
-    expect(result).toContain('ProductService');
-    expect(result).toContain('entity Order');
-    expect(result).toContain('entity Product');
-    expect(result).toContain('Inter-Service Relationships');
-    expect(result).toContain('Order.product');
-  });
-
-  test('caps the service JOIN guide and notes the omission', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [
-        {
-          path: 'model::Order',
-          name: 'Order',
-          properties: [
-            {
-              name: 'orderId',
-              type: 'String',
-              isCollection: false,
-              isOptional: false,
-            },
-            {
-              name: 'quantity',
-              type: 'Integer',
-              isCollection: false,
-              isOptional: false,
-            },
-          ],
-        },
-      ],
-      associations: [
-        {
-          name: 'Order_Order',
-          leftEntity: 'model::Order',
-          rightEntity: 'model::Order',
-          leftProperty: 'parent',
-          rightProperty: 'children',
-        },
-      ],
-    };
-    const SVC_COUNT = 30;
-    const services: TDSServiceSchema[] = Array.from(
-      { length: SVC_COUNT },
-      (_, i) =>
-        ({
-          title: `JoinSvc ${i}`,
-          pattern: `/svc${i}`,
-          columns: [
-            { name: 'orderId', type: 'String' },
-            { name: 'quantity', type: 'Integer' },
-          ] as TDSColumnSchema[],
-          parameters: [],
-        }) as TDSServiceSchema,
+    for (const fragment of [
+      '# DATA MODEL CONTEXT',
+      '## Data Model Overview',
+      'Order management data',
+      '## Model Entities',
+      '### Order [QUERYABLE, ROOT_MAPPED]',
+      'Customer order',
+      '- orderId: Integer',
+      '- lineItems: LineItem (many)',
+      '## Enumerations (valid filter values)',
+      '- OrderStatus: NEW, FILLED, CANCELLED',
+      '## Entity Relationships',
+      '- Order.product → Product, Product.orders → Order',
+      '## Available Executables',
+      '- "Order History" → Order',
+      'Daily order report',
+      'Required parameters: startDate (StrictDate)',
+      '## Column Filter Value Mappings',
+      '- Column "status" accepts: NEW, FILLED, CANCELLED',
+      '## Model-Aware Service JOIN Guide',
+      '- **OrderService** → entity Order',
+      '- **ProductService** → entity Product',
+      '### Inter-Service Relationships',
+      '- **OrderService** ↔ **ProductService**: Related via Order.product → Product',
+    ]) {
+      expect(result).toContain(fragment);
+    }
+    expect(result.indexOf('### Order')).toBeLessThan(
+      result.indexOf('### Plain'),
     );
-    const result = buildModelContextEnrichmentText(ctx, services) ?? '';
-    expect(result).toContain('Model-Aware Service JOIN Guide');
-    expect(result).toContain('**JoinSvc 0**');
-    expect(result).toContain('**JoinSvc 24**');
-    expect(result).not.toContain('**JoinSvc 25**');
-    expect(result).toContain('(5 additional services omitted)');
   });
 
-  test('shows same-entity hint when two services map to the same entity', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [
-        {
-          path: 'model::Trade',
-          name: 'Trade',
-          properties: [
-            {
-              name: 'tradeId',
-              type: 'String',
-              isCollection: false,
-              isOptional: false,
-            },
-            {
-              name: 'amount',
-              type: 'Float',
-              isCollection: false,
-              isOptional: false,
-            },
-          ],
-        },
-      ],
-      associations: [
-        {
-          name: 'Dummy',
-          leftEntity: 'model::Trade',
-          rightEntity: 'model::Other',
-          leftProperty: 'other',
-          rightProperty: 'trades',
-        },
-      ],
-    };
-    const services: TDSServiceSchema[] = [
-      {
-        title: 'TradeHistoryService',
-        pattern: '/trades/history',
-        columns: [
-          { name: 'tradeId', type: 'String' },
-          { name: 'amount', type: 'Float' },
-        ] as TDSColumnSchema[],
-        parameters: [],
-      } as TDSServiceSchema,
-      {
-        title: 'TradeCurrentService',
-        pattern: '/trades/current',
-        columns: [
-          { name: 'tradeId', type: 'String' },
-          { name: 'amount', type: 'Float' },
-        ] as TDSColumnSchema[],
-        parameters: [],
-      } as TDSServiceSchema,
-    ];
-    const result = buildModelContextEnrichmentText(ctx, services) ?? '';
-    expect(result).toContain('SAME entity');
-    expect(result).toContain('shared identifier column');
+  test('lists enum filter values once per column and skips non-enum columns', () => {
+    const result =
+      buildModelContextEnrichmentText(enrichmentCtx, [
+        orderService,
+        orderServiceV2,
+      ]) ?? '';
+
+    expect(result.match(/Column "status" accepts/gu)).toHaveLength(1);
+    expect(result).not.toContain('Column "orderId"');
   });
 
-  test('does not generate JOIN hints with only one service', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [
-        {
-          path: 'model::Order',
-          name: 'Order',
-          properties: [
-            {
-              name: 'orderId',
-              type: 'Integer',
-              isCollection: false,
-              isOptional: false,
-            },
-          ],
-        },
-      ],
-      associations: [
-        {
-          name: 'Dummy',
-          leftEntity: 'model::Order',
-          rightEntity: 'model::Product',
-          leftProperty: 'product',
-          rightProperty: 'orders',
-        },
-      ],
-    };
-    const services: TDSServiceSchema[] = [
-      {
-        title: 'OrderService',
-        pattern: '/orders',
-        columns: [{ name: 'orderId', type: 'Integer' }] as TDSColumnSchema[],
-        parameters: [],
-      } as TDSServiceSchema,
-    ];
-    const result = buildModelContextEnrichmentText(ctx, services) ?? '';
-    expect(result).not.toContain('Model-Aware Service JOIN Guide');
+  test('hints that two services backed by the same entity can be joined', () => {
+    const result =
+      buildModelContextEnrichmentText(enrichmentCtx, [
+        orderService,
+        orderServiceV2,
+      ]) ?? '';
+
+    expect(result).toContain(
+      '- **OrderService** and **OrderServiceV2** query the SAME entity',
+    );
+  });
+
+  test('omits the column mapping and JOIN sections when services are absent or too few', () => {
+    const withoutServices =
+      buildModelContextEnrichmentText(enrichmentCtx) ?? '';
+    expect(withoutServices).toContain('## Enumerations (valid filter values)');
+    expect(withoutServices).not.toContain('## Column Filter Value Mappings');
+    expect(withoutServices).not.toContain('## Model-Aware Service JOIN Guide');
+
+    const withOneService =
+      buildModelContextEnrichmentText(enrichmentCtx, [orderService]) ?? '';
+    expect(withOneService).not.toContain('## Model-Aware Service JOIN Guide');
+  });
+
+  test('caps the executable and JOIN service lists and notes the omissions', () => {
+    const OVER_CAP_COUNT = 30;
+    const withExecutables =
+      buildModelContextEnrichmentText({
+        ...enrichmentCtx,
+        executables: Array.from({ length: OVER_CAP_COUNT }, (_, i) => ({
+          title: `Service ${i}`,
+          rootEntityPath: `model::Entity${i}`,
+        })),
+      }) ?? '';
+    expect(withExecutables).toContain('"Service 24"');
+    expect(withExecutables).not.toContain('"Service 25"');
+    expect(withExecutables).toContain('(5 additional executables omitted)');
+
+    const withServices =
+      buildModelContextEnrichmentText(
+        enrichmentCtx,
+        Array.from({ length: OVER_CAP_COUNT }, (_, i) =>
+          makeService(`JoinSvc ${i}`, ['orderId', 'status']),
+        ),
+      ) ?? '';
+    expect(withServices).toContain('**JoinSvc 24**');
+    expect(withServices).not.toContain('**JoinSvc 25**');
+    expect(withServices).toContain('(5 additional services omitted)');
+  });
+
+  test('returns undefined for an empty model context', () => {
+    expect(
+      buildModelContextEnrichmentText({ entities: [], associations: [] }),
+    ).toBeUndefined();
   });
 });
 
 describe(unitTest('buildModelCatalogText'), () => {
-  test('emits a comprehensive catalog: entities, columns, relationships, enums', () => {
-    const result = buildModelCatalogText(makeModelContext()) ?? '';
-    expect(result).toContain('# MODEL REFERENCE');
-    expect(result).toContain('### Customer');
-    expect(result).toContain('Stores customer information');
-    expect(result).toContain('- id: String [1]');
-    expect(result).toContain('- title: my::model::Title [0..1]');
-    expect(result).toContain('- orders: my::model::Order [*]');
-    expect(result).toContain('### Order');
-    expect(result).toContain('## Relationships');
-    expect(result).toContain(
-      'my::model::Customer.customer <-> my::model::Order.orders',
-    );
-    expect(result).toContain('## Enumerations (valid values)');
-    expect(result).toContain('Title: Mr, Mrs, Ms');
+  test('emits entities, relationships, enumerations and how-to-query sections', () => {
+    const result =
+      buildModelCatalogText({
+        ...makeModelContext(),
+        executables: [
+          {
+            title: 'All Customers',
+            description: 'Returns every customer.',
+            rootEntityPath: 'my::model::Customer',
+          },
+          {
+            title: 'Customer By Id',
+            rootEntityPath: 'my::model::Customer',
+            requiredParameters: [{ name: 'customerId', type: 'String' }],
+          },
+        ],
+      }) ?? '';
+
+    for (const fragment of [
+      '# MODEL REFERENCE',
+      '## Entities and Columns',
+      '### Customer',
+      'Stores customer information',
+      '- id: String [1]',
+      '- title: my::model::Title [0..1]',
+      '- orders: my::model::Order [*]',
+      '### Order',
+      '## Relationships',
+      '- my::model::Customer.customer <-> my::model::Order.orders',
+      '## Enumerations (valid values)',
+      '- Title: Mr, Mrs, Ms',
+      '## How to query (available executables)',
+      '- **All Customers** → Customer',
+      'Returns every customer.',
+      'Required parameters: customerId (String)',
+    ]) {
+      expect(result).toContain(fragment);
+    }
   });
 
   test('marks queryable and root-mapped entities and lists them first', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [
-        {
-          path: 'my::model::Plain',
-          name: 'Plain',
-          properties: [
-            {
-              name: 'a',
-              type: 'String',
-              isCollection: false,
-              isOptional: false,
-            },
-          ],
-        },
-        {
-          path: 'my::model::Root',
-          name: 'Root',
-          isQueryable: true,
-          isRootMapped: true,
-          properties: [
-            {
-              name: 'b',
-              type: 'String',
-              isCollection: false,
-              isOptional: false,
-            },
-          ],
-        },
-      ],
-      associations: [],
-    };
-    const result = buildModelCatalogText(ctx) ?? '';
+    const result =
+      buildModelCatalogText({
+        entities: [
+          {
+            path: 'my::model::Plain',
+            name: 'Plain',
+            properties: [makeProperty('a', 'String')],
+          },
+          {
+            path: 'my::model::Root',
+            name: 'Root',
+            isQueryable: true,
+            isRootMapped: true,
+            properties: [makeProperty('b', 'String')],
+          },
+        ],
+        associations: [],
+      }) ?? '';
+
     expect(result).toContain('### Root [queryable, root-mapped]');
     expect(result).toContain('### Plain');
     expect(result.indexOf('### Root')).toBeLessThan(
@@ -2680,56 +1973,24 @@ describe(unitTest('buildModelCatalogText'), () => {
     );
   });
 
-  test('includes a "how to query" section with executables and their parameters', () => {
-    const ctx: LegendAIModelContext = {
-      entities: [
-        {
-          path: 'my::model::Customer',
-          name: 'Customer',
-          properties: [
-            {
-              name: 'id',
-              type: 'String',
-              isCollection: false,
-              isOptional: false,
-            },
-          ],
-        },
-      ],
-      associations: [],
-      executables: [
-        {
-          title: 'All Customers',
-          description: 'Returns every customer.',
-          rootEntityPath: 'my::model::Customer',
-        },
-        {
-          title: 'Customer By Id',
-          rootEntityPath: 'my::model::Customer',
-          requiredParameters: [{ name: 'customerId', type: 'String' }],
-        },
-      ],
-    };
-    const result = buildModelCatalogText(ctx) ?? '';
-    expect(result).toContain('## How to query (available executables)');
-    expect(result).toContain('**All Customers** → Customer');
-    expect(result).toContain('Returns every customer.');
-    expect(result).toContain('Required parameters: customerId (String)');
+  test('caps the entity list and notes the omission', () => {
+    const OVER_CAP_COUNT = 50;
+    const result =
+      buildModelCatalogText({
+        entities: Array.from({ length: OVER_CAP_COUNT }, (_, i) => ({
+          path: `my::model::E${i}`,
+          name: `E${i}`,
+          properties: [makeProperty('x', 'String')],
+        })),
+        associations: [],
+      }) ?? '';
+
+    expect(result).toContain('### E39');
+    expect(result).not.toContain('### E40');
+    expect(result).toContain('(10 additional entities omitted');
   });
 
-  test('bounds entity count and notes the omission for very large models', () => {
-    const entities = Array.from({ length: 50 }, (_, i) => ({
-      path: `my::model::E${i}`,
-      name: `E${i}`,
-      properties: [
-        { name: 'x', type: 'String', isCollection: false, isOptional: false },
-      ],
-    }));
-    const result = buildModelCatalogText({ entities, associations: [] }) ?? '';
-    expect(result).toContain('additional entities omitted');
-  });
-
-  test('returns undefined when the model context is empty', () => {
+  test('returns undefined for an empty model context', () => {
     expect(
       buildModelCatalogText({ entities: [], associations: [] }),
     ).toBeUndefined();

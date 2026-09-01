@@ -59,7 +59,7 @@ export type LegendAIPrimitiveValue = string | number | boolean;
  * guards that are applied before the TDS result is returned.
  */
 export interface TDSServicePreFilter {
-  /** Dot-separated property path (e.g. 'FeSecCoveragePublic.SymCoveragePublicEquities.SymSecEntityPublic.fsymId'). */
+  /** Dot-separated property path (e.g. 'SecurityCoverage.EquityCoverage.SecurityEntity.symbolId'). */
   property: string;
   /** The comparison operator. */
   operator: 'equal' | 'isEmpty' | 'isNotEmpty' | 'isNotNull';

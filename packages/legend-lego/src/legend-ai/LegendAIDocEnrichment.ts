@@ -533,9 +533,9 @@ function collectIsNotNullChecks(
  * Extracts hardcoded pre-filter constraints from a raw lambda body.
  *
  * Walks the lambda JSON tree to find:
- * - `equal` comparisons with literal values (e.g. `fsymId == 'D7HG0X-S'`)
+ * - `equal` comparisons with literal values (e.g. `symbolId == 'AAAAAAA-S'`)
  * - `isEmpty` checks (e.g. `consEndDate->isEmpty()`)
- * - `isNotNull` post-projection TDS row checks (e.g. `row.isNotNull('Fe Mean')`)
+ * - `isNotNull` post-projection TDS row checks (e.g. `row.isNotNull('Mean Estimate')`)
  *
  * The `rawLambdaBody` parameter is `RawLambda.body` — the raw JSON array
  * from the PURE protocol.
@@ -992,7 +992,7 @@ function buildNlContextEntries(
     entries.unshift({
       id: 'filter_guidance',
       description:
-        'Filter guidance: match text/descriptive concepts on descriptive columns (e.g. description) using case-insensitive contains, not exact equals — and do NOT invent identifier/mnemonic codes (e.g. name, haverId, ticker) unless you were given their actual values. When several descriptive terms apply combine them with OR (never AND two contains on the same column). For country/geography prefer a coded column such as isoCode when one exists.',
+        'Filter guidance: match text/descriptive concepts on descriptive columns (e.g. description) using case-insensitive contains, not exact equals — and do NOT invent identifier/mnemonic codes (e.g. name, seriesId, ticker) unless you were given their actual values. When several descriptive terms apply combine them with OR (never AND two contains on the same column). For country/geography prefer a coded column such as isoCode when one exists.',
       category: 'filter_guidance',
     });
   }
