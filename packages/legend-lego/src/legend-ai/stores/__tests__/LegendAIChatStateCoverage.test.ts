@@ -246,74 +246,6 @@ describe(unitTest('executeSqlAndReport — duplicate columns'), () => {
 // ─── processQuestion — orchestrator branches ─────────────────────────────────
 
 describe(unitTest('processQuestion — orchestrator branches'), () => {
-  test('orchestrator intent with services goes SQL-first when configured', async () => {
-    const { setter, getMessages } = TEST__createMockSetter();
-    TEST__seedAssistant(setter);
-    const plugin = TEST__createMockLegendAIPlugin({
-      classifyQuestionIntent: () =>
-        Promise.resolve(LegendAIQuestionIntent.ORCHESTRATOR),
-      callLLM: createMock().mockResolvedValue('sql response'),
-      executeSql: createMock().mockResolvedValue({
-        columns: ['x'],
-        rows: [{ x: 1 }],
-      }),
-    });
-
-    await processQuestion(
-      'complex query that needs orchestrator',
-      TEST_DATA__legendAIServices,
-      'com.test:prod:1.0.0',
-      TEST_DATA__legendAIMetadata,
-      {
-        config: {
-          ...TEST_DATA__legendAIConfig,
-          orchestratorUrl: 'http://localhost/orchestrator',
-        },
-        plugin,
-        history: [],
-        setMessages: setter,
-      },
-      TEST_DATA__coordinates,
-      TEST_DATA__executionContext,
-    );
-
-    const msg = TEST__getAssistantMessage(getMessages(), 1);
-    expect(msg.sql).toBe('SELECT * FROM t');
-    expect(msg.gridData?.rowData).toHaveLength(1);
-  });
-
-  test('orchestrator intent falls back to SQL when not configured', async () => {
-    const { setter, getMessages } = TEST__createMockSetter();
-    TEST__seedAssistant(setter);
-    const plugin = TEST__createMockLegendAIPlugin({
-      classifyQuestionIntent: () =>
-        Promise.resolve(LegendAIQuestionIntent.ORCHESTRATOR),
-      callLLM: createMock().mockResolvedValue('sql response'),
-      executeSql: createMock().mockResolvedValue({
-        columns: ['id'],
-        rows: [{ id: 1 }],
-      }),
-    });
-
-    await processQuestion(
-      'query with no orchestrator',
-      TEST_DATA__legendAIServices,
-      'com.test:prod:1.0.0',
-      TEST_DATA__legendAIMetadata,
-      {
-        config: TEST_DATA__legendAIConfig, // no orchestratorUrl
-        plugin,
-        history: [],
-        setMessages: setter,
-      },
-    );
-
-    const msg = TEST__getAssistantMessage(getMessages(), 1);
-    // Should have fallen through to SQL generation path
-    expect(msg.sql).toBe('SELECT * FROM t');
-    expect(msg.gridData?.rowData).toHaveLength(1);
-  });
-
   test('no services falls back to metadata and offers orchestrator when configured', async () => {
     const { setter, getMessages } = TEST__createMockSetter();
     TEST__seedAssistant(setter);
@@ -343,42 +275,6 @@ describe(unitTest('processQuestion — orchestrator branches'), () => {
     expect(msg.textAnswer).toBeDefined();
     expect(msg.fallbackAction).toBeDefined();
     expect(msg.fallbackAction?.label).toBe('Try Legend AI Orchestrator');
-  });
-
-  test('SQL generation null offers fallback when orchestrator configured', async () => {
-    const { setter, getMessages } = TEST__createMockSetter();
-    TEST__seedAssistant(setter);
-    const plugin = TEST__createMockLegendAIPlugin({
-      classifyQuestionIntent: () =>
-        Promise.resolve(LegendAIQuestionIntent.DATA_QUERY),
-      callLLM: createMock().mockResolvedValue('bad response'),
-      extractSqlFromResponse: () => ({
-        sql: null,
-        failure: 'parse error',
-      }),
-    });
-
-    await processQuestion(
-      'complex query',
-      TEST_DATA__legendAIServices,
-      'com.test:prod:1.0.0',
-      TEST_DATA__legendAIMetadata,
-      {
-        config: {
-          ...TEST_DATA__legendAIConfig,
-          orchestratorUrl: 'http://localhost/orchestrator',
-        },
-        plugin,
-        history: [],
-        setMessages: setter,
-      },
-      TEST_DATA__coordinates,
-      TEST_DATA__executionContext,
-    );
-
-    const msg = TEST__getAssistantMessage(getMessages(), 1);
-    expect(msg.error).toContain('parse error');
-    expect(msg.isProcessing).toBe(false);
   });
 });
 

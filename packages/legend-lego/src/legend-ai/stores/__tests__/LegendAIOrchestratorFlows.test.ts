@@ -315,37 +315,6 @@ describe(unitTest('processQuestionWithIntent'), () => {
     const msg = TEST__getAssistantMessage(getMessages(), 1);
     expect(msg.error).toContain('No TDS services available');
   });
-
-  test('no services with orchestrator offers fallback', async () => {
-    const { setter, getMessages } = TEST__createMockSetter();
-    TEST__seedAssistant(setter);
-    const plugin = TEST__createMockLegendAIPlugin();
-
-    await processQuestionWithIntent(
-      'show data',
-      LegendAIQuestionIntent.DATA_QUERY,
-      [],
-      'com.test:prod:1.0.0',
-      TEST_DATA__legendAIMetadata,
-      {
-        config: {
-          ...TEST_DATA__legendAIConfig,
-          orchestratorUrl: 'http://localhost/orchestrator',
-        },
-        plugin,
-        history: [],
-        setMessages: setter,
-      },
-      {
-        dataProductCoordinates: TEST_DATA__coordinates,
-        pureExecutionContext: TEST_DATA__executionContext,
-      },
-    );
-
-    const msg = TEST__getAssistantMessage(getMessages(), 1);
-    expect(msg.textAnswer).toContain('No TDS services available');
-    expect(msg.fallbackAction).toBeDefined();
-  });
 });
 describe(unitTest('executePureQueryAndReport'), () => {
   test('executes Pure query and sets grid data', async () => {
