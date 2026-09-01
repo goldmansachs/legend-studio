@@ -116,6 +116,7 @@ import {
   buildLakehouseDataCubeSourceData,
   extractTDSServicesFromDataProductSource,
   buildAccessPointModel,
+  buildAccessPointKey,
   fetchAccessPointRelationTypes,
   selectAccessPointsMissingRelationType,
   fetchDataProductArtifact,
@@ -1694,7 +1695,9 @@ export class LegendMarketplaceAIChatStore {
             title: apg.title,
             accessPoints: apg.accessPoints.map((accessPoint) => ({
               accessPoint,
-              relationType: engineRelationTypes.get(accessPoint.id),
+              relationType: engineRelationTypes.get(
+                buildAccessPointKey(apg.id, accessPoint.id),
+              ),
             })),
           })),
           artifact,

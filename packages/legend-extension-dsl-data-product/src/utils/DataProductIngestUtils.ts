@@ -766,25 +766,44 @@ export function findArtifactRelationType(
 }
 
 /**
+ * An access point together with the group that owns it. Access point ids are
+ * only unique within a group, so both are needed to address one.
+ */
+export interface GroupedAccessPoint {
+  groupId: string;
+  accessPoint: V1_AccessPoint;
+}
+
+/** Addresses an access point uniquely across the groups of a data product. */
+export function buildAccessPointKey(
+  groupId: string,
+  accessPointId: string,
+): string {
+  return `${groupId}::${accessPointId}`;
+}
+
+/**
  * Lists the access points whose relation type the artifact does not carry, so
  * a caller only pays the engine for what artifact generation left out.
  */
 export function selectAccessPointsMissingRelationType(
   accessPointGroups: V1_AccessPointGroup[],
   artifact: V1_DataProductArtifact | undefined,
-): V1_AccessPoint[] {
+): GroupedAccessPoint[] {
   return accessPointGroups.flatMap((apg) => {
     const artifactApg = artifact?.accessPointGroups.find(
       (group) => group.id === apg.id,
     );
-    return apg.accessPoints.filter(
-      (ap) =>
-        findArtifactRelationType(
-          artifactApg?.accessPointImplementations.find(
-            (impl) => impl.id === ap.id,
-          ),
-        ) === undefined,
-    );
+    return apg.accessPoints
+      .filter(
+        (ap) =>
+          findArtifactRelationType(
+            artifactApg?.accessPointImplementations.find(
+              (impl) => impl.id === ap.id,
+            ),
+          ) === undefined,
+      )
+      .map((accessPoint) => ({ groupId: apg.id, accessPoint }));
   });
 }
 
@@ -793,21 +812,28 @@ export function selectAccessPointsMissingRelationType(
  * reporting the ones it could not type. Non-lakehouse access points are skipped.
  */
 export async function fetchAccessPointRelationTypes(
-  accessPoints: V1_AccessPoint[],
+  accessPoints: GroupedAccessPoint[],
   model: V1_PureModelContext,
   engineServerClient: V1_EngineServerClient,
-  onFailure: (accessPointId: string, error: Error) => void,
+  onFailure: (accessPointKey: string, error: Error) => void,
 ): Promise<Map<string, V1_RelationType>> {
   const lakehouseAccessPoints = accessPoints.filter(
-    (ap): ap is V1_LakehouseAccessPoint =>
-      ap instanceof V1_LakehouseAccessPoint,
+    (
+      entry,
+    ): entry is { groupId: string; accessPoint: V1_LakehouseAccessPoint } =>
+      entry.accessPoint instanceof V1_LakehouseAccessPoint,
   );
   if (lakehouseAccessPoints.length === 0) {
     return new Map<string, V1_RelationType>();
   }
   const input = new V1_BatchLambdaRelationTypeInput(
     model,
-    Object.fromEntries(lakehouseAccessPoints.map((ap) => [ap.id, ap.func])),
+    Object.fromEntries(
+      lakehouseAccessPoints.map(({ groupId, accessPoint }) => [
+        buildAccessPointKey(groupId, accessPoint.id),
+        accessPoint.func,
+      ]),
+    ),
   );
   const { results, errors } = V1_buildBatchLambdaRelationTypeResult(
     await engineServerClient.batchLambdasRelationType(

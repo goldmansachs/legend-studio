@@ -649,7 +649,7 @@ describe('selectAccessPointsMissingRelationType', () => {
       buildArtifactWithImpls([buildImplWithRelationType('ap1')]),
     );
 
-    expect(missing.map((ap) => ap.id)).toEqual(['ap2']);
+    expect(missing.map((entry) => entry.accessPoint.id)).toEqual(['ap2']);
   });
 
   test('treats an implementation without a lambda generic type as untyped', () => {
@@ -658,7 +658,7 @@ describe('selectAccessPointsMissingRelationType', () => {
       buildArtifactWithImpls([buildAccessPointImpl('ap1', [])]),
     );
 
-    expect(missing.map((ap) => ap.id)).toEqual(['ap1']);
+    expect(missing.map((entry) => entry.accessPoint.id)).toEqual(['ap1']);
   });
 
   test('treats a lambda typed as something other than a relation as untyped', () => {
@@ -667,7 +667,7 @@ describe('selectAccessPointsMissingRelationType', () => {
       buildArtifactWithImpls([buildImplWithNonRelationType('ap1')]),
     );
 
-    expect(missing.map((ap) => ap.id)).toEqual(['ap1']);
+    expect(missing.map((entry) => entry.accessPoint.id)).toEqual(['ap1']);
   });
 
   test('ignores an implementation the artifact records under another group', () => {
@@ -676,7 +676,7 @@ describe('selectAccessPointsMissingRelationType', () => {
       buildArtifactWithImpls([buildImplWithRelationType('ap1')]),
     );
 
-    expect(missing.map((ap) => ap.id)).toEqual(['ap1']);
+    expect(missing.map((entry) => entry.accessPoint.id)).toEqual(['ap1']);
   });
 
   test('keeps every access point when there is no artifact', () => {
@@ -685,7 +685,10 @@ describe('selectAccessPointsMissingRelationType', () => {
       undefined,
     );
 
-    expect(missing.map((ap) => ap.id)).toEqual(['ap1', 'ap2']);
+    expect(missing.map((entry) => entry.accessPoint.id)).toEqual([
+      'ap1',
+      'ap2',
+    ]);
   });
 });
 
@@ -739,27 +742,36 @@ describe('fetchAccessPointRelationTypes', () => {
     const batchLambdasRelationType = jest
       .spyOn(engineServerClient, 'batchLambdasRelationType')
       .mockResolvedValue({
-        results: { ap1: { columns: [] }, ap2: { columns: [] } },
+        results: {
+          'GROUP1::ap1': { columns: [] },
+          'GROUP1::ap2': { columns: [] },
+        },
         errors: {},
       });
     const onFailure = jest.fn();
 
     const resolved = await fetchAccessPointRelationTypes(
-      [AP1(), AP2()],
+      [
+        { groupId: MAIN_APG_ID, accessPoint: AP1() },
+        { groupId: MAIN_APG_ID, accessPoint: AP2() },
+      ],
       new V1_PureModelContextPointer(undefined),
       engineServerClient,
       onFailure,
     );
 
     expect(batchLambdasRelationType).toHaveBeenCalledTimes(1);
-    expect(Array.from(resolved.keys()).sort()).toEqual(['ap1', 'ap2']);
+    expect(Array.from(resolved.keys()).sort()).toEqual([
+      'GROUP1::ap1',
+      'GROUP1::ap2',
+    ]);
     expect(onFailure).not.toHaveBeenCalled();
     const sentLambdas = guaranteeNonNullable(
       batchLambdasRelationType.mock.calls[0],
     )[0].lambdas;
     expect(Object.keys(sentLambdas as Record<string, unknown>).sort()).toEqual([
-      'ap1',
-      'ap2',
+      'GROUP1::ap1',
+      'GROUP1::ap2',
     ]);
   });
 
@@ -768,23 +780,61 @@ describe('fetchAccessPointRelationTypes', () => {
     jest
       .spyOn(engineServerClient, 'batchLambdasRelationType')
       .mockResolvedValue({
-        results: { ap1: { columns: [] } },
-        errors: { ap2: { message: 'engine could not type ap2' } },
+        results: { 'GROUP1::ap1': { columns: [] } },
+        errors: { 'GROUP1::ap2': { message: 'engine could not type ap2' } },
       });
     const onFailure = jest.fn();
 
     const resolved = await fetchAccessPointRelationTypes(
-      [AP1(), AP2()],
+      [
+        { groupId: MAIN_APG_ID, accessPoint: AP1() },
+        { groupId: MAIN_APG_ID, accessPoint: AP2() },
+      ],
       new V1_PureModelContextPointer(undefined),
       engineServerClient,
       onFailure,
     );
 
-    expect(Array.from(resolved.keys())).toEqual(['ap1']);
+    expect(Array.from(resolved.keys())).toEqual(['GROUP1::ap1']);
     expect(onFailure).toHaveBeenCalledTimes(1);
     const failure = guaranteeNonNullable(onFailure.mock.calls[0]);
-    expect(failure[0]).toBe('ap2');
+    expect(failure[0]).toBe('GROUP1::ap2');
     expect((failure[1] as Error).message).toBe('engine could not type ap2');
+  });
+
+  test('keeps access points of the same name in different groups apart', async () => {
+    const engineServerClient = new V1_EngineServerClient({});
+    const batchLambdasRelationType = jest
+      .spyOn(engineServerClient, 'batchLambdasRelationType')
+      .mockResolvedValue({
+        results: {
+          'GROUP1::ap1': { columns: [] },
+          'GROUP2::ap1': { columns: [] },
+        },
+        errors: {},
+      });
+
+    const resolved = await fetchAccessPointRelationTypes(
+      [
+        { groupId: MAIN_APG_ID, accessPoint: AP1() },
+        { groupId: 'GROUP2', accessPoint: AP1() },
+      ],
+      new V1_PureModelContextPointer(undefined),
+      engineServerClient,
+      jest.fn(),
+    );
+
+    const sentLambdas = guaranteeNonNullable(
+      batchLambdasRelationType.mock.calls[0],
+    )[0].lambdas;
+    expect(Object.keys(sentLambdas as Record<string, unknown>).sort()).toEqual([
+      'GROUP1::ap1',
+      'GROUP2::ap1',
+    ]);
+    expect(Array.from(resolved.keys()).sort()).toEqual([
+      'GROUP1::ap1',
+      'GROUP2::ap1',
+    ]);
   });
 
   test('makes no engine call when no access point is a lakehouse access point', async () => {
