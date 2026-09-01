@@ -904,18 +904,6 @@ export function classifyQuestionIntentFast(
   };
 }
 
-/**
- * Legacy synchronous classifier for backward compatibility.
- * Returns just the intent, discarding ambiguity info.
- */
-export function classifyQuestionIntent(
-  question: string,
-  hasServices: boolean,
-  entityNames?: string[],
-): LegendAIQuestionIntent {
-  return classifyQuestionIntentFast(question, hasServices, entityNames).intent;
-}
-
 export async function extractParameterSchemas(
   query: string,
   graphManager: AbstractPureGraphManager,

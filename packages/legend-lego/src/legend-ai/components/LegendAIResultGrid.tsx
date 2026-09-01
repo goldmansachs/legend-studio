@@ -119,7 +119,6 @@ export const LegendAIResultGrid = (props: {
         alwaysShowHorizontalScroll={!fewColumns}
         enableRangeSelection={true}
         copyHeadersToClipboard={true}
-        enableCharts={true}
         statusBar={{
           statusPanels: [
             { statusPanel: 'agTotalRowCountComponent', align: 'left' },

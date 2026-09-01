@@ -18,7 +18,6 @@ import { test, describe, expect } from '@jest/globals';
 import { unitTest } from '@finos/legend-shared/test';
 import {
   classifyQuestionIntentFast,
-  classifyQuestionIntent,
   LegendAIQuestionIntent,
 } from '../LegendAITypes.js';
 
@@ -326,21 +325,5 @@ describe(unitTest('classifyQuestionIntentFast — fallback'), () => {
     const result = classifyQuestionIntentFast('', false);
     expect(result.intent).toBe(LegendAIQuestionIntent.METADATA);
     expect(result.ambiguous).toBe(true);
-  });
-});
-describe(unitTest('classifyQuestionIntent — legacy wrapper'), () => {
-  test('returns just the intent string', () => {
-    expect(classifyQuestionIntent('What does this product do?', true)).toBe(
-      LegendAIQuestionIntent.METADATA,
-    );
-    expect(classifyQuestionIntent('Show top 10 trades', true)).toBe(
-      LegendAIQuestionIntent.DATA_QUERY,
-    );
-    expect(classifyQuestionIntent('hello world', true)).toBe(
-      LegendAIQuestionIntent.DATA_QUERY,
-    );
-    expect(classifyQuestionIntent('hello world', false)).toBe(
-      LegendAIQuestionIntent.METADATA,
-    );
   });
 });
