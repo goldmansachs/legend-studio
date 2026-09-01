@@ -112,17 +112,15 @@ function makeViewerStateStub(
   },
 ): DataProductViewerState {
   const artifact = opts?.dataProductArtifact;
+  const graphManagerState = TEST__getTestGraphManagerState();
+  graphManagerState.graphManager.pureCodeToLambda = async (code: string) =>
+    lambdaMocks?.get(code) ?? new RawLambda(undefined, undefined);
+  graphManagerState.graphManager.buildValueSpecification = (param: {
+    name?: string;
+  }) => new VariableExpression(param.name ?? '', new Multiplicity(1, 1));
   return {
     getSampleQueries: () => sampleQueries,
-    graphManagerState: {
-      graphManager: {
-        pureCodeToLambda: async (code: string) =>
-          lambdaMocks?.get(code) ?? new RawLambda(undefined, undefined),
-        buildValueSpecification: (param: { name?: string }) =>
-          new VariableExpression(param.name ?? '', new Multiplicity(1, 1)),
-      },
-      graph: {},
-    },
+    graphManagerState,
     product: {
       path: 'test::DataProduct',
       accessPointGroups: [],
