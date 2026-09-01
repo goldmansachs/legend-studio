@@ -97,6 +97,12 @@ describe(unitTest('isDateColumn'), () => {
     expect(isDateColumn({ name: 'col', type: 'DateTime' })).toBe(true);
   });
 
+  test('returns true for strict date type', () => {
+    expect(isDateColumn({ name: 'effectiveDate', type: 'StrictDate' })).toBe(
+      true,
+    );
+  });
+
   test('returns true for column name containing date', () => {
     expect(isDateColumn({ name: 'tradeDate', type: 'String' })).toBe(true);
   });
@@ -111,6 +117,10 @@ describe(unitTest('isDateColumn'), () => {
 
   test('handles undefined type with date name', () => {
     expect(isDateColumn({ name: 'startDate' })).toBe(true);
+  });
+
+  test('returns false when type is undefined and the name has no date hint', () => {
+    expect(isDateColumn({ name: 'ticker' })).toBe(false);
   });
 });
 describe(unitTest('buildSuggestedQueries'), () => {
@@ -255,6 +265,24 @@ describe(unitTest('buildSuggestedQueries'), () => {
     expect(result.some((s) => s.includes('userId'))).toBe(false);
     // Should still reference the service even without a string column
     expect(result.some((s) => s.includes('Svc'))).toBe(true);
+  });
+
+  test('generates a distribution suggestion for a string-only service', () => {
+    const services: TDSServiceSchema[] = [
+      {
+        title: 'TextService',
+        pattern: '/text',
+        columns: [
+          { name: 'category', type: 'String' },
+          { name: 'label', type: 'String' },
+        ],
+        parameters: [],
+      },
+    ];
+    const result = buildSuggestedQueries(services, metadata);
+    expect(
+      result.some((s) => s.includes('category') && s.includes('TextService')),
+    ).toBe(true);
   });
 
   test('includes insight and cross-service suggestions with rich schema', () => {
