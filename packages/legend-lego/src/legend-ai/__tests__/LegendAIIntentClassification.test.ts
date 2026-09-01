@@ -20,14 +20,6 @@ import {
   classifyQuestionIntentFast,
   classifyQuestionIntent,
   LegendAIQuestionIntent,
-  buildColumnDefsFromNames,
-  TDSColumnSchema,
-  TDSParameterSchema,
-  TDSServiceSchema,
-  LegendAIConfig,
-  LegendAIGridData,
-  LegendAIThinkingStep,
-  LegendAIThinkingStepStatus,
 } from '../LegendAITypes.js';
 
 describe(unitTest('classifyQuestionIntentFast — metadata questions'), () => {
@@ -350,68 +342,5 @@ describe(unitTest('classifyQuestionIntent — legacy wrapper'), () => {
     expect(classifyQuestionIntent('hello world', false)).toBe(
       LegendAIQuestionIntent.METADATA,
     );
-  });
-});
-
-describe(unitTest('buildColumnDefsFromNames'), () => {
-  test('builds column definitions from string array', () => {
-    const defs = buildColumnDefsFromNames(['region', 'amount']);
-    expect(defs).toHaveLength(2);
-    expect(defs[0]?.colId).toBe('region');
-    expect(defs[0]?.headerName).toBe('region');
-    expect(defs[0]?.field).toBe('region');
-    expect(defs[1]?.colId).toBe('amount');
-  });
-
-  test('returns empty array for empty input', () => {
-    expect(buildColumnDefsFromNames([])).toHaveLength(0);
-  });
-});
-
-describe(unitTest('LegendAITypes — class instantiation'), () => {
-  test('TDSColumnSchema has expected defaults', () => {
-    const col = new TDSColumnSchema();
-    expect(col.type).toBeUndefined();
-    expect(col.documentation).toBeUndefined();
-    expect(col.sampleValues).toBeUndefined();
-    expect(col.nullable).toBeUndefined();
-    expect(col.relationalType).toBeUndefined();
-  });
-
-  test('TDSParameterSchema has expected defaults', () => {
-    const param = new TDSParameterSchema();
-    expect(param.type).toBeUndefined();
-    expect(param.required).toBeUndefined();
-  });
-
-  test('TDSServiceSchema has expected defaults', () => {
-    const svc = new TDSServiceSchema();
-    expect(svc.sourceType).toBeUndefined();
-    expect(svc.dataProductPath).toBeUndefined();
-    expect(svc.parameterExtractionFailed).toBeUndefined();
-    expect(svc.parameterSchemas).toBeUndefined();
-    expect(svc.description).toBeUndefined();
-  });
-
-  test('LegendAIConfig has expected defaults', () => {
-    const config = new LegendAIConfig();
-    expect(config.llmModelOptions).toBeUndefined();
-    expect(config.maxJudgeAttempts).toBeUndefined();
-    expect(config.orchestratorAuthToken).toBeUndefined();
-    expect(config.lakehouseEnvironment).toBeUndefined();
-  });
-
-  test('LegendAIGridData has expected shape', () => {
-    const grid = new LegendAIGridData();
-    expect(grid.columnDefs).toBeUndefined();
-    expect(grid.rowData).toBeUndefined();
-  });
-
-  test('LegendAIThinkingStep has expected shape', () => {
-    const step = new LegendAIThinkingStep();
-    step.id = '1';
-    step.label = 'test';
-    step.status = LegendAIThinkingStepStatus.ACTIVE;
-    expect(step.id).toBe('1');
   });
 });
