@@ -794,9 +794,9 @@ describe(unitTest('sanitizeJoinOrderBy'), () => {
     const sql = [
       'SELECT',
       '  a."date" AS query_date,',
-      '  b."price" AS wdi_price',
-      "FROM service('/usecon') AS a",
-      'JOIN service(\'/wdi\') AS b ON a."date" = b."date"',
+      '  b."price" AS indicators_price',
+      "FROM service('/metrics') AS a",
+      'JOIN service(\'/indicators\') AS b ON a."date" = b."date"',
       'ORDER BY a."date" DESC',
       'LIMIT 10',
     ].join('\n');
@@ -809,20 +809,20 @@ describe(unitTest('sanitizeJoinOrderBy'), () => {
     const sql = [
       'SELECT',
       '  a."date" AS query_date,',
-      '  a."name" AS usecon_name,',
-      '  b."price" AS wdi_price',
+      '  a."name" AS metrics_name,',
+      '  b."price" AS indicators_price',
       "FROM service('/a') AS a",
       'JOIN service(\'/b\') AS b ON a."id" = b."id"',
       'ORDER BY a."date" DESC, a."name" ASC',
     ].join('\n');
     const result = sanitizeJoinOrderBy(sql);
     expect(result).toContain('"query_date" DESC');
-    expect(result).toContain('"usecon_name" ASC');
+    expect(result).toContain('"metrics_name" ASC');
   });
 
   test('leaves ORDER BY alone when using existing aliases', () => {
     const sql = [
-      'SELECT a."date" AS query_date, b."price" AS wdi_price',
+      'SELECT a."date" AS query_date, b."price" AS indicators_price',
       "FROM service('/a') AS a",
       'JOIN service(\'/b\') AS b ON a."id" = b."id"',
       'ORDER BY query_date DESC',
@@ -844,7 +844,7 @@ describe(unitTest('sanitizeJoinOrderBy'), () => {
 
 describe(unitTest('sanitizeLiteralColumns'), () => {
   test('returns unchanged SQL when no UNION ALL present', () => {
-    const sql = `SELECT "date", 'USECON' AS service_name FROM service('/svc')`;
+    const sql = `SELECT "date", 'METRICS' AS service_name FROM service('/svc')`;
     expect(sanitizeLiteralColumns(sql)).toBe(sql);
   });
 
@@ -852,22 +852,22 @@ describe(unitTest('sanitizeLiteralColumns'), () => {
     const sql = [
       'SELECT',
       '  "date",',
-      '  "haverId",',
-      "  'USECON' AS service_name",
-      "FROM service('/Usecon')",
+      '  "seriesId",',
+      "  'METRICS' AS service_name",
+      "FROM service('/Metrics')",
       'UNION ALL',
       'SELECT',
       '  "date",',
-      '  "haverId",',
-      "  'WDI' AS service_name",
-      "FROM service('/Wdi')",
+      '  "seriesId",',
+      "  'INDICATORS' AS service_name",
+      "FROM service('/Indicators')",
       'ORDER BY "date"',
     ].join('\n');
     const result = sanitizeLiteralColumns(sql);
-    expect(result).not.toContain("'USECON' AS service_name");
-    expect(result).not.toContain("'WDI' AS service_name");
+    expect(result).not.toContain("'METRICS' AS service_name");
+    expect(result).not.toContain("'INDICATORS' AS service_name");
     expect(result).toContain('"date"');
-    expect(result).toContain('"haverId"');
+    expect(result).toContain('"seriesId"');
   });
 
   test('strips literal columns with quoted aliases', () => {
@@ -909,11 +909,11 @@ describe(unitTest('stripGuessedNonDateServiceParams'), () => {
   test('strips guessed non-date params not in question', () => {
     const sql = [
       'SELECT *',
-      "FROM service('/path', coordinates => 'com:group:1.0', haverId => 'A001NGDP', startDate => '2020-01-01', endDate => '2023-12-31')",
+      "FROM service('/path', coordinates => 'com:group:1.0', seriesId => 'A001NGDP', startDate => '2020-01-01', endDate => '2023-12-31')",
       'LIMIT 10',
     ].join('\n');
     const result = stripGuessedNonDateServiceParams(sql, 'show me GDP data');
-    expect(result).not.toContain('haverId');
+    expect(result).not.toContain('seriesId');
     expect(result).toContain("startDate => '2020-01-01'");
     expect(result).toContain("endDate => '2023-12-31'");
     expect(result).toContain("coordinates => 'com:group:1.0'");
@@ -950,16 +950,19 @@ describe(unitTest('stripGuessedNonDateServiceParams'), () => {
       'SELECT',
       '  *',
       'FROM service(',
-      "    '/VendorData/Haver/Afdb',",
-      "    coordinates => 'com.gs:vendor-data-haver:5.11.0',",
-      "    haverId => 'A001NGDP',",
+      "    '/VendorData/SeriesA/Region',",
+      "    coordinates => 'com.gs:vendor-data-series:5.11.0',",
+      "    seriesId => 'A001NGDP',",
       "    startDate => '2020-01-01',",
       "    endDate => '2023-12-31'",
       ')',
       'LIMIT 10',
     ].join('\n');
-    const result = stripGuessedNonDateServiceParams(sql, 'show me Haver data');
-    expect(result).not.toContain('haverId');
+    const result = stripGuessedNonDateServiceParams(
+      sql,
+      'show me SeriesA data',
+    );
+    expect(result).not.toContain('seriesId');
     expect(result).toContain("startDate => '2020-01-01'");
     expect(result).toContain("endDate => '2023-12-31'");
   });
@@ -1083,9 +1086,9 @@ describe(unitTest('detectMissingServiceParams'), () => {
   test('detects missing non-date param', () => {
     const sql =
       "SELECT * FROM service('/path', coordinates => 'c:g:1') LIMIT 10";
-    const result = detectMissingServiceParams(sql, [makeService(['haverId'])]);
+    const result = detectMissingServiceParams(sql, [makeService(['seriesId'])]);
     expect(result).toHaveLength(1);
-    expect(result[0]?.name).toBe('haverId');
+    expect(result[0]?.name).toBe('seriesId');
     expect(result[0]?.isDateLike).toBe(false);
   });
 
@@ -1105,20 +1108,20 @@ describe(unitTest('detectMissingServiceParams'), () => {
     const sql =
       "SELECT * FROM service('/path', coordinates => 'c:g:1') LIMIT 10";
     const result = detectMissingServiceParams(sql, [
-      makeService(['processingDate', 'haverId', 'ticker']),
+      makeService(['processingDate', 'seriesId', 'ticker']),
     ]);
     expect(result).toHaveLength(3);
     const names = result.map((p) => p.name);
     expect(names).toContain('processingDate');
-    expect(names).toContain('haverId');
+    expect(names).toContain('seriesId');
     expect(names).toContain('ticker');
   });
 
   test('returns empty when all params present in SQL', () => {
     const sql =
-      "SELECT * FROM service('/path', coordinates => 'c:g:1', processingDate => '2026-01-01', haverId => 'A001') LIMIT 10";
+      "SELECT * FROM service('/path', coordinates => 'c:g:1', processingDate => '2026-01-01', seriesId => 'A001') LIMIT 10";
     const result = detectMissingServiceParams(sql, [
-      makeService(['processingDate', 'haverId']),
+      makeService(['processingDate', 'seriesId']),
     ]);
     expect(result).toHaveLength(0);
   });
@@ -1133,7 +1136,7 @@ describe(unitTest('detectMissingServiceParams'), () => {
   test('skips access point services', () => {
     const sql = "SELECT * FROM p('product.ap')";
     const result = detectMissingServiceParams(sql, [
-      makeService(['processingDate', 'haverId'], undefined, 'accessPoint'),
+      makeService(['processingDate', 'seriesId'], undefined, 'accessPoint'),
     ]);
     expect(result).toHaveLength(0);
   });
@@ -1168,8 +1171,8 @@ describe(unitTest('detectMissingServiceParams'), () => {
     const sql =
       "SELECT * FROM service('/path', coordinates => 'c:g:1') LIMIT 10";
     const result = detectMissingServiceParams(sql, [
-      makeService(['haverId']),
-      makeService(['haverId']),
+      makeService(['seriesId']),
+      makeService(['seriesId']),
     ]);
     expect(result).toHaveLength(1);
   });
@@ -1178,10 +1181,10 @@ describe(unitTest('detectMissingServiceParams'), () => {
 describe(unitTest('buildMissingParamsWarning'), () => {
   test('builds warning for single non-date param', () => {
     const result = buildMissingParamsWarning([
-      { name: 'haverId', isDateLike: false },
+      { name: 'seriesId', isDateLike: false },
     ]);
-    expect(result).toContain('**haverId**');
-    expect(result).toContain('haverId=[your value]');
+    expect(result).toContain('**seriesId**');
+    expect(result).toContain('seriesId=[your value]');
     expect(result).toContain('requires the following parameter to execute');
   });
 
@@ -1192,12 +1195,12 @@ describe(unitTest('buildMissingParamsWarning'), () => {
         hint: "today's date: 2026-06-03",
         isDateLike: true,
       },
-      { name: 'haverId', hint: 'A001NGDP, B002XYZ', isDateLike: false },
+      { name: 'seriesId', hint: 'A001NGDP, B002XYZ', isDateLike: false },
     ]);
     expect(result).toContain('**processingDate**');
-    expect(result).toContain('**haverId**');
+    expect(result).toContain('**seriesId**');
     expect(result).toMatch(/processingDate=\d{4}-\d{2}-\d{2}/);
-    expect(result).toContain('haverId=[your value]');
+    expect(result).toContain('seriesId=[your value]');
     expect(result).toContain('parameters');
   });
 
