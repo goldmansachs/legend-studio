@@ -17,9 +17,21 @@
 import {
   type AbstractPureGraphManager,
   type Multiplicity,
+  type V1_ValueSpecification,
   extractElementNameFromPath,
+  matchFunctionName,
   PRIMITIVE_TYPE,
   GRAPH_MANAGER_EVENT,
+  V1_AppliedFunction,
+  V1_AppliedProperty,
+  V1_CBoolean,
+  V1_CFloat,
+  V1_CInteger,
+  V1_CStrictDate,
+  V1_CString,
+  V1_deserializeValueSpecification,
+  V1_Lambda,
+  V1_Variable,
 } from '@finos/legend-graph';
 import {
   assertErrorThrown,
@@ -37,6 +49,7 @@ import type {
   TDSColumnSchema,
   TDSServiceSchema,
   TDSServicePreFilter,
+  LegendAIPrimitiveValue,
   LegendAIServiceRelationship,
   LegendAIModelContext,
   LegendAIModelEntity,
@@ -305,250 +318,205 @@ export function inferServiceRelationshipsFromAssociations(
 // Lambda pre-filter extraction
 // ────────────────────────────────────────────────────────────────────────────
 
-interface LambdaNode {
-  _type?: string;
-  function?: string;
-  parameters?: LambdaNode[];
-  property?: string;
-  name?: string;
-  value?: string | number | boolean;
-  body?: LambdaNode[];
-  values?: LambdaNode[];
-}
+const FILTER_FUNCTION_PATHS = [
+  'meta::pure::functions::collection::filter',
+  'meta::pure::functions::relation::filter',
+];
+const EQUAL_FUNCTION_PATH = 'meta::pure::functions::boolean::equal';
+const IS_EMPTY_FUNCTION_PATH = 'meta::pure::functions::collection::isEmpty';
+const IS_NOT_EMPTY_FUNCTION_PATH =
+  'meta::pure::functions::collection::isNotEmpty';
+const AND_FUNCTION_PATH = 'meta::pure::functions::boolean::and';
+const IS_NOT_NULL_PROPERTY_NAME = 'isNotNull';
 
-function isLambdaNode(value: unknown): value is LambdaNode {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function collectPropertyPath(node: LambdaNode): string | undefined {
-  if (node._type !== 'property' || !node.property) {
+/**
+ * Resolves the dotted property path addressed by a chain of applied properties.
+ * The chain terminates at the lambda variable, which contributes no segment.
+ */
+function collectPropertyPath(node: V1_ValueSpecification): string | undefined {
+  if (!(node instanceof V1_AppliedProperty)) {
     return undefined;
   }
-  const params = node.parameters;
-  if (!params || params.length === 0) {
+  const [first] = node.parameters;
+  if (!first || first instanceof V1_Variable) {
     return node.property;
   }
-  const firstParam = params[0];
-  if (!firstParam) {
-    return node.property;
-  }
-  if (firstParam._type === 'var') {
-    return node.property;
-  }
-  const parentPath = collectPropertyPath(firstParam);
-  if (parentPath) {
-    return `${parentPath}.${node.property}`;
-  }
-  return node.property;
+  const parentPath = collectPropertyPath(first);
+  return parentPath ? `${parentPath}.${node.property}` : node.property;
 }
 
+/** Reads the constant carried by a primitive value specification. */
 function extractLiteralValue(
-  node: LambdaNode,
-): string | number | boolean | undefined {
+  node: V1_ValueSpecification,
+): LegendAIPrimitiveValue | undefined {
   if (
-    node._type === 'string' &&
-    (typeof node.value === 'string' || typeof node.value === 'number')
+    node instanceof V1_CString ||
+    node instanceof V1_CInteger ||
+    node instanceof V1_CFloat ||
+    node instanceof V1_CBoolean ||
+    node instanceof V1_CStrictDate
   ) {
-    return node.value;
-  }
-  if (node._type === 'integer' && typeof node.value === 'number') {
-    return node.value;
-  }
-  if (node._type === 'float' && typeof node.value === 'number') {
-    return node.value;
-  }
-  if (node._type === 'boolean' && typeof node.value === 'boolean') {
-    return node.value;
-  }
-  if (node._type === 'strictDate' && typeof node.value === 'string') {
     return node.value;
   }
   return undefined;
 }
 
 function tryExtractEqualFilter(
-  node: LambdaNode,
+  node: V1_AppliedFunction,
 ): TDSServicePreFilter | undefined {
-  if (node.parameters?.length !== 2) {
+  if (node.parameters.length !== 2) {
     return undefined;
   }
   const [left, right] = node.parameters;
   if (!left || !right) {
     return undefined;
   }
-  const propPath = collectPropertyPath(left);
-  const literal = extractLiteralValue(right);
-  if (propPath && literal !== undefined) {
-    return { property: propPath, operator: 'equal', value: literal };
+  const property = collectPropertyPath(left);
+  const value = extractLiteralValue(right);
+  if (property && value !== undefined) {
+    return { property, operator: 'equal', value };
   }
   return undefined;
 }
 
 function tryExtractUnaryFilter(
-  node: LambdaNode,
+  node: V1_AppliedFunction,
   operator: 'isEmpty' | 'isNotEmpty',
 ): TDSServicePreFilter | undefined {
-  if (node.parameters?.length !== 1) {
+  if (node.parameters.length !== 1) {
     return undefined;
   }
-  const [arg] = node.parameters;
-  const propPath = arg ? collectPropertyPath(arg) : undefined;
-  if (propPath) {
-    return { property: propPath, operator };
-  }
-  return undefined;
+  const [argument] = node.parameters;
+  const property = argument ? collectPropertyPath(argument) : undefined;
+  return property ? { property, operator } : undefined;
 }
 
 function extractFiltersFromExpression(
-  node: LambdaNode,
+  node: V1_ValueSpecification,
   results: TDSServicePreFilter[],
 ): void {
-  if (node._type !== 'func' || !node.parameters) {
+  if (!(node instanceof V1_AppliedFunction)) {
     return;
   }
-
-  if (node.function === 'equal') {
+  if (matchFunctionName(node.function, EQUAL_FUNCTION_PATH)) {
     const filter = tryExtractEqualFilter(node);
     if (filter) {
       results.push(filter);
       return;
     }
   }
-
-  if (node.function === 'isEmpty' || node.function === 'isNotEmpty') {
-    const filter = tryExtractUnaryFilter(node, node.function);
+  if (matchFunctionName(node.function, IS_EMPTY_FUNCTION_PATH)) {
+    const filter = tryExtractUnaryFilter(node, 'isEmpty');
     if (filter) {
       results.push(filter);
       return;
     }
   }
-
-  for (const param of node.parameters) {
-    extractFiltersFromExpression(param, results);
-  }
-}
-
-function extractFiltersFromFilterCall(
-  filterLambda: LambdaNode,
-  results: TDSServicePreFilter[],
-): void {
-  const body = filterLambda.body;
-  if (!body || !Array.isArray(body)) {
-    return;
-  }
-  for (const expr of body) {
-    extractFiltersFromExpression(expr, results);
-  }
-}
-
-function processFilterNode(
-  node: LambdaNode,
-  results: TDSServicePreFilter[],
-): void {
-  const params = node.parameters;
-  if (params?.length === 2) {
-    const filterLambdaParam = params[1];
-    if (filterLambdaParam?._type === 'lambda') {
-      extractFiltersFromFilterCall(filterLambdaParam, results);
+  if (matchFunctionName(node.function, IS_NOT_EMPTY_FUNCTION_PATH)) {
+    const filter = tryExtractUnaryFilter(node, 'isNotEmpty');
+    if (filter) {
+      results.push(filter);
+      return;
     }
   }
-  if (params) {
-    walkLambdaBody(params, results);
+  for (const parameter of node.parameters) {
+    extractFiltersFromExpression(parameter, results);
   }
 }
 
-function walkLambdaBody(
-  nodes: unknown[],
+function processFilterCall(
+  node: V1_AppliedFunction,
   results: TDSServicePreFilter[],
 ): void {
-  for (const rawNode of nodes) {
-    if (!isLambdaNode(rawNode)) {
+  const filterLambda = node.parameters[1];
+  if (node.parameters.length === 2 && filterLambda instanceof V1_Lambda) {
+    for (const expression of filterLambda.body) {
+      extractFiltersFromExpression(expression, results);
+    }
+  }
+  walkExpressions(node.parameters, results);
+}
+
+function walkExpressions(
+  nodes: V1_ValueSpecification[],
+  results: TDSServicePreFilter[],
+): void {
+  for (const node of nodes) {
+    if (!(node instanceof V1_AppliedFunction)) {
       continue;
     }
-    if (rawNode._type === 'func' && rawNode.function === 'filter') {
-      processFilterNode(rawNode, results);
-    } else if (rawNode._type === 'func' && rawNode.parameters) {
-      walkLambdaBody(rawNode.parameters, results);
-    }
-  }
-}
-
-function processPostFilterNode(
-  rawNode: LambdaNode,
-  results: TDSServicePreFilter[],
-): void {
-  if (rawNode.function === 'filter' && rawNode.parameters?.length === 2) {
-    const innerLambda = rawNode.parameters[1];
-    if (innerLambda?._type === 'lambda' && innerLambda.body) {
-      for (const bodyNode of innerLambda.body) {
-        collectIsNotNullChecks(bodyNode, results);
-      }
-    }
-    extractIsNotNullPostFilters(rawNode.parameters, results);
-  } else if (rawNode.parameters) {
-    extractIsNotNullPostFilters(rawNode.parameters, results);
-  }
-}
-
-function extractIsNotNullPostFilters(
-  nodes: unknown[],
-  results: TDSServicePreFilter[],
-): void {
-  for (const rawNode of nodes) {
-    if (!isLambdaNode(rawNode)) {
-      continue;
-    }
-    if (rawNode._type !== 'func') {
-      continue;
-    }
-    processPostFilterNode(rawNode, results);
-  }
-}
-
-function collectIsNotNullChecks(
-  node: LambdaNode,
-  results: TDSServicePreFilter[],
-): void {
-  if (node._type === 'property' && node.property === 'isNotNull') {
-    const colNameNode = node.parameters?.[1];
-    if (
-      colNameNode?._type === 'string' &&
-      typeof colNameNode.value === 'string'
-    ) {
-      results.push({
-        property: colNameNode.value,
-        operator: 'isNotNull',
-      });
-    }
-    return;
-  }
-  if (node._type === 'func' && node.function === 'and' && node.parameters) {
-    for (const param of node.parameters) {
-      collectIsNotNullChecks(param, results);
+    if (matchFunctionName(node.function, FILTER_FUNCTION_PATHS)) {
+      processFilterCall(node, results);
+    } else {
+      walkExpressions(node.parameters, results);
     }
   }
 }
 
 /**
- * Extracts hardcoded pre-filter constraints from a raw lambda body.
- *
- * Walks the lambda JSON tree to find:
- * - `equal` comparisons with literal values (e.g. `symbolId == 'AAAAAAA-S'`)
- * - `isEmpty` checks (e.g. `consEndDate->isEmpty()`)
- * - `isNotNull` post-projection TDS row checks (e.g. `row.isNotNull('Mean Estimate')`)
- *
- * The `rawLambdaBody` parameter is `RawLambda.body` — the raw JSON array
- * from the PURE protocol.
+ * Collects `row.isNotNull('column')` guards, descending through `and` chains
+ * so every conjunct in a composite post-filter is reported.
+ */
+function collectIsNotNullChecks(
+  node: V1_ValueSpecification,
+  results: TDSServicePreFilter[],
+): void {
+  if (
+    node instanceof V1_AppliedProperty &&
+    node.property === IS_NOT_NULL_PROPERTY_NAME
+  ) {
+    const columnName = node.parameters[1];
+    if (columnName instanceof V1_CString) {
+      results.push({ property: columnName.value, operator: 'isNotNull' });
+    }
+    return;
+  }
+  if (
+    node instanceof V1_AppliedFunction &&
+    matchFunctionName(node.function, AND_FUNCTION_PATH)
+  ) {
+    for (const parameter of node.parameters) {
+      collectIsNotNullChecks(parameter, results);
+    }
+  }
+}
+
+function extractIsNotNullPostFilters(
+  nodes: V1_ValueSpecification[],
+  results: TDSServicePreFilter[],
+): void {
+  for (const node of nodes) {
+    if (!(node instanceof V1_AppliedFunction)) {
+      continue;
+    }
+    const innerLambda = node.parameters[1];
+    if (
+      matchFunctionName(node.function, FILTER_FUNCTION_PATHS) &&
+      node.parameters.length === 2 &&
+      innerLambda instanceof V1_Lambda
+    ) {
+      for (const expression of innerLambda.body) {
+        collectIsNotNullChecks(expression, results);
+      }
+    }
+    extractIsNotNullPostFilters(node.parameters, results);
+  }
+}
+
+/**
+ * Extracts hardcoded pre-filter constraints from a service lambda: `equal`
+ * comparisons against literals, `isEmpty`/`isNotEmpty` checks, and post-
+ * projection `isNotNull` row guards.
  */
 export function extractLambdaPreFilters(
-  rawLambdaBody: object | undefined,
+  lambda: V1_ValueSpecification | undefined,
 ): TDSServicePreFilter[] {
-  if (!rawLambdaBody || !Array.isArray(rawLambdaBody)) {
+  if (!(lambda instanceof V1_Lambda)) {
     return [];
   }
   const results: TDSServicePreFilter[] = [];
-  walkLambdaBody(rawLambdaBody, results);
-  extractIsNotNullPostFilters(rawLambdaBody, results);
+  walkExpressions(lambda.body, results);
+  extractIsNotNullPostFilters(lambda.body, results);
   return results;
 }
 
@@ -562,7 +530,11 @@ export async function extractServicePreFilters(
 ): Promise<TDSServicePreFilter[] | undefined> {
   try {
     const rawLambda = await graphManager.pureCodeToLambda(query);
-    const preFilters = extractLambdaPreFilters(rawLambda.body);
+    const lambda = V1_deserializeValueSpecification(
+      graphManager.serializeRawValueSpecification(rawLambda),
+      graphManager.pluginManager.getPureProtocolProcessorPlugins(),
+    );
+    const preFilters = extractLambdaPreFilters(lambda);
     return preFilters.length > 0 ? preFilters : undefined;
   } catch (error) {
     assertErrorThrown(error);
@@ -573,7 +545,6 @@ export async function extractServicePreFilters(
     return undefined;
   }
 }
-
 // ────────────────────────────────────────────────────────────────────────────
 // Model context extraction from DataSpace elementDocs
 // ────────────────────────────────────────────────────────────────────────────

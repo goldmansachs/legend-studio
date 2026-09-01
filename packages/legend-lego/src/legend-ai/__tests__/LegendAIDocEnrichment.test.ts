@@ -16,11 +16,17 @@
 
 import { describe, test, expect } from '@jest/globals';
 import { unitTest } from '@finos/legend-shared/test';
-import { guaranteeNonNullable, LogService } from '@finos/legend-shared';
+import {
+  type PlainObject,
+  guaranteeNonNullable,
+  LogService,
+} from '@finos/legend-shared';
 import {
   type AbstractPureGraphManager,
+  type V1_ValueSpecification,
   Multiplicity,
   RawLambda,
+  V1_deserializeValueSpecification,
   V1_PureGraphManager,
 } from '@finos/legend-graph';
 import { TEST__GraphManagerPluginManager } from '@finos/legend-graph/test';
@@ -303,13 +309,25 @@ describe(unitTest('inferServiceRelationshipsFromAssociations'), () => {
   });
 });
 
+/** Deserializes a raw lambda body into the V1 protocol model the extractor walks. */
+function buildTestLambda(body: PlainObject[]): V1_ValueSpecification {
+  return V1_deserializeValueSpecification(
+    { _type: 'lambda', body, parameters: [] },
+    [],
+  );
+}
+
 describe(unitTest('extractLambdaPreFilters'), () => {
   test('returns empty array for undefined body', () => {
     expect(extractLambdaPreFilters(undefined)).toEqual([]);
   });
 
-  test('returns empty array for non-array body', () => {
-    expect(extractLambdaPreFilters({ foo: 'bar' })).toEqual([]);
+  test('returns empty array for a value specification that is not a lambda', () => {
+    const variable = V1_deserializeValueSpecification(
+      { _type: 'var', name: 'x' },
+      [],
+    );
+    expect(extractLambdaPreFilters(variable)).toEqual([]);
   });
 
   test('extracts simple equality filter', () => {
@@ -340,7 +358,7 @@ describe(unitTest('extractLambdaPreFilters'), () => {
         ],
       },
     ];
-    const result = extractLambdaPreFilters(body);
+    const result = extractLambdaPreFilters(buildTestLambda(body));
     expect(result).toEqual([
       { property: 'symbolId', operator: 'equal', value: 'AAAAAAA-S' },
     ]);
@@ -386,7 +404,7 @@ describe(unitTest('extractLambdaPreFilters'), () => {
         ],
       },
     ];
-    const result = extractLambdaPreFilters(body);
+    const result = extractLambdaPreFilters(buildTestLambda(body));
     expect(result).toEqual([
       {
         property: 'SecurityCoverage.SecurityEntity.symbolId',
@@ -423,7 +441,7 @@ describe(unitTest('extractLambdaPreFilters'), () => {
         ],
       },
     ];
-    const result = extractLambdaPreFilters(body);
+    const result = extractLambdaPreFilters(buildTestLambda(body));
     expect(result).toEqual([{ property: 'consEndDate', operator: 'isEmpty' }]);
   });
 
@@ -490,7 +508,7 @@ describe(unitTest('extractLambdaPreFilters'), () => {
         ],
       },
     ];
-    const result = extractLambdaPreFilters(body);
+    const result = extractLambdaPreFilters(buildTestLambda(body));
     expect(result).toEqual([
       { property: 'consEndDate', operator: 'isEmpty' },
       { property: 'vendorEntityId', operator: 'equal', value: 'BBBBBBB-E' },
@@ -540,7 +558,7 @@ describe(unitTest('extractLambdaPreFilters'), () => {
         ],
       },
     ];
-    const result = extractLambdaPreFilters(body);
+    const result = extractLambdaPreFilters(buildTestLambda(body));
     expect(result).toContainEqual({
       property: 'Mean Estimate',
       operator: 'isNotNull',
@@ -605,7 +623,7 @@ describe(unitTest('extractLambdaPreFilters'), () => {
         ],
       },
     ];
-    const result = extractLambdaPreFilters(body);
+    const result = extractLambdaPreFilters(buildTestLambda(body));
     expect(result).toContainEqual({
       property: 'entityId',
       operator: 'equal',
@@ -645,7 +663,7 @@ describe(unitTest('extractLambdaPreFilters'), () => {
         ],
       },
     ];
-    const result = extractLambdaPreFilters(body);
+    const result = extractLambdaPreFilters(buildTestLambda(body));
     expect(result).toEqual([
       { property: 'status', operator: 'equal', value: 42 },
     ]);
@@ -659,7 +677,7 @@ describe(unitTest('extractLambdaPreFilters'), () => {
         parameters: [{ _type: 'func', function: 'getAll', parameters: [] }],
       },
     ];
-    expect(extractLambdaPreFilters(body)).toEqual([]);
+    expect(extractLambdaPreFilters(buildTestLambda(body))).toEqual([]);
   });
 });
 
