@@ -22,20 +22,10 @@ export {
 } from './LegendAIHostIntegration.js';
 export {
   LegendAIChat,
-  LEGEND_AI_ANCHOR_ID,
   renderStepStatusIcon,
 } from './components/LegendAIChat.js';
 export { LegendAIChatToggle } from './components/LegendAIChatToggle.js';
-export {
-  isStringColumn,
-  isNumericColumn,
-  isDateColumn,
-  buildSuggestedQueries,
-} from './components/LegendAIChatHelpers.js';
-export { LegendAIScopeSelector } from './components/LegendAIScopeSelector.js';
-export { LegendAIChatInput } from './components/LegendAIChatInput.js';
 export { LegendAIErrorBoundary } from './components/LegendAIErrorBoundary.js';
-export { useLegendAIChatState } from './stores/LegendAIChatState.js';
 export {
   updateLastAssistant,
   addThinkingStep,
@@ -43,16 +33,10 @@ export {
   finishWithThinkingError,
   classifyError,
   buildConversationHistory,
-  filterHistoryForAccessPoints,
-  buildGenerationFailureMessage,
-  buildExecutionErrorMessage,
   generateAndJudgeSql,
-  generateAndJudgeAccessPointSql,
   executeSqlAndReport,
-  executePureQueryAndReport,
   processQuestionViaOrchestrator,
   processQuestion,
-  processQuestionWithIntent,
   handleMetadataQuestion,
   buildMetadataOverview,
   attachMetadataOverview,
@@ -63,77 +47,21 @@ export {
   analyzeOrchestratorResults,
   cleanLlmSqlResponse,
   isValidSqlCorrection,
-  sanitizeLiteralColumns,
-  stripGuessedNonDateServiceParams,
-  ensureDateParameters,
-  detectMissingServiceParams,
-  buildMissingParamsWarning,
-  ensureSafeLimit,
-  ensurePureSafetyLimit,
-  detectUnsupportedEnginePattern,
-  type UnsupportedEnginePattern,
-  supplementMissingCoverage,
-  normalizeQuestion,
-  applyMultiTurnBias,
-  categorizeExecutionError,
-  ExecutionErrorCategory,
   type MessageSetter,
   type LegendAIOperationContext,
-  type MissingParamInfo,
 } from './stores/LegendAIChatProcessors.js';
-export {
-  buildCrossJoinZeroRowExplanation,
-  buildJoinablePairSuggestions,
-  parseSampleValueSet,
-} from './stores/LegendAIJoinAnalysis.js';
-export {
-  boundCrossAccessPointJoinDrivingSide,
-  sanitizeJoinDuplicateColumns,
-  sanitizeJoinOrderBy,
-  sanitizeJoinSameKeyColumns,
-  wrapBareJoinAccessPoints,
-} from './stores/LegendAISqlJoinSanitizers.js';
+export { parseSampleValueSet } from './stores/LegendAIJoinAnalysis.js';
 export {
   accessPointName,
   sharedColumnNames,
 } from './stores/LegendAISqlHelpers.js';
-export {
-  preFilterServicesByRelevance,
-  isFuzzyMatch,
-  levenshteinDistance,
-} from './LegendAIServiceRetrieval.js';
 export { LegendAIResultGrid } from './components/LegendAIResultGrid.js';
 export { LegendAIAnalysisPanel } from './components/LegendAIAnalysisPanel.js';
-export {
-  LegendAIBarChart,
-  LegendAIDonutChart,
-  LegendAILineChart,
-} from './components/LegendAICharts.js';
-export {
-  type LegendAIGridAnalysis,
-  computeKeyMetrics,
-  computeChartData,
-  inferChartType,
-  computeTopItems,
-  findNumericColumnName,
-  analyzeGridData,
-} from './components/LegendAIAnalysisUtils.js';
 export {
   buildPropertyDocIndex,
   enrichColumnsFromElementDocs,
   inferServiceRelationshipsFromAssociations,
-  extractLambdaPreFilters,
   extractServicePreFilters,
   extractModelContext,
-  buildEnrichedBusinessContext,
-  buildModelContextEnrichmentText,
-  findBestAlternateRoot,
   resolveEntitiesDeterministic,
-  rankEntities,
-  buildSemanticPropertyIndex,
-  splitIdentifierTokens,
-  buildDataQueryApproachText,
-  relaxExactStringFilters,
-  extractFilteredColumns,
-  buildProbedValueHints,
 } from './LegendAIDocEnrichment.js';
