@@ -2829,6 +2829,12 @@ describe(
       expect(
         plugin.executeLakehouseSql.mock.calls.length,
       ).toBeGreaterThanOrEqual(2);
+      // The retry goes through the shared execution chokepoint, so the
+      // corrected SQL reaches the plugin sanitized and row-bounded.
+      const retriedSql = guaranteeNonNullable(
+        plugin.executeLakehouseSql.mock.calls[1],
+      )[0];
+      expect(retriedSql).toMatch(/\bLIMIT\s+\d+/i);
     });
   },
 );

@@ -63,6 +63,7 @@ import {
   attachMetadataOverview,
   generateAndJudgeSql,
   executeSqlAndReport,
+  executeSqlForServices,
   analyzeOrchestratorResults,
   addThinkingStep,
   completeThinkingSteps,
@@ -2860,9 +2861,11 @@ export class LegendMarketplaceAIChatStore {
       }
       addThinkingStep(setMessages, 'Retrying with corrected filters...');
       updateLastAssistant(setMessages, () => ({ sql: trimmed }));
-      const retryResult = await plugin.executeLakehouseSql(
+      const retryResult = await executeSqlForServices(
         trimmed,
+        services,
         dataProductCoordinates,
+        plugin,
         config,
       );
       if (retryResult.rows.length > 0) {

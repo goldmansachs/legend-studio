@@ -2675,7 +2675,7 @@ function prepareSafeSql(sql: string, services: TDSServiceSchema[]): string {
  * here. No other code in this file may call `plugin.executeLakehouseSql`
  * or `plugin.executeSql` directly.
  */
-async function executeSqlForServices(
+export async function executeSqlForServices(
   sql: string,
   services: TDSServiceSchema[],
   dataProductCoordinates:

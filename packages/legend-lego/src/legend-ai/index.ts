@@ -36,6 +36,7 @@ export {
   buildConversationHistory,
   generateAndJudgeSql,
   executeSqlAndReport,
+  executeSqlForServices,
   processQuestionViaOrchestrator,
   processQuestion,
   handleMetadataQuestion,
