@@ -145,14 +145,36 @@ describe(
 // ─── buildParameterSchemas ───────────────────────────────────────────────────
 
 describe(unitTest('buildParameterSchemas'), () => {
+  const graphManagerState = {
+    graphManager: {
+      buildValueSpecification: (param: { name?: string }) =>
+        new VariableExpression(param.name ?? '', new Multiplicity(1, 1)),
+    },
+    graph: {},
+  } as never;
+
+  test('reports each parameter the lambda declares', () => {
+    const result = buildParameterSchemas(
+      new RawLambda([{ name: 'orderId' }, { name: 'asOfDate' }], undefined),
+      graphManagerState,
+    );
+    expect(result.parameterExtractionFailed).toBe(false);
+    expect(result.parameters).toEqual(['orderId', 'asOfDate']);
+    expect(result.parameterSchemas.map((s) => s.name)).toEqual([
+      'orderId',
+      'asOfDate',
+    ]);
+  });
+
+  test('marks a parameter required when its multiplicity excludes zero', () => {
+    const result = buildParameterSchemas(
+      new RawLambda([{ name: 'orderId' }], undefined),
+      graphManagerState,
+    );
+    expect(result.parameterSchemas[0]?.required).toBe(true);
+  });
+
   test('returns no parameters when the lambda declares none', () => {
-    const graphManagerState = {
-      graphManager: {
-        buildValueSpecification: (param: { name?: string }) =>
-          new VariableExpression(param.name ?? '', new Multiplicity(1, 1)),
-      },
-      graph: {},
-    } as never;
     const result = buildParameterSchemas(
       new RawLambda(undefined, undefined),
       graphManagerState,
