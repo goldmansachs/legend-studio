@@ -4541,6 +4541,38 @@ function lazyMemo<T>(compute: () => T): () => T {
   };
 }
 
+interface ModelContextEnrichment {
+  getModelContextEnrichment: () => string | undefined;
+  getMetadataEnrichment: () => string | undefined;
+  getApproachText: () => string | undefined;
+}
+
+/**
+ * Defers the three model context renderings so a question that never reaches
+ * SQL generation does not pay for them.
+ */
+function buildModelContextEnrichment(
+  question: string,
+  services: TDSServiceSchema[],
+  modelContext: LegendAIModelContext | undefined,
+): ModelContextEnrichment {
+  return {
+    getModelContextEnrichment: lazyMemo(() =>
+      modelContext
+        ? buildModelContextEnrichmentText(modelContext, services)
+        : undefined,
+    ),
+    getMetadataEnrichment: lazyMemo(() =>
+      modelContext ? buildModelCatalogText(modelContext) : undefined,
+    ),
+    getApproachText: lazyMemo(() =>
+      modelContext
+        ? buildDataQueryApproachText(question, modelContext)
+        : undefined,
+    ),
+  };
+}
+
 export async function processQuestion(
   question: string,
   services: TDSServiceSchema[],
@@ -4553,19 +4585,8 @@ export async function processQuestion(
 ): Promise<void> {
   const { config, plugin, setMessages } = context;
   const startTime = Date.now();
-  const getModelContextEnrichment = lazyMemo(() =>
-    modelContext
-      ? buildModelContextEnrichmentText(modelContext, services)
-      : undefined,
-  );
-  const getMetadataEnrichment = lazyMemo(() =>
-    modelContext ? buildModelCatalogText(modelContext) : undefined,
-  );
-  const getApproachText = lazyMemo(() =>
-    modelContext
-      ? buildDataQueryApproachText(question, modelContext)
-      : undefined,
-  );
+  const { getModelContextEnrichment, getMetadataEnrichment, getApproachText } =
+    buildModelContextEnrichment(question, services, modelContext);
 
   try {
     addThinkingStep(setMessages, 'Analyzing your question...');
@@ -4715,19 +4736,8 @@ export async function processQuestionWithIntent(
 ): Promise<void> {
   const { config, setMessages } = context;
   const dataProductCoordinates = orchestratorOptions?.dataProductCoordinates;
-  const getModelContextEnrichment = lazyMemo(() =>
-    modelContext
-      ? buildModelContextEnrichmentText(modelContext, services)
-      : undefined,
-  );
-  const getMetadataEnrichment = lazyMemo(() =>
-    modelContext ? buildModelCatalogText(modelContext) : undefined,
-  );
-  const getApproachText = lazyMemo(() =>
-    modelContext
-      ? buildDataQueryApproachText(question, modelContext)
-      : undefined,
-  );
+  const { getModelContextEnrichment, getMetadataEnrichment, getApproachText } =
+    buildModelContextEnrichment(question, services, modelContext);
 
   if (intent === LegendAIQuestionIntent.METADATA) {
     const startTime = Date.now();
