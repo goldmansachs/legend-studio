@@ -20,10 +20,11 @@ export {
   bridgeLegendAIServices,
   useLegendAIChatTelemetryLogger,
 } from './LegendAIHostIntegration.js';
+export { LegendAIChat } from './components/LegendAIChat.js';
 export {
-  LegendAIChat,
-  renderStepStatusIcon,
-} from './components/LegendAIChat.js';
+  type LegendAIPythonCodeEntry,
+  LegendAIAssistantMessageView,
+} from './components/LegendAIAssistantMessageView.js';
 export { LegendAIChatToggle } from './components/LegendAIChatToggle.js';
 export { LegendAIErrorBoundary } from './components/LegendAIErrorBoundary.js';
 export {
@@ -55,8 +56,6 @@ export {
   accessPointName,
   sharedColumnNames,
 } from './stores/LegendAISqlHelpers.js';
-export { LegendAIResultGrid } from './components/LegendAIResultGrid.js';
-export { LegendAIAnalysisPanel } from './components/LegendAIAnalysisPanel.js';
 export {
   buildPropertyDocIndex,
   enrichColumnsFromElementDocs,

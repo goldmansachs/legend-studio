@@ -14,468 +14,64 @@
  * limitations under the License.
  */
 
-import { useRef, useEffect, useCallback, useState } from 'react';
+import { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { flowResult } from 'mobx';
-import {
-  LoadingIcon,
-  SparkleStarsIcon,
-  CodeIcon,
-  TableIcon,
-  CopyIcon,
-  RefreshIcon,
-  TimesIcon,
-  CheckIcon,
-  CaretDownIcon,
-  CaretRightIcon,
-  DotIcon,
-  MarkdownTextViewer,
-  ExternalLinkIcon,
-  JupyterIcon,
-} from '@finos/legend-art';
+import { SparkleStarsIcon, RefreshIcon, TimesIcon } from '@finos/legend-art';
 import { noop } from '@finos/legend-shared';
 import {
   type LegendAIAssistantMessage,
+  type LegendAIChatTelemetryEvent,
+  type LegendAIPythonCodeEntry,
+  LegendAIAssistantMessageView,
+  LegendAIChatTelemetryEventType,
   LegendAIMessageRole,
-  LegendAIErrorType,
   LegendAIPythonCodeStatus,
-  LegendAIResultGrid,
-  LegendAIAnalysisPanel,
-  renderStepStatusIcon,
+  LegendAITelemetryArtifact,
   LAKEHOUSE_ENV_PROD,
   COVERAGE_NAME_PROD,
   COVERAGE_NAME_SANDBOX,
 } from '@finos/legend-lego/legend-ai';
 import { useAuth } from 'react-oidc-context';
 import { useLegendMarketplaceAIChatStore } from '../../application/providers/LegendMarketplaceAIChatStoreProvider.js';
-import { MarketplaceAIChatStage } from '../../stores/ai/LegendMarketplaceAIChatStore.js';
+import {
+  type MarketplaceAIPythonCodeEntry,
+  MarketplaceAIChatStage,
+} from '../../stores/ai/LegendMarketplaceAIChatStore.js';
 import { MarketplaceAIProductCards } from './MarketplaceAIProductCards.js';
 import { MarketplaceAIProductAutosuggest } from './MarketplaceAIProductAutosuggest.js';
 import { MarketplaceAIInputBar } from './MarketplaceAIInputBar.js';
 
-const COPY_FEEDBACK_DURATION_MS = 2000;
+const NETWORK_ERROR_NOTE =
+  'Please check your network connection and try again.';
 
-const AISummaryRenderer = ({ value }: { value: string }): React.ReactNode => (
-  <MarkdownTextViewer value={{ value }} className="legend-ai__text-answer-md" />
-);
-
-// Copies text to the clipboard and flags the button as copied for a moment.
-const useCopyFeedback = (): [boolean, (text: string) => void] => {
-  const [copied, setCopied] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  useEffect(
-    () => () => {
-      if (timerRef.current !== undefined) {
-        clearTimeout(timerRef.current);
-      }
-    },
-    [],
-  );
-  const copy = useCallback((text: string) => {
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        setCopied(true);
-        if (timerRef.current !== undefined) {
-          clearTimeout(timerRef.current);
-        }
-        timerRef.current = setTimeout(() => {
-          setCopied(false);
-          timerRef.current = undefined;
-        }, COPY_FEEDBACK_DURATION_MS);
-      })
-      .catch(noop());
-  }, []);
-  return [copied, copy];
+/**
+ * Adapts the store's Python code entry to the shape the shared assistant
+ * message view renders.
+ */
+const toAssistantPythonEntry = (
+  entry: MarketplaceAIPythonCodeEntry,
+): LegendAIPythonCodeEntry => {
+  switch (entry.status) {
+    case LegendAIPythonCodeStatus.READY:
+      return {
+        status: LegendAIPythonCodeStatus.READY,
+        code: {
+          code: entry.code,
+          ...(entry.notebookUrl === undefined
+            ? {}
+            : { notebookUrl: entry.notebookUrl }),
+        },
+      };
+    case LegendAIPythonCodeStatus.ERROR:
+      return {
+        status: LegendAIPythonCodeStatus.ERROR,
+        errorMessage: entry.error,
+      };
+    default:
+      return { status: LegendAIPythonCodeStatus.LOADING };
+  }
 };
-
-const AssistantMessageView = observer(
-  (props: {
-    msg: LegendAIAssistantMessage;
-    onSuggestedQueryClick?: (query: string) => void;
-    onFallbackAction?: (messageId: string) => void;
-  }): React.ReactNode => {
-    const { msg, onSuggestedQueryClick, onFallbackAction } = props;
-    const store = useLegendMarketplaceAIChatStore();
-    const { enghubDocUrl, enthubRequestAccessUrl, lakehouseEnvironment } =
-      store.config;
-    const isProd = lakehouseEnvironment === LAKEHOUSE_ENV_PROD;
-    const hasAccessLinks =
-      enghubDocUrl !== undefined || enthubRequestAccessUrl !== undefined;
-    const [isThinkingVisible, setIsThinkingVisible] = useState(
-      msg.isProcessing,
-    );
-    const [sqlCopied, copySql] = useCopyFeedback();
-    const [pythonCopied, copyPython] = useCopyFeedback();
-    const [isPythonOpen, setIsPythonOpen] = useState(false);
-    const [isOpeningDataCube, setIsOpeningDataCube] = useState(false);
-    const pythonEntry = store.pythonCodeByMessageId.get(msg.id);
-
-    useEffect(() => {
-      setIsThinkingVisible(msg.isProcessing);
-    }, [msg.isProcessing]);
-
-    const handleCopySql = useCallback(() => {
-      if (msg.sql) {
-        copySql(msg.sql);
-        store.logCopySql();
-      }
-    }, [msg.sql, store, copySql]);
-
-    const handleTogglePython = useCallback(() => {
-      const opening = !isPythonOpen;
-      setIsPythonOpen(opening);
-      const status = store.pythonCodeByMessageId.get(msg.id)?.status;
-      if (
-        opening &&
-        status !== LegendAIPythonCodeStatus.LOADING &&
-        status !== LegendAIPythonCodeStatus.READY
-      ) {
-        flowResult(store.generatePythonCode(msg.id)).catch(noop());
-      }
-    }, [isPythonOpen, store, msg.id]);
-
-    const handleCopyPython = useCallback(() => {
-      const entry = store.pythonCodeByMessageId.get(msg.id);
-      if (entry?.status === LegendAIPythonCodeStatus.READY && entry.code) {
-        copyPython(entry.code);
-        store.logCopyPython();
-      }
-    }, [store, msg.id, copyPython]);
-
-    const handleOpenInDataCube = useCallback(() => {
-      setIsOpeningDataCube(true);
-      flowResult(store.openInDataCube(msg.id))
-        .catch(noop())
-        .finally(() => setIsOpeningDataCube(false));
-    }, [store, msg.id]);
-
-    return (
-      <div className="legend-ai__msg legend-ai__msg--assistant">
-        <div className="legend-ai__msg-avatar">
-          <SparkleStarsIcon />
-        </div>
-        <div className="legend-ai__msg-content">
-          {msg.thinkingSteps.length > 0 && (
-            <div className="legend-ai__thinking">
-              {!msg.isProcessing && (
-                <button
-                  type="button"
-                  className="legend-ai__thinking-toggle"
-                  onClick={(): void => setIsThinkingVisible(!isThinkingVisible)}
-                >
-                  <span className="legend-ai__thinking-toggle-icon">
-                    {isThinkingVisible ? <CaretDownIcon /> : <CaretRightIcon />}
-                  </span>
-                  Thought for {msg.thinkingDuration ?? '...'}s
-                </button>
-              )}
-              {isThinkingVisible && (
-                <div className="legend-ai__thinking-steps">
-                  {msg.thinkingSteps.map((step) => (
-                    <div
-                      key={step.id}
-                      className={`legend-ai__thinking-step legend-ai__thinking-step--${step.status}`}
-                    >
-                      <span className="legend-ai__thinking-step-icon">
-                        {renderStepStatusIcon(step.status)}
-                      </span>
-                      <span>{step.label}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {msg.dataContext && (
-            <div className="legend-ai__data-context">
-              <MarkdownTextViewer
-                value={{ value: msg.dataContext }}
-                className="legend-ai__text-answer-md"
-              />
-            </div>
-          )}
-
-          {msg.sql && (
-            <details
-              className="legend-ai__sql-details"
-              open={msg.gridData !== null}
-            >
-              <summary className="legend-ai__sql-details-summary">
-                {msg.gridData === null ? 'Show the query I tried' : 'Query'}
-              </summary>
-              <div className="legend-ai__sql-block">
-                <div className="legend-ai__sql-block-header">
-                  <span className="legend-ai__sql-block-header-icon">
-                    <CodeIcon />
-                  </span>
-                  <span>Generated Query</span>
-                  {msg.sqlGenTime && (
-                    <span className="legend-ai__sql-block-time">
-                      {msg.sqlGenTime}s
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    className="legend-ai__sql-copy-btn"
-                    title="Copy query"
-                    aria-label="Copy query"
-                    onClick={handleCopySql}
-                  >
-                    {sqlCopied ? (
-                      <span className="legend-ai__sql-copy-btn--copied">
-                        <CheckIcon />
-                      </span>
-                    ) : (
-                      <CopyIcon />
-                    )}
-                  </button>
-                </div>
-                <div className="legend-ai__sql-scroll">
-                  <pre className="legend-ai__sql-display">{msg.sql}</pre>
-                </div>
-              </div>
-            </details>
-          )}
-
-          {msg.isExecuting && (
-            <div className="legend-ai__executing">
-              <LoadingIcon isLoading={true} />
-              <span>Executing query...</span>
-            </div>
-          )}
-
-          {msg.textAnswer && !msg.gridData && (
-            <div className="legend-ai__text-answer">
-              <MarkdownTextViewer
-                value={{ value: msg.textAnswer }}
-                className="legend-ai__text-answer-md"
-              />
-            </div>
-          )}
-
-          {msg.error && (
-            <div className="legend-ai__exec-error">
-              {msg.error}
-              {msg.errorType === LegendAIErrorType.PERMISSION &&
-                hasAccessLinks && (
-                  <div className="legend-ai__permission-error-action">
-                    <span className="legend-ai__permission-error-note">
-                      Select coverage:{' '}
-                      <strong>
-                        {isProd ? COVERAGE_NAME_PROD : COVERAGE_NAME_SANDBOX}
-                      </strong>
-                    </span>
-                    <div className="legend-ai__permission-error-btns">
-                      {enghubDocUrl && (
-                        <a
-                          className="legend-ai__permission-error-btn"
-                          href={enghubDocUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <ExternalLinkIcon />
-                          <span>View Documentation</span>
-                        </a>
-                      )}
-                      {enthubRequestAccessUrl && (
-                        <a
-                          className="legend-ai__permission-error-btn legend-ai__permission-error-btn--primary"
-                          href={enthubRequestAccessUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <ExternalLinkIcon />
-                          <span>Request Access</span>
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                )}
-              {msg.errorType === LegendAIErrorType.NETWORK && (
-                <div className="legend-ai__permission-error-action">
-                  <span className="legend-ai__permission-error-note">
-                    Please check your network connection and try again.
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {msg.fallbackAction && !msg.isProcessing && onFallbackAction && (
-            <button
-              type="button"
-              className="legend-ai__fallback-action-btn"
-              onClick={(): void => onFallbackAction(msg.id)}
-            >
-              <SparkleStarsIcon />
-              <span>{msg.fallbackAction.label}</span>
-            </button>
-          )}
-
-          {msg.gridData && (
-            <div className="legend-ai__results-block">
-              <div className="legend-ai__results-header">
-                <span className="legend-ai__results-header-icon">
-                  <TableIcon />
-                </span>
-                <span>Results</span>
-                <span className="legend-ai__results-meta">
-                  {msg.gridData.rowData.length} row
-                  {msg.gridData.rowData.length === 1 ? '' : 's'}
-                  {msg.execTime ? (
-                    <>
-                      {' '}
-                      <DotIcon className="legend-ai__results-meta-dot" />{' '}
-                      {msg.execTime}s
-                    </>
-                  ) : (
-                    ''
-                  )}
-                </span>
-              </div>
-              <LegendAIResultGrid data={msg.gridData} />
-            </div>
-          )}
-
-          {msg.textAnswer && msg.gridData && (
-            <LegendAIAnalysisPanel
-              gridData={msg.gridData}
-              summary={msg.textAnswer}
-              SummaryRenderer={AISummaryRenderer}
-            />
-          )}
-
-          {msg.isProcessing && !msg.isExecuting && msg.gridData && (
-            <div className="legend-ai__analyzing">
-              <LoadingIcon isLoading={true} />
-              <span>Analyzing results...</span>
-            </div>
-          )}
-
-          {msg.sql &&
-            !msg.isProcessing &&
-            msg.gridData !== null &&
-            (store.supportsDataCube || store.supportsPython) && (
-              <div className="legend-ai__cta-row">
-                {store.supportsDataCube && (
-                  <button
-                    type="button"
-                    className="legend-ai__datacube-cta"
-                    onClick={handleOpenInDataCube}
-                    disabled={isOpeningDataCube}
-                  >
-                    <span className="legend-ai__datacube-cta-launch">
-                      {isOpeningDataCube ? (
-                        <LoadingIcon isLoading={true} />
-                      ) : (
-                        <ExternalLinkIcon />
-                      )}
-                    </span>
-                    <span>Open in DataCube</span>
-                  </button>
-                )}
-                {store.supportsPython && (
-                  <button
-                    type="button"
-                    className="legend-ai__python-cta"
-                    onClick={handleTogglePython}
-                    aria-expanded={isPythonOpen}
-                  >
-                    <span className="legend-ai__python-cta-caret">
-                      {isPythonOpen ? <CaretDownIcon /> : <CaretRightIcon />}
-                    </span>
-                    <CodeIcon />
-                    <span>Python code</span>
-                  </button>
-                )}
-              </div>
-            )}
-
-          {store.supportsPython && isPythonOpen && (
-            <div className="legend-ai__python-panel">
-              {pythonEntry?.status === LegendAIPythonCodeStatus.LOADING && (
-                <div className="legend-ai__python-status">
-                  <LoadingIcon isLoading={true} />
-                  <span>Generating Python code...</span>
-                </div>
-              )}
-              {pythonEntry?.status === LegendAIPythonCodeStatus.ERROR && (
-                <div className="legend-ai__python-status legend-ai__python-status--error">
-                  {pythonEntry.error}
-                </div>
-              )}
-              {pythonEntry?.status === LegendAIPythonCodeStatus.READY && (
-                <>
-                  <div className="legend-ai__python-panel-header">
-                    <span className="legend-ai__sql-block-header-icon">
-                      <CodeIcon />
-                    </span>
-                    <span>Python</span>
-                    <button
-                      type="button"
-                      className="legend-ai__sql-copy-btn"
-                      title="Copy Python code"
-                      aria-label="Copy Python code"
-                      onClick={handleCopyPython}
-                    >
-                      {pythonCopied ? (
-                        <span className="legend-ai__sql-copy-btn--copied">
-                          <CheckIcon />
-                        </span>
-                      ) : (
-                        <CopyIcon />
-                      )}
-                    </button>
-                  </div>
-                  <div className="legend-ai__sql-scroll">
-                    <pre className="legend-ai__sql-display">
-                      {pythonEntry.code}
-                    </pre>
-                  </div>
-                  {pythonEntry.notebookUrl !== undefined && (
-                    <div className="legend-ai__python-panel-actions">
-                      <a
-                        className="legend-ai__notebook-btn"
-                        href={pythonEntry.notebookUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <JupyterIcon />
-                        <span>Launch Notebook</span>
-                      </a>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          )}
-
-          {!msg.isProcessing &&
-            msg.suggestedQueries.length > 0 &&
-            onSuggestedQueryClick && (
-              <div className="legend-ai__follow-up-suggestions">
-                <span className="legend-ai__follow-up-label">
-                  Follow-up questions:
-                </span>
-                {msg.suggestedQueries.map((q) => (
-                  <button
-                    key={q}
-                    type="button"
-                    className="legend-ai__follow-up-btn"
-                    onClick={(): void => onSuggestedQueryClick(q)}
-                  >
-                    {q}
-                  </button>
-                ))}
-              </div>
-            )}
-        </div>
-      </div>
-    );
-  },
-);
 
 export const MarketplaceAIChatView = observer(
   (props: { initialQuery?: string }): React.ReactNode => {
@@ -555,6 +151,82 @@ export const MarketplaceAIChatView = observer(
       [store, dispatchQuery],
     );
 
+    const [expandedThinking, setExpandedThinking] = useState<Set<number>>(
+      new Set(),
+    );
+    const toggleThinking = useCallback((msgIndex: number): void => {
+      setExpandedThinking((prev) => {
+        const next = new Set(prev);
+        if (next.has(msgIndex)) {
+          next.delete(msgIndex);
+        } else {
+          next.add(msgIndex);
+        }
+        return next;
+      });
+    }, []);
+
+    const copyText = useCallback(
+      (text: string): Promise<void> =>
+        store.baseStore.applicationStore.clipboardService.copyTextToClipboard(
+          text,
+        ),
+      [store],
+    );
+
+    const handleRequestPython = useCallback(
+      (msg: LegendAIAssistantMessage): void => {
+        flowResult(store.generatePythonCode(msg.id)).catch(noop());
+      },
+      [store],
+    );
+
+    const [openingDataCubeMessageIds, setOpeningDataCubeMessageIds] = useState<
+      Set<string>
+    >(new Set());
+    const handleOpenInDataCube = useCallback(
+      (msg: LegendAIAssistantMessage): void => {
+        setOpeningDataCubeMessageIds((prev) => new Set(prev).add(msg.id));
+        flowResult(store.openInDataCube(msg.id))
+          .catch(noop())
+          .finally(() =>
+            setOpeningDataCubeMessageIds((prev) => {
+              const next = new Set(prev);
+              next.delete(msg.id);
+              return next;
+            }),
+          );
+      },
+      [store],
+    );
+
+    const permissionErrorNote = useMemo(
+      () => (
+        <>
+          Select coverage:{' '}
+          <strong>
+            {store.config.lakehouseEnvironment === LAKEHOUSE_ENV_PROD
+              ? COVERAGE_NAME_PROD
+              : COVERAGE_NAME_SANDBOX}
+          </strong>
+        </>
+      ),
+      [store.config.lakehouseEnvironment],
+    );
+
+    const handleLogTelemetryEvent = useCallback(
+      (event: LegendAIChatTelemetryEvent): void => {
+        if (event.type === LegendAIChatTelemetryEventType.ARTIFACT_COPIED) {
+          if (event.artifact === LegendAITelemetryArtifact.SQL) {
+            store.logCopySql();
+          } else {
+            store.logCopyPython();
+          }
+        }
+      },
+      [store],
+    );
+
     if (!store.isEnabled) {
       return (
         <div className="marketplace-ai-chat marketplace-ai-chat--disabled">
@@ -609,7 +281,7 @@ export const MarketplaceAIChatView = observer(
               className="marketplace-ai-chat__messages"
               ref={conversationRef}
             >
-              {store.messages.map((msg) => {
+              {store.messages.map((msg, msgIndex) => {
                 if (msg.role === LegendAIMessageRole.USER) {
                   return (
                     <div
@@ -623,12 +295,45 @@ export const MarketplaceAIChatView = observer(
                   );
                 }
 
+                const pythonEntry = store.pythonCodeByMessageId.get(msg.id);
                 return (
-                  <AssistantMessageView
+                  <LegendAIAssistantMessageView
                     key={msg.id}
                     msg={msg}
+                    msgIndex={msgIndex}
+                    isThinkingVisible={
+                      msg.isProcessing || expandedThinking.has(msgIndex)
+                    }
+                    onToggleThinking={toggleThinking}
+                    onCopyText={copyText}
+                    permissionErrorNote={permissionErrorNote}
+                    networkErrorNote={NETWORK_ERROR_NOTE}
                     onSuggestedQueryClick={handleSuggestedQueryClick}
                     onFallbackAction={handleFallbackAction}
+                    {...(store.config.enghubDocUrl === undefined
+                      ? {}
+                      : { enghubDocUrl: store.config.enghubDocUrl })}
+                    {...(store.config.enthubRequestAccessUrl === undefined
+                      ? {}
+                      : {
+                          enthubRequestAccessUrl:
+                            store.config.enthubRequestAccessUrl,
+                        })}
+                    {...(pythonEntry
+                      ? { pythonEntry: toAssistantPythonEntry(pythonEntry) }
+                      : {})}
+                    {...(store.supportsPython
+                      ? { onRequestPython: handleRequestPython }
+                      : {})}
+                    {...(store.supportsDataCube
+                      ? {
+                          onOpenInDataCube: handleOpenInDataCube,
+                          isOpeningInDataCube: openingDataCubeMessageIds.has(
+                            msg.id,
+                          ),
+                        }
+                      : {})}
+                    onLogTelemetryEvent={handleLogTelemetryEvent}
                   />
                 );
               })}

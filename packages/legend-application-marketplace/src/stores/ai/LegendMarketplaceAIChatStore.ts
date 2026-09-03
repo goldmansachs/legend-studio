@@ -174,7 +174,7 @@ interface DataSpaceScope {
   pureExecutionContext: QueryExplicitExecutionContextInfo | undefined;
 }
 
-type PythonCodeEntry =
+export type MarketplaceAIPythonCodeEntry =
   | { status: LegendAIPythonCodeStatus.LOADING }
   | {
       status: LegendAIPythonCodeStatus.READY;
@@ -307,7 +307,7 @@ export class LegendMarketplaceAIChatStore {
     string,
     DataSpaceScope | undefined
   >();
-  pythonCodeByMessageId = new Map<string, PythonCodeEntry>();
+  pythonCodeByMessageId = new Map<string, MarketplaceAIPythonCodeEntry>();
   private lastResolvedLakehouseConfig: LegendAIConfig | undefined = undefined;
   resolvedOpenInDataCube:
     | ((
