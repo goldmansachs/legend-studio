@@ -403,6 +403,7 @@ export const LegendAIAssistantMessageView = memo(
                 <button
                   type="button"
                   className="legend-ai__thinking-toggle"
+                  aria-expanded={isThinkingVisible}
                   onClick={(): void => onToggleThinking(msgIndex)}
                 >
                   <span className="legend-ai__thinking-toggle-icon">
@@ -670,6 +671,7 @@ export const LegendAIAssistantMessageView = memo(
                     <button
                       type="button"
                       className="legend-ai__python-cta"
+                      aria-expanded={showPython}
                       onClick={handleTogglePython}
                     >
                       <PythonIcon />

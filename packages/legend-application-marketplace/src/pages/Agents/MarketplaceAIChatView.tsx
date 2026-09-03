@@ -310,6 +310,7 @@ export const MarketplaceAIChatView = observer(
                     onToggleThinking={toggleThinking}
                     onCopyText={copyText}
                     showDataContext={true}
+                    splitAnswerSections={true}
                     permissionErrorNote={permissionErrorNote}
                     networkErrorNote={NETWORK_ERROR_NOTE}
                     onSuggestedQueryClick={handleSuggestedQueryClick}

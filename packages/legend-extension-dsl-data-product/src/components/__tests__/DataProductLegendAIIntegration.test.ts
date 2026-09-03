@@ -487,7 +487,7 @@ describe(unitTest('extractTDSServicesFromDataProduct — access points'), () => 
     );
     expect(result).toHaveLength(2);
     expect(result[0]?.title).toBe('TradeService');
-    expect(result[0]?.sourceType).toBeUndefined();
+    expect(result[0]?.sourceType).toBe(TDSServiceSourceType.SERVICE);
     expect(result[1]?.title).toBe('Positions');
     expect(result[1]?.sourceType).toBe(TDSServiceSourceType.ACCESS_POINT);
   });
