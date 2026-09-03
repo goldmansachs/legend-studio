@@ -29,13 +29,16 @@ import {
   V1_deserializeValueSpecification,
   V1_PureGraphManager,
 } from '@finos/legend-graph';
-import { TEST__GraphManagerPluginManager } from '@finos/legend-graph/test';
+import {
+  TEST__getTestGraphManagerState,
+  TEST__GraphManagerPluginManager,
+} from '@finos/legend-graph/test';
 import {
   buildPropertyDocIndex,
   enrichColumnsFromElementDocs,
   inferServiceRelationshipsFromAssociations,
   extractLambdaPreFilters,
-  extractServicePreFilters,
+  extractServiceQuerySchema,
   extractModelContext,
   buildEnrichedBusinessContext,
   findBestAlternateRoot,
@@ -681,7 +684,7 @@ describe(unitTest('extractLambdaPreFilters'), () => {
   });
 });
 
-describe(unitTest('extractServicePreFilters'), () => {
+describe(unitTest('extractServiceQuerySchema'), () => {
   // A real graph manager needs an engine; only pureCodeToLambda and the log
   // service it reports parse failures through are exercised here.
   const graphManagerWith = (
@@ -728,15 +731,23 @@ describe(unitTest('extractServicePreFilters'), () => {
       },
     ];
 
-    expect(
-      await extractServicePreFilters('{| ok}', graphManagerReturning(body)),
-    ).toEqual([{ property: 'region', operator: 'equal', value: 'AMERICAS' }]);
+    const result = await extractServiceQuerySchema(
+      '{| ok}',
+      graphManagerReturning(body),
+      TEST__getTestGraphManagerState(),
+    );
+    expect(result.preFilters).toEqual([
+      { property: 'region', operator: 'equal', value: 'AMERICAS' },
+    ]);
   });
 
   test('returns undefined when the query carries no filters', async () => {
-    expect(
-      await extractServicePreFilters('{| ok}', graphManagerReturning([])),
-    ).toBeUndefined();
+    const result = await extractServiceQuerySchema(
+      '{| ok}',
+      graphManagerReturning([]),
+      TEST__getTestGraphManagerState(),
+    );
+    expect(result.preFilters).toBeUndefined();
   });
 
   test('returns undefined when the query cannot be parsed', async () => {
@@ -744,9 +755,13 @@ describe(unitTest('extractServicePreFilters'), () => {
       Promise.reject(new Error('parse error')),
     );
 
-    expect(
-      await extractServicePreFilters('invalid', graphManager),
-    ).toBeUndefined();
+    const result = await extractServiceQuerySchema(
+      'invalid',
+      graphManager,
+      TEST__getTestGraphManagerState(),
+    );
+    expect(result.preFilters).toBeUndefined();
+    expect(result.parameterExtractionFailed).toBe(true);
   });
 });
 

@@ -23,7 +23,7 @@ import {
   DEFAULT_LEGEND_AI_CONFIG,
   buildColumnDefsFromNames,
   parseTDSColumnDoc,
-  extractParameterSchemas,
+  buildParameterSchemas,
 } from '../LegendAITypes.js';
 import type { LegendApplicationPlugin } from '@finos/legend-application';
 import {
@@ -142,37 +142,19 @@ describe(
   },
 );
 
-// ─── extractParameterSchemas ─────────────────────────────────────────────────
+// ─── buildParameterSchemas ───────────────────────────────────────────────────
 
-describe(unitTest('extractParameterSchemas'), () => {
-  test('returns empty result when pureCodeToLambda throws', async () => {
-    const graphManager = {
-      pureCodeToLambda: async (): Promise<RawLambda> => {
-        throw new Error('parse error');
+describe(unitTest('buildParameterSchemas'), () => {
+  test('returns no parameters when the lambda declares none', () => {
+    const graphManagerState = {
+      graphManager: {
+        buildValueSpecification: (param: { name?: string }) =>
+          new VariableExpression(param.name ?? '', new Multiplicity(1, 1)),
       },
+      graph: {},
     } as never;
-    const graphManagerState = { graph: {} } as never;
-    const result = await extractParameterSchemas(
-      'invalid code',
-      graphManager,
-      graphManagerState,
-    );
-    expect(result.parameters).toEqual([]);
-    expect(result.parameterSchemas).toEqual([]);
-    expect(result.parameterExtractionFailed).toBe(true);
-  });
-
-  test('returns parameters when lambda has variable expressions', async () => {
-    const graphManager = {
-      pureCodeToLambda: async (): Promise<RawLambda> =>
-        new RawLambda(undefined, undefined),
-      buildValueSpecification: (param: { name?: string }) =>
-        new VariableExpression(param.name ?? '', new Multiplicity(1, 1)),
-    } as never;
-    const graphManagerState = { graph: {} } as never;
-    const result = await extractParameterSchemas(
-      '{| ok}',
-      graphManager,
+    const result = buildParameterSchemas(
+      new RawLambda(undefined, undefined),
       graphManagerState,
     );
     expect(result.parameterExtractionFailed).toBe(false);

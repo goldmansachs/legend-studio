@@ -40,10 +40,9 @@ import type { NormalizedDocumentationEntry } from '@finos/legend-lego/model-docu
 import {
   TDSServiceSourceType,
   parseTDSColumnDoc,
-  extractParameterSchemas,
+  extractServiceQuerySchema,
   buildPropertyDocIndex,
   enrichColumnsFromElementDocs,
-  extractServicePreFilters,
   sharedColumnNames,
   type TDSColumnSchema,
   type TDSServiceSchema,
@@ -387,9 +386,16 @@ async function buildSampleQueryService(
   }
   const queryText = sq.executable ?? sq.info.query;
   const graphManager = graphManagerState.graphManager;
-  const { parameters, parameterSchemas, parameterExtractionFailed } =
-    await extractParameterSchemas(queryText, graphManager, graphManagerState);
-  const preFilters = await extractServicePreFilters(queryText, graphManager);
+  const {
+    parameters,
+    parameterSchemas,
+    parameterExtractionFailed,
+    preFilters,
+  } = await extractServiceQuerySchema(
+    queryText,
+    graphManager,
+    graphManagerState,
+  );
 
   const entry: TDSServiceSchema = {
     title: sq.title,

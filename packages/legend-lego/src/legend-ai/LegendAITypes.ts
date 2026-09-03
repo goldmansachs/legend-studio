@@ -18,8 +18,8 @@ import type { DataGridColumnDefinition } from '../data-grid/index.js';
 import {
   type TDSRowDataType,
   type QueryExplicitExecutionContextInfo,
-  type AbstractPureGraphManager,
   type GraphManagerState,
+  type RawLambda,
   buildLambdaVariableExpressions,
   VariableExpression,
   extractElementNameFromPath,
@@ -902,17 +902,16 @@ export function classifyQuestionIntentFast(
   };
 }
 
-export async function extractParameterSchemas(
-  query: string,
-  graphManager: AbstractPureGraphManager,
+/** Reads the parameters an already-parsed service lambda declares. */
+export function buildParameterSchemas(
+  rawLambda: RawLambda,
   graphManagerState: GraphManagerState,
-): Promise<{
+): {
   parameters: string[];
   parameterSchemas: TDSParameterSchema[];
   parameterExtractionFailed: boolean;
-}> {
+} {
   try {
-    const rawLambda = await graphManager.pureCodeToLambda(query);
     const varExpressions = buildLambdaVariableExpressions(
       rawLambda,
       graphManagerState,

@@ -23,11 +23,10 @@ import {
   type GraphManagerState,
 } from '@finos/legend-graph';
 import {
-  extractParameterSchemas,
+  extractServiceQuerySchema,
   buildPropertyDocIndex,
   enrichColumnsFromElementDocs,
   inferServiceRelationshipsFromAssociations,
-  extractServicePreFilters,
   extractModelContext,
   type TDSColumnSchema,
   type TDSServiceSchema,
@@ -327,16 +326,15 @@ export async function extractTDSServicesFromDataSpaceSource(
       const info = exec.info;
       const tdsResult = exec.result;
 
-      const { parameters, parameterSchemas, parameterExtractionFailed } =
-        await extractParameterSchemas(
-          info.query,
-          graphManager,
-          source.graphManagerState,
-        );
-
-      const preFilters = await extractServicePreFilters(
+      const {
+        parameters,
+        parameterSchemas,
+        parameterExtractionFailed,
+        preFilters,
+      } = await extractServiceQuerySchema(
         info.query,
         graphManager,
+        source.graphManagerState,
       );
 
       const entry: TDSServiceSchema = {

@@ -16,7 +16,9 @@
 
 import {
   type AbstractPureGraphManager,
+  type GraphManagerState,
   type Multiplicity,
+  type RawLambda,
   type V1_ValueSpecification,
   extractElementNameFromPath,
   matchFunctionName,
@@ -47,17 +49,19 @@ import {
   PropertyDocumentationEntry,
   type NormalizedDocumentationEntry,
 } from '../model-documentation/index.js';
-import type {
-  TDSColumnSchema,
-  TDSServiceSchema,
-  TDSServicePreFilter,
-  LegendAIPrimitiveValue,
-  LegendAIServiceRelationship,
-  LegendAIModelContext,
-  LegendAIModelEntity,
-  LegendAIModelAssociation,
-  LegendAIModelProperty,
-  LegendAIFunctionInfo,
+import {
+  type TDSColumnSchema,
+  type TDSParameterSchema,
+  type TDSServiceSchema,
+  type TDSServicePreFilter,
+  type LegendAIPrimitiveValue,
+  type LegendAIServiceRelationship,
+  type LegendAIModelContext,
+  type LegendAIModelEntity,
+  type LegendAIModelAssociation,
+  type LegendAIModelProperty,
+  type LegendAIFunctionInfo,
+  buildParameterSchemas,
 } from './LegendAITypes.js';
 import type {
   LegendAIEnrichedBusinessContext,
@@ -514,15 +518,50 @@ export function extractLambdaPreFilters(
 }
 
 /**
+ * Derives the parameters and pre-filters a service query declares, parsing it
+ * once so a sample query costs a single engine round trip.
+ */
+export async function extractServiceQuerySchema(
+  query: string,
+  graphManager: AbstractPureGraphManager,
+  graphManagerState: GraphManagerState,
+): Promise<{
+  parameters: string[];
+  parameterSchemas: TDSParameterSchema[];
+  parameterExtractionFailed: boolean;
+  preFilters: TDSServicePreFilter[] | undefined;
+}> {
+  let rawLambda: RawLambda;
+  try {
+    rawLambda = await graphManager.pureCodeToLambda(query);
+  } catch (error) {
+    assertErrorThrown(error);
+    graphManager.logService.debug(
+      LogEvent.create(GRAPH_MANAGER_EVENT.PARSING_FAILURE),
+      error,
+    );
+    return {
+      parameters: [],
+      parameterSchemas: [],
+      parameterExtractionFailed: true,
+      preFilters: undefined,
+    };
+  }
+  return {
+    ...buildParameterSchemas(rawLambda, graphManagerState),
+    preFilters: extractPreFiltersFromLambda(rawLambda, graphManager),
+  };
+}
+
+/**
  * Reads the filters already baked into a service query. Best effort: without
  * them the service still works, the AI just misses its hardcoded constraints.
  */
-export async function extractServicePreFilters(
-  query: string,
+function extractPreFiltersFromLambda(
+  rawLambda: RawLambda,
   graphManager: AbstractPureGraphManager,
-): Promise<TDSServicePreFilter[] | undefined> {
+): TDSServicePreFilter[] | undefined {
   try {
-    const rawLambda = await graphManager.pureCodeToLambda(query);
     const lambda = V1_deserializeValueSpecification(
       graphManager.serializeRawValueSpecification(rawLambda),
       graphManager.pluginManager.getPureProtocolProcessorPlugins(),
@@ -538,6 +577,7 @@ export async function extractServicePreFilters(
     return undefined;
   }
 }
+
 // ────────────────────────────────────────────────────────────────────────────
 // Model context extraction from DataSpace elementDocs
 // ────────────────────────────────────────────────────────────────────────────

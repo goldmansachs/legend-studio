@@ -61,7 +61,7 @@ export {
   buildPropertyDocIndex,
   enrichColumnsFromElementDocs,
   inferServiceRelationshipsFromAssociations,
-  extractServicePreFilters,
+  extractServiceQuerySchema,
   extractModelContext,
   resolveEntitiesDeterministic,
 } from './LegendAIDocEnrichment.js';
