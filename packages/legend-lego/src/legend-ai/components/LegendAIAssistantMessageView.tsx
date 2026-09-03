@@ -747,7 +747,8 @@ export const LegendAIAssistantMessageView = memo(
                     {pythonEntry?.status === LegendAIPythonCodeStatus.ERROR && (
                       <div className="legend-ai__python-panel-error">
                         <span>
-                          Could not generate Python code. Try again in a moment.
+                          {pythonEntry.errorMessage ||
+                            'Could not generate Python code. Try again in a moment.'}
                         </span>
                         <button
                           type="button"

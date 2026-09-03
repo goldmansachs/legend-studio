@@ -481,11 +481,7 @@ describe(unitTest('LegendAIChat'), () => {
     render(<LegendAIChat {...defaultProps} plugin={plugin} />);
     fireEvent.click(screen.getByText('Want the Python code for this query?'));
     await waitFor(() =>
-      expect(
-        screen.getByText(
-          'Could not generate Python code. Try again in a moment.',
-        ),
-      ).toBeDefined(),
+      expect(screen.getByText('LLM unavailable')).toBeDefined(),
     );
     fireEvent.click(screen.getByText('Retry'));
     await waitFor(() =>
