@@ -271,7 +271,10 @@ export const MarketplaceAIChatView = observer(
                 className="marketplace-ai-chat__clear-btn"
                 title="Clear chat"
                 aria-label="Clear chat"
-                onClick={(): void => store.clearChat()}
+                onClick={(): void => {
+                  store.clearChat();
+                  setExpandedThinking(new Set());
+                }}
               >
                 <RefreshIcon />
                 <span>Clear chat</span>
@@ -306,6 +309,7 @@ export const MarketplaceAIChatView = observer(
                     }
                     onToggleThinking={toggleThinking}
                     onCopyText={copyText}
+                    showDataContext={true}
                     permissionErrorNote={permissionErrorNote}
                     networkErrorNote={NETWORK_ERROR_NOTE}
                     onSuggestedQueryClick={handleSuggestedQueryClick}

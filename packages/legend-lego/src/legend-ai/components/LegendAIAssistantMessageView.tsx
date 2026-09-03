@@ -254,6 +254,7 @@ export const LegendAIAssistantMessageView = memo(
     onToggleThinking: (msgIndex: number) => void;
     onCopyText: (text: string) => Promise<void>;
     splitAnswerSections?: boolean;
+    showDataContext?: boolean;
     permissionErrorNote?: React.ReactNode;
     networkErrorNote?: React.ReactNode;
     questionText?: string;
@@ -280,6 +281,7 @@ export const LegendAIAssistantMessageView = memo(
       onToggleThinking,
       onCopyText,
       splitAnswerSections,
+      showDataContext,
       permissionErrorNote,
       networkErrorNote,
       questionText,
@@ -430,7 +432,7 @@ export const LegendAIAssistantMessageView = memo(
             </div>
           )}
 
-          {msg.dataContext && (
+          {showDataContext && msg.dataContext && (
             <div className="legend-ai__data-context">
               <MarkdownTextViewer
                 value={{ value: msg.dataContext }}

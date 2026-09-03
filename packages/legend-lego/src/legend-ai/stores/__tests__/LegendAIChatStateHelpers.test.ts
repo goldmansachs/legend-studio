@@ -909,7 +909,7 @@ describe(unitTest('stripGuessedNonDateServiceParams'), () => {
   test('strips guessed non-date params not in question', () => {
     const sql = [
       'SELECT *',
-      "FROM service('/path', coordinates => 'com:group:1.0', seriesId => 'A001NGDP', startDate => '2020-01-01', endDate => '2023-12-31')",
+      "FROM service('/path', coordinates => 'com:group:1.0', seriesId => 'S001AAAA', startDate => '2020-01-01', endDate => '2023-12-31')",
       'LIMIT 10',
     ].join('\n');
     const result = stripGuessedNonDateServiceParams(sql, 'show me GDP data');
@@ -952,7 +952,7 @@ describe(unitTest('stripGuessedNonDateServiceParams'), () => {
       'FROM service(',
       "    '/VendorData/SeriesA/Region',",
       "    coordinates => 'com.gs:vendor-data-series:5.11.0',",
-      "    seriesId => 'A001NGDP',",
+      "    seriesId => 'S001AAAA',",
       "    startDate => '2020-01-01',",
       "    endDate => '2023-12-31'",
       ')',
@@ -1195,7 +1195,7 @@ describe(unitTest('buildMissingParamsWarning'), () => {
         hint: "today's date: 2026-06-03",
         isDateLike: true,
       },
-      { name: 'seriesId', hint: 'A001NGDP, B002XYZ', isDateLike: false },
+      { name: 'seriesId', hint: 'S001AAAA, S002BBBB', isDateLike: false },
     ]);
     expect(result).toContain('**processingDate**');
     expect(result).toContain('**seriesId**');

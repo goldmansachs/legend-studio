@@ -502,9 +502,8 @@ function extractIsNotNullPostFilters(
 }
 
 /**
- * Extracts hardcoded pre-filter constraints from a service lambda: `equal`
- * comparisons against literals, `isEmpty`/`isNotEmpty` checks, and post-
- * projection `isNotNull` row guards.
+ * Extracts the constraints baked into a service lambda: literal equality,
+ * emptiness checks, and post-projection `isNotNull` row guards.
  */
 export function extractLambdaPreFilters(
   lambda: V1_ValueSpecification | undefined,

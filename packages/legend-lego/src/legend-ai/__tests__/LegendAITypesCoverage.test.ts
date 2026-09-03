@@ -96,10 +96,10 @@ describe(unitTest('classifyQuestionIntentFast — signal phrases'), () => {
     'help me understand this',
     'what information does this provide',
     'what does myservice do',
-  ])('classifies %p as metadata', (question) => {
-    expect(classifyQuestionIntentFast(question, true).intent).toBe(
-      LegendAIQuestionIntent.METADATA,
-    );
+  ])('classifies %p as metadata on a matched signal', (question) => {
+    const result = classifyQuestionIntentFast(question, true);
+    expect(result.intent).toBe(LegendAIQuestionIntent.METADATA);
+    expect(result.metaScore).toBeGreaterThan(0);
   });
 
   test.each([
@@ -112,15 +112,15 @@ describe(unitTest('classifyQuestionIntentFast — signal phrases'), () => {
     'trades on 2024-01-15',
     'last quarter results',
     'show fiscal year data q1 2024',
-    'lookup identifier AAAAAAA',
+    'lookup sedol XXXXXXX',
     'volume per country',
     'show data grouped by region',
     'revenue broken down by category',
     'positions as of today',
-  ])('classifies %p as a data query', (question) => {
-    expect(classifyQuestionIntentFast(question, true).intent).toBe(
-      LegendAIQuestionIntent.DATA_QUERY,
-    );
+  ])('classifies %p as a data query on a matched signal', (question) => {
+    const result = classifyQuestionIntentFast(question, true);
+    expect(result.intent).toBe(LegendAIQuestionIntent.DATA_QUERY);
+    expect(result.dataScore).toBeGreaterThan(0);
   });
 });
 

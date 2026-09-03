@@ -49,7 +49,7 @@ import {
   type TDSServiceSchema,
   type LegendAIAccessPointRelationship,
 } from '@finos/legend-lego/legend-ai';
-import { guaranteeNonNullable } from '@finos/legend-shared';
+import { guaranteeNonNullable, returnUndefOnError } from '@finos/legend-shared';
 import { getRelationColumnDescription } from '../../utils/LakehouseUtils.js';
 import { findArtifactRelationType } from '../../utils/DataProductIngestUtils.js';
 import type { DataProductViewerState } from './DataProductViewerState.js';
@@ -70,10 +70,8 @@ function isLakehouseSystemColumn(name: string): boolean {
 }
 
 /**
- * Maps a relation type onto the AI column schema. Name, type and nullability
- * come from the metamodel; `description` and the type variables that make a
- * relational type precise are read from the protocol columns, since
- * `V1_buildRelationTypeFromV1RelationType` does not carry either across.
+ * Maps a relation type onto the AI column schema, reading `description` and
+ * type variables from the protocol columns since the builder drops both.
  */
 function extractColumnsFromRelationType(
   relationType: RelationType,
@@ -268,9 +266,17 @@ function buildAccessPointService(
     (ai) => ai.id === ap.id,
   );
   const v1RelationType = source.relationType ?? findArtifactRelationType(impl);
-  const relationType = source.relationType
-    ? V1_buildRelationTypeFromV1RelationType(source.relationType, graph, ap.id)
-    : impl && V1_buildRelationTypeFromAccessPointImplementation(impl, graph);
+  const relationType = returnUndefOnError(() =>
+    source.relationType
+      ? V1_buildRelationTypeFromV1RelationType(
+          source.relationType,
+          graph,
+          ap.id,
+        )
+      : impl
+        ? V1_buildRelationTypeFromAccessPointImplementation(impl, graph)
+        : undefined,
+  );
   if (!v1RelationType || !relationType || relationType.columns.length === 0) {
     return undefined;
   }
