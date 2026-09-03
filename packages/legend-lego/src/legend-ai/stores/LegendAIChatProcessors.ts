@@ -19,6 +19,7 @@ import {
   assertErrorThrown,
   guaranteeNonNullable,
   isNonNullable,
+  uniq,
   uuid,
 } from '@finos/legend-shared';
 import {
@@ -1744,9 +1745,7 @@ async function attemptProbedRegeneration(
           .map((row) => row[column])
           .filter(isNonNullable)
           .map(String);
-        return values.length > 0
-          ? { column, values: Array.from(new Set(values)) }
-          : undefined;
+        return values.length > 0 ? { column, values: uniq(values) } : undefined;
       } catch (probeError) {
         assertErrorThrown(probeError);
         addThinkingStep(setMessages, `Could not probe values for "${column}"`);
@@ -2884,7 +2883,7 @@ function formatUnresolvableParams(services: TDSServiceSchema[]): string[] {
       );
     }
   }
-  return [...new Set(parts)];
+  return uniq(parts);
 }
 
 function buildZeroRowMessage(services: TDSServiceSchema[]): string {
@@ -3166,9 +3165,7 @@ function extractPreviousTurnAPPatterns(
 ): Set<string> {
   const patterns = new Set<string>();
   for (const turn of history) {
-    const pCallPattern = /p\(\s*'(?<pId>[^']+)'\s*\)/g;
-    let pCall: RegExpExecArray | null;
-    while ((pCall = pCallPattern.exec(turn.sql)) !== null) {
+    for (const pCall of accessPointCalls(turn.sql)) {
       const pattern = pCall.groups?.pId;
       if (pattern) {
         const lastDot = pattern.lastIndexOf('.');

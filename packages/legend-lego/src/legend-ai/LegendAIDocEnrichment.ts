@@ -35,6 +35,7 @@ import {
 } from '@finos/legend-graph';
 import {
   assertErrorThrown,
+  filterByType,
   isNonNullable,
   LogEvent,
 } from '@finos/legend-shared';
@@ -132,10 +133,7 @@ function extractUniqueAssociations(
 ): Map<string, AssociationDocumentationEntry> {
   const assocEntries = elementDocs
     .map((e) => e.elementEntry)
-    .filter(
-      (e): e is AssociationDocumentationEntry =>
-        e instanceof AssociationDocumentationEntry,
-    );
+    .filter(filterByType(AssociationDocumentationEntry));
   const uniqueAssocs = new Map<string, AssociationDocumentationEntry>();
   for (const a of assocEntries) {
     if (!uniqueAssocs.has(a.path)) {

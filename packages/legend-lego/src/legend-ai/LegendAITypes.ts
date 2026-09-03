@@ -24,7 +24,7 @@ import {
   VariableExpression,
   extractElementNameFromPath,
 } from '@finos/legend-graph';
-import { filterByType } from '@finos/legend-shared';
+import { escapeRegExp, filterByType } from '@finos/legend-shared';
 import type { LegendApplicationPlugin } from '@finos/legend-application';
 import {
   LegendAI_LegendApplicationPlugin_Extension,
@@ -791,9 +791,7 @@ export class QuestionIntentClassification {
 function maskEntityNames(question: string, entityNames: string[]): string {
   const escaped = entityNames
     .filter((name) => name.length > 0)
-    .map((name) =>
-      name.toLowerCase().replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`),
-    );
+    .map((name) => escapeRegExp(name.toLowerCase()));
   if (escaped.length === 0) {
     return question;
   }
