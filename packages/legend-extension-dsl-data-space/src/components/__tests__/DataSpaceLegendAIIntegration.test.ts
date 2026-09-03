@@ -33,6 +33,7 @@ import {
   VariableExpression,
   Multiplicity,
 } from '@finos/legend-graph';
+import { TEST__getTestGraphManagerState } from '@finos/legend-graph/test';
 import type {
   LegendAIModelContext,
   TDSServiceSchema,
@@ -42,17 +43,15 @@ function makeViewerStateStub(
   executables: DataSpaceExecutableAnalysisResult[],
   lambdaMocks?: Map<string, RawLambda>,
 ): DataSpaceViewerState {
+  const graphManagerState = TEST__getTestGraphManagerState();
+  graphManagerState.graphManager.pureCodeToLambda = async (code: string) =>
+    lambdaMocks?.get(code) ?? new RawLambda(undefined, undefined);
+  graphManagerState.graphManager.buildValueSpecification = (param: {
+    name?: string;
+  }) => new VariableExpression(param.name ?? '', new Multiplicity(1, 1));
   return {
     dataSpaceAnalysisResult: { executables, elementDocs: [] },
-    graphManagerState: {
-      graphManager: {
-        pureCodeToLambda: async (code: string) =>
-          lambdaMocks?.get(code) ?? new RawLambda(undefined, undefined),
-        buildValueSpecification: (param: { name?: string }) =>
-          new VariableExpression(param.name ?? '', new Multiplicity(1, 1)),
-      },
-      graph: {},
-    },
+    graphManagerState,
   } as unknown as DataSpaceViewerState;
 }
 
