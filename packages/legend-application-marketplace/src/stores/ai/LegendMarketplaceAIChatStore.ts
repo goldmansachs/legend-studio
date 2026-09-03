@@ -35,6 +35,7 @@ import {
   type LegendAIAssistantMessage,
   type LegendAIFallbackAction,
   type LegendAIPriorSqlFailure,
+  type LegendAIPythonCodeEntry,
   type LegendAIPythonQueryCode,
   type LegendAIConfig,
   type LegendAIProductMetadata,
@@ -175,15 +176,6 @@ interface DataSpaceScope {
   pureExecutionContext: QueryExplicitExecutionContextInfo | undefined;
 }
 
-export type MarketplaceAIPythonCodeEntry =
-  | { status: LegendAIPythonCodeStatus.LOADING }
-  | {
-      status: LegendAIPythonCodeStatus.READY;
-      code: string;
-      notebookUrl?: string;
-    }
-  | { status: LegendAIPythonCodeStatus.ERROR; error: string };
-
 export interface ScoredProductCandidate {
   product: DataProductSearchResult;
   productSimilarity: number;
@@ -308,7 +300,7 @@ export class LegendMarketplaceAIChatStore {
     string,
     DataSpaceScope | undefined
   >();
-  pythonCodeByMessageId = new Map<string, MarketplaceAIPythonCodeEntry>();
+  pythonCodeByMessageId = new Map<string, LegendAIPythonCodeEntry>();
   private lastResolvedLakehouseConfig: LegendAIConfig | undefined = undefined;
   resolvedOpenInDataCube:
     | ((
@@ -504,6 +496,10 @@ export class LegendMarketplaceAIChatStore {
       plugin.supportsPythonCodegen(candidate),
     );
     if (!service) {
+      this.pythonCodeByMessageId.set(messageId, {
+        status: LegendAIPythonCodeStatus.READY,
+        code: undefined,
+      });
       return;
     }
     this.logGeneratePython();
@@ -526,23 +522,20 @@ export class LegendMarketplaceAIChatStore {
         | undefined;
       if (code === undefined) {
         this.pythonCodeByMessageId.set(messageId, {
-          status: LegendAIPythonCodeStatus.ERROR,
-          error: 'Python code is not available for this query.',
+          status: LegendAIPythonCodeStatus.READY,
+          code: undefined,
         });
         return;
       }
       this.pythonCodeByMessageId.set(messageId, {
         status: LegendAIPythonCodeStatus.READY,
-        code: code.code,
-        ...(code.notebookUrl === undefined
-          ? {}
-          : { notebookUrl: code.notebookUrl }),
+        code,
       });
     } catch (error) {
       assertErrorThrown(error);
       this.pythonCodeByMessageId.set(messageId, {
         status: LegendAIPythonCodeStatus.ERROR,
-        error: error.message,
+        errorMessage: error.message,
       });
     }
   }
@@ -1546,12 +1539,12 @@ export class LegendMarketplaceAIChatStore {
         missing,
         buildAccessPointModel(projectGAV, graphManagerState),
         this.baseStore.engineServerClient,
-        (accessPointId, error) =>
+        (accessPointKey, error) =>
           this.baseStore.applicationStore.logService.warn(
             LogEvent.create(
               LEGEND_MARKETPLACE_APP_EVENT.AI_AGENT_ACCESS_POINT_RESOLUTION_FAILURE,
             ),
-            `Unable to type access point ${accessPointId} through the engine: ${error.message}`,
+            `Unable to type access point ${accessPointKey} through the engine: ${error.message}`,
           ),
       );
     } catch (error) {

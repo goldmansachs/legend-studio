@@ -2669,11 +2669,9 @@ function prepareSafeSql(sql: string, services: TDSServiceSchema[]): string {
 }
 
 /**
- * The single execution chokepoint for SQL in this module. Every code
- * path that needs to run SQL — primary orchestrator, retry-with-fix,
- * exported `executeSqlAndReport`, internal helpers — calls through
- * here. No other code in this file may call `plugin.executeLakehouseSql`
- * or `plugin.executeSql` directly.
+ * The single execution chokepoint for Legend AI SQL, applying the join
+ * sanitizers, the row limit and the timeout. Nothing may call
+ * `plugin.executeLakehouseSql` or `plugin.executeSql` directly.
  */
 export async function executeSqlForServices(
   sql: string,

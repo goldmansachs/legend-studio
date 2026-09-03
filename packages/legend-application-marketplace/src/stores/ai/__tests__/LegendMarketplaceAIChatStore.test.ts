@@ -3546,8 +3546,7 @@ describe(
       await flowResult(store.generatePythonCode(messageId));
       expect(store.pythonCodeByMessageId.get(messageId)).toEqual({
         status: LegendAIPythonCodeStatus.READY,
-        code: 'df = lakehouse.query()',
-        notebookUrl: 'https://nb',
+        code: { code: 'df = lakehouse.query()', notebookUrl: 'https://nb' },
       });
     });
 
@@ -3562,7 +3561,7 @@ describe(
       expect(entry?.status).toBe(LegendAIPythonCodeStatus.ERROR);
       expect(
         entry?.status === LegendAIPythonCodeStatus.ERROR
-          ? entry.error
+          ? entry.errorMessage
           : undefined,
       ).toContain('codegen boom');
     });

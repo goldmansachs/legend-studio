@@ -22,11 +22,9 @@ import { noop } from '@finos/legend-shared';
 import {
   type LegendAIAssistantMessage,
   type LegendAIChatTelemetryEvent,
-  type LegendAIPythonCodeEntry,
   LegendAIAssistantMessageView,
   LegendAIChatTelemetryEventType,
   LegendAIMessageRole,
-  LegendAIPythonCodeStatus,
   LegendAITelemetryArtifact,
   LAKEHOUSE_ENV_PROD,
   COVERAGE_NAME_PROD,
@@ -34,44 +32,13 @@ import {
 } from '@finos/legend-lego/legend-ai';
 import { useAuth } from 'react-oidc-context';
 import { useLegendMarketplaceAIChatStore } from '../../application/providers/LegendMarketplaceAIChatStoreProvider.js';
-import {
-  type MarketplaceAIPythonCodeEntry,
-  MarketplaceAIChatStage,
-} from '../../stores/ai/LegendMarketplaceAIChatStore.js';
+import { MarketplaceAIChatStage } from '../../stores/ai/LegendMarketplaceAIChatStore.js';
 import { MarketplaceAIProductCards } from './MarketplaceAIProductCards.js';
 import { MarketplaceAIProductAutosuggest } from './MarketplaceAIProductAutosuggest.js';
 import { MarketplaceAIInputBar } from './MarketplaceAIInputBar.js';
 
 const NETWORK_ERROR_NOTE =
   'Please check your network connection and try again.';
-
-/**
- * Adapts the store's Python code entry to the shape the shared assistant
- * message view renders.
- */
-const toAssistantPythonEntry = (
-  entry: MarketplaceAIPythonCodeEntry,
-): LegendAIPythonCodeEntry => {
-  switch (entry.status) {
-    case LegendAIPythonCodeStatus.READY:
-      return {
-        status: LegendAIPythonCodeStatus.READY,
-        code: {
-          code: entry.code,
-          ...(entry.notebookUrl === undefined
-            ? {}
-            : { notebookUrl: entry.notebookUrl }),
-        },
-      };
-    case LegendAIPythonCodeStatus.ERROR:
-      return {
-        status: LegendAIPythonCodeStatus.ERROR,
-        errorMessage: entry.error,
-      };
-    default:
-      return { status: LegendAIPythonCodeStatus.LOADING };
-  }
-};
 
 export const MarketplaceAIChatView = observer(
   (props: { initialQuery?: string }): React.ReactNode => {
@@ -324,9 +291,7 @@ export const MarketplaceAIChatView = observer(
                           enthubRequestAccessUrl:
                             store.config.enthubRequestAccessUrl,
                         })}
-                    {...(pythonEntry
-                      ? { pythonEntry: toAssistantPythonEntry(pythonEntry) }
-                      : {})}
+                    {...(pythonEntry ? { pythonEntry } : {})}
                     {...(store.supportsPython
                       ? { onRequestPython: handleRequestPython }
                       : {})}

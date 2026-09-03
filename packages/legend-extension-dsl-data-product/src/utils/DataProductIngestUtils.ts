@@ -817,19 +817,19 @@ export async function fetchAccessPointRelationTypes(
   engineServerClient: V1_EngineServerClient,
   onFailure: (accessPointKey: string, error: Error) => void,
 ): Promise<Map<string, V1_RelationType>> {
-  const lakehouseAccessPoints = accessPoints.filter(
+  const lakehouseEntries = accessPoints.filter(
     (
       entry,
-    ): entry is { groupId: string; accessPoint: V1_LakehouseAccessPoint } =>
+    ): entry is GroupedAccessPoint & { accessPoint: V1_LakehouseAccessPoint } =>
       entry.accessPoint instanceof V1_LakehouseAccessPoint,
   );
-  if (lakehouseAccessPoints.length === 0) {
+  if (lakehouseEntries.length === 0) {
     return new Map<string, V1_RelationType>();
   }
   const input = new V1_BatchLambdaRelationTypeInput(
     model,
     Object.fromEntries(
-      lakehouseAccessPoints.map(({ groupId, accessPoint }) => [
+      lakehouseEntries.map(({ groupId, accessPoint }) => [
         buildAccessPointKey(groupId, accessPoint.id),
         accessPoint.func,
       ]),

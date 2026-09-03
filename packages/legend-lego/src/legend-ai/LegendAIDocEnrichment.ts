@@ -22,6 +22,7 @@ import {
   matchFunctionName,
   PRIMITIVE_TYPE,
   GRAPH_MANAGER_EVENT,
+  SUPPORTED_FUNCTIONS,
   V1_AppliedFunction,
   V1_AppliedProperty,
   V1_CBoolean,
@@ -317,14 +318,9 @@ export function inferServiceRelationshipsFromAssociations(
 // ────────────────────────────────────────────────────────────────────────────
 
 const FILTER_FUNCTION_PATHS = [
-  'meta::pure::functions::collection::filter',
-  'meta::pure::functions::relation::filter',
+  SUPPORTED_FUNCTIONS.FILTER,
+  SUPPORTED_FUNCTIONS.RELATION_FILTER,
 ];
-const EQUAL_FUNCTION_PATH = 'meta::pure::functions::boolean::equal';
-const IS_EMPTY_FUNCTION_PATH = 'meta::pure::functions::collection::isEmpty';
-const IS_NOT_EMPTY_FUNCTION_PATH =
-  'meta::pure::functions::collection::isNotEmpty';
-const AND_FUNCTION_PATH = 'meta::pure::functions::boolean::and';
 const IS_NOT_NULL_PROPERTY_NAME = 'isNotNull';
 
 /**
@@ -396,21 +392,21 @@ function extractFiltersFromExpression(
   if (!(node instanceof V1_AppliedFunction)) {
     return;
   }
-  if (matchFunctionName(node.function, EQUAL_FUNCTION_PATH)) {
+  if (matchFunctionName(node.function, SUPPORTED_FUNCTIONS.EQUAL)) {
     const filter = tryExtractEqualFilter(node);
     if (filter) {
       results.push(filter);
       return;
     }
   }
-  if (matchFunctionName(node.function, IS_EMPTY_FUNCTION_PATH)) {
+  if (matchFunctionName(node.function, SUPPORTED_FUNCTIONS.IS_EMPTY)) {
     const filter = tryExtractUnaryFilter(node, 'isEmpty');
     if (filter) {
       results.push(filter);
       return;
     }
   }
-  if (matchFunctionName(node.function, IS_NOT_EMPTY_FUNCTION_PATH)) {
+  if (matchFunctionName(node.function, SUPPORTED_FUNCTIONS.IS_NOT_EMPTY)) {
     const filter = tryExtractUnaryFilter(node, 'isNotEmpty');
     if (filter) {
       results.push(filter);
@@ -471,7 +467,7 @@ function collectIsNotNullChecks(
   }
   if (
     node instanceof V1_AppliedFunction &&
-    matchFunctionName(node.function, AND_FUNCTION_PATH)
+    matchFunctionName(node.function, SUPPORTED_FUNCTIONS.AND)
   ) {
     for (const parameter of node.parameters) {
       collectIsNotNullChecks(parameter, results);

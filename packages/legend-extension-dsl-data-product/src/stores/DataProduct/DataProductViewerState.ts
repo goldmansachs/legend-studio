@@ -93,6 +93,7 @@ import {
 import type { ViewerModelsDocumentationState } from '@finos/legend-lego/model-documentation';
 import { DataProductViewerDiagramViewerState } from './DataProductViewerDiagramViewerState.js';
 import type { RegistryServerClient } from '@finos/legend-server-marketplace';
+import { buildAccessPointKey } from '../../utils/DataProductIngestUtils.js';
 import type { DataProductDataAccessState } from './DataProductDataAccessState.js';
 import { DataAccessState } from '@finos/legend-query-builder';
 import {
@@ -609,7 +610,7 @@ export class DataProductViewerState extends BaseViewerState<
       apgState.accessPointStates.forEach((apState) => {
         if (apState.accessPoint instanceof V1_LakehouseAccessPoint) {
           entries.push([
-            `${apgState.apg.id}::${apState.accessPoint.id}`,
+            buildAccessPointKey(apgState.apg.id, apState.accessPoint.id),
             apState.accessPoint.func,
           ]);
         }
