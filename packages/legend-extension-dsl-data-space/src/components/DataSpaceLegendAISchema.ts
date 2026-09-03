@@ -41,6 +41,7 @@ import {
   type LegendAIColumnPropertyMapping,
   type LegendAIParameterInfo,
   type LegendAIFunctionInfo,
+  TDSServiceSourceType,
 } from '@finos/legend-lego/legend-ai';
 import { type DiagramAnalysisResult } from '@finos/legend-extension-dsl-diagram';
 import type { DataSpaceViewerState } from '../stores/DataSpaceViewerState.js';
@@ -358,6 +359,7 @@ export async function extractTDSServicesFromDataSpaceSource(
           return column;
         }),
         parameters,
+        sourceType: TDSServiceSourceType.SERVICE,
         ...(parameterSchemas.length > 0 ? { parameterSchemas } : {}),
         ...(parameterExtractionFailed
           ? { parameterExtractionFailed: true }
