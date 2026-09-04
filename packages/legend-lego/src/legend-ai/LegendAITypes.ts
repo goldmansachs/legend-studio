@@ -902,7 +902,11 @@ export function classifyQuestionIntentFast(
   };
 }
 
-/** Reads the parameters an already-parsed service lambda declares. */
+/**
+ * Projects the variables `buildLambdaVariableExpressions` finds into the DTO
+ * the prompt serializes. The extraction is legend-graph's; only this
+ * flattening, and reporting failure instead of throwing, is local.
+ */
 export function buildParameterSchemas(
   rawLambda: RawLambda,
   graphManagerState: GraphManagerState,

@@ -4547,7 +4547,8 @@ interface ModelContextEnrichment {
 
 /**
  * Defers the three model context renderings so a question that never reaches
- * SQL generation does not pay for them.
+ * SQL generation does not pay for them. `legend-shared` re-exports no memo
+ * helper, and `lodash-es` is not a dependency of this package.
  */
 function buildModelContextEnrichment(
   question: string,

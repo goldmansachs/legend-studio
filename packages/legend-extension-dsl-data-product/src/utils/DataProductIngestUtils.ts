@@ -774,7 +774,11 @@ export interface GroupedAccessPoint {
   accessPoint: V1_AccessPoint;
 }
 
-/** Addresses an access point uniquely across the groups of a data product. */
+/**
+ * Addresses an access point uniquely across the groups of a data product.
+ * The batch request and the lookup that reads it back live in different
+ * packages and must agree on this format, so it is named rather than inlined.
+ */
 export function buildAccessPointKey(
   groupId: string,
   accessPointId: string,

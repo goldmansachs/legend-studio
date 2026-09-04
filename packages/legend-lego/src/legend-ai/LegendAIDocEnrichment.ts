@@ -422,6 +422,7 @@ function extractFiltersFromExpression(
   }
 }
 
+/** Reads the predicates out of a filter call's lambda, then keeps walking. */
 function processFilterCall(
   node: V1_AppliedFunction,
   results: TDSServicePreFilter[],
@@ -435,6 +436,11 @@ function processFilterCall(
   walkExpressions(node.parameters, results);
 }
 
+/**
+ * Descends applied functions looking for filter calls. legend-graph exposes no
+ * reusable value specification walker — its two complete traversals are a mobx
+ * observer and a private path resolver — and neither may throw on odd input.
+ */
 function walkExpressions(
   nodes: V1_ValueSpecification[],
   results: TDSServicePreFilter[],
@@ -519,7 +525,8 @@ export function extractLambdaPreFilters(
 
 /**
  * Derives the parameters and pre-filters a service query declares, parsing it
- * once so a sample query costs a single engine round trip.
+ * once so a sample query costs a single engine round trip. Shared by the
+ * DataProduct and DataSpace extractors so the two stay identical.
  */
 export async function extractServiceQuerySchema(
   query: string,
@@ -554,8 +561,9 @@ export async function extractServiceQuerySchema(
 }
 
 /**
- * Reads the filters already baked into a service query. Best effort: without
- * them the service still works, the AI just misses its hardcoded constraints.
+ * Adapts a parsed lambda back to protocol form so the pre-filter walk can run.
+ * legend-graph exposes both halves of that round trip but no helper that
+ * performs it. Best effort: without filters the AI just misses a constraint.
  */
 function extractPreFiltersFromLambda(
   rawLambda: RawLambda,

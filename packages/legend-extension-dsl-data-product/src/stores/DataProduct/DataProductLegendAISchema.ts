@@ -113,7 +113,11 @@ function extractColumnsFromRelationType(
     });
 }
 
-/** Indexes the documentation each protocol column carries, by column name. */
+/**
+ * Indexes what `getRelationColumnDescription` reads off each protocol column.
+ * The metamodel `RelationColumn` carries no description field, so the protocol
+ * type stays reachable for the two callers that need column documentation.
+ */
 function buildColumnDescriptions(
   v1RelationType: V1_RelationType,
 ): Map<string, string> {
@@ -128,8 +132,9 @@ function buildColumnDescriptions(
 }
 
 /**
- * Builds the access point relation type and the protocol documentation that
- * accompanies it. Returns nothing when the artifact carries no relation type.
+ * Builds the access point relation type and keeps the protocol type alongside
+ * it. `V1_buildRelationTypeFromAccessPointImplementation` covers the artifact
+ * branch alone: it cannot take an engine result and it drops column docs.
  */
 function resolveAccessPointRelationType(
   source: AccessPointSchemaSource,
