@@ -51,8 +51,10 @@ import {
 import {
   guaranteeNonNullable,
   isNonNullable,
+  LogEvent,
   returnUndefOnError,
 } from '@finos/legend-shared';
+import { DSL_DATAPRODUCT_EVENT } from '../../__lib__/DSL_DataProduct_Event.js';
 import { getRelationColumnDescription } from '../../utils/LakehouseUtils.js';
 import { findArtifactRelationType } from '../../utils/DataProductIngestUtils.js';
 import type { DataProductViewerState } from './DataProductViewerState.js';
@@ -139,7 +141,7 @@ function buildColumnDescriptions(
 function resolveAccessPointRelationType(
   source: AccessPointSchemaSource,
   impl: V1_AccessPointImplementation | undefined,
-  graph: PureModel,
+  graphManagerState: GraphManagerState,
 ):
   | { relationType: RelationType; descriptions: Map<string, string> }
   | undefined {
@@ -150,11 +152,15 @@ function resolveAccessPointRelationType(
   const relationType = returnUndefOnError(() =>
     V1_buildRelationTypeFromV1RelationType(
       v1RelationType,
-      graph,
+      graphManagerState.graph,
       source.accessPoint.id,
     ),
   );
   if (!relationType) {
+    graphManagerState.graphManager.logService.warn(
+      LogEvent.create(DSL_DATAPRODUCT_EVENT.ERROR_EXTRACT_LEGEND_AI_SERVICES),
+      `Could not type access point '${source.accessPoint.id}'; it is omitted from the AI schema`,
+    );
     return undefined;
   }
   return {
@@ -279,9 +285,14 @@ function extractColumnsFromSampleQuery(
     const rawType = sq.result.genericType.typeArguments
       .map((ta) => ta.rawType)
       .find((rt): rt is V1_RelationType => rt instanceof V1_RelationType);
-    if (rawType) {
+    const relationType = rawType
+      ? returnUndefOnError(() =>
+          V1_buildRelationTypeFromV1RelationType(rawType, graph),
+        )
+      : undefined;
+    if (rawType && relationType) {
       return extractColumnsFromRelationType(
-        V1_buildRelationTypeFromV1RelationType(rawType, graph),
+        relationType,
         buildColumnDescriptions(rawType),
       );
     }
@@ -305,7 +316,7 @@ function buildAccessPointService(
   columnMetadataLookup: Map<string, TDSColumnSchema>,
   productPath: string,
   groupTitle: string,
-  graph: PureModel,
+  graphManagerState: GraphManagerState,
 ): TDSServiceSchema | undefined {
   const ap = source.accessPoint;
   if (isMetadataAccessPoint(ap)) {
@@ -314,7 +325,11 @@ function buildAccessPointService(
   const impl = artifactApg?.accessPointImplementations.find(
     (ai) => ai.id === ap.id,
   );
-  const resolved = resolveAccessPointRelationType(source, impl, graph);
+  const resolved = resolveAccessPointRelationType(
+    source,
+    impl,
+    graphManagerState,
+  );
   if (!resolved || resolved.relationType.columns.length === 0) {
     return undefined;
   }
@@ -444,7 +459,7 @@ export async function extractTDSServicesFromDataProductSource(
         columnMetadataLookup,
         productPath,
         groupTitle,
-        source.graphManagerState.graph,
+        source.graphManagerState,
       );
       if (entry) {
         services.push(entry);

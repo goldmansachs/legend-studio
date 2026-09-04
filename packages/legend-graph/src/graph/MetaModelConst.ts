@@ -204,15 +204,6 @@ export enum SUPPORTED_FUNCTIONS {
   // from
   FROM = 'meta::pure::mapping::from',
   WITH = 'meta::pure::mapping::with',
-  // boolean
-  AND = 'meta::pure::functions::boolean::and',
-  EQUAL = 'meta::pure::functions::boolean::equal',
-  // collection
-  FILTER = 'meta::pure::functions::collection::filter',
-  IS_EMPTY = 'meta::pure::functions::collection::isEmpty',
-  IS_NOT_EMPTY = 'meta::pure::functions::collection::isNotEmpty',
-  // relation
-  RELATION_FILTER = 'meta::pure::functions::relation::filter',
 }
 
 export const DATE_TIME_FORMAT_WITH_MILLISECONDS =

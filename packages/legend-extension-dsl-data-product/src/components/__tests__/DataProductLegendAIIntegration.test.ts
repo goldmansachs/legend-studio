@@ -25,6 +25,7 @@ import type { DataProductViewerState } from '../../stores/DataProduct/DataProduc
 import {
   V1_ServiceExecutableInfo,
   V1_MultiExecutionServiceExecutableInfo,
+  V1_ExecutableRelationResult,
   V1_ExecutableTDSResult,
   V1_ExecutableTDSResultColumn,
   V1_ExecutableTDSResultInfo,
@@ -1258,5 +1259,50 @@ describe(unitTest('extractTDSServicesFromDataProductSource'), () => {
     });
 
     expect(services).toEqual([]);
+  });
+
+  test('keeps the other services when a column type cannot be resolved', async () => {
+    const unresolvable = new V1_SampleQuery();
+    unresolvable.title = 'Unresolvable';
+    const info = new V1_ServiceExecutableInfo();
+    info.query = '|Any.all()';
+    info.pattern = '/unresolvable';
+    unresolvable.info = info;
+    const relationType = new V1_RelationType();
+    relationType.columns = [
+      makeRelationTypeColumn('mystery', 'my::pkg::NotInTheGraph'),
+    ];
+    const typeArgument = new V1_GenericType();
+    typeArgument.rawType = relationType;
+    const resultGenericType = new V1_GenericType();
+    resultGenericType.typeArguments = [typeArgument];
+    const relationResult = new V1_ExecutableRelationResult();
+    relationResult.genericType = resultGenericType;
+    unresolvable.result = relationResult;
+
+    const services = await extractTDSServicesFromDataProductSource({
+      productPath: 'test::DataProduct',
+      accessPointGroups: [
+        {
+          id: 'grp',
+          title: 'Group',
+          accessPoints: [
+            {
+              accessPoint: makeAccessPoint('positions', { title: 'Positions' }),
+            },
+          ],
+        },
+      ],
+      artifact: makeArtifact('grp', [
+        makeImplementation('positions', {
+          columns: [makeRelationTypeColumn('positionId', 'String')],
+        }),
+      ]),
+      sampleQueries: [unresolvable],
+      elementDocs: [],
+      graphManagerState: TEST__getTestGraphManagerState(),
+    });
+
+    expect(services.map((s) => s.title)).toEqual(['Positions']);
   });
 });
