@@ -253,7 +253,6 @@ export const LegendAIAssistantMessageView = memo(
     isThinkingVisible: boolean;
     onToggleThinking: (msgIndex: number) => void;
     onCopyText: (text: string) => Promise<void>;
-    splitAnswerSections?: boolean;
     showDataContext?: boolean;
     permissionErrorNote?: React.ReactNode;
     networkErrorNote?: React.ReactNode;
@@ -280,7 +279,6 @@ export const LegendAIAssistantMessageView = memo(
       isThinkingVisible,
       onToggleThinking,
       onCopyText,
-      splitAnswerSections,
       showDataContext,
       permissionErrorNote,
       networkErrorNote,
@@ -354,9 +352,7 @@ export const LegendAIAssistantMessageView = memo(
       [msg.thinkingSteps],
     );
     const { metadataContext, analysisSummary, plainAnswer } = useMemo(() => {
-      const split = splitAnswerSections
-        ? splitCombinedAnswer(msg.textAnswer)
-        : { metadataContext: null, queryAnalysis: msg.textAnswer };
+      const split = splitCombinedAnswer(msg.textAnswer);
       const gridAnalysisFallback =
         split.metadataContext === null ? msg.textAnswer : null;
       return {
@@ -370,7 +366,7 @@ export const LegendAIAssistantMessageView = memo(
             ? (split.metadataContext ?? msg.textAnswer)
             : null,
       };
-    }, [msg.textAnswer, msg.gridData, splitAnswerSections]);
+    }, [msg.textAnswer, msg.gridData]);
 
     const submitFeedback = useCallback(
       (rating: LegendAIMessageFeedbackRating): void => {
@@ -751,8 +747,7 @@ export const LegendAIAssistantMessageView = memo(
                     {pythonEntry?.status === LegendAIPythonCodeStatus.ERROR && (
                       <div className="legend-ai__python-panel-error">
                         <span>
-                          {pythonEntry.errorMessage ||
-                            'Could not generate Python code. Try again in a moment.'}
+                          Could not generate Python code. Try again in a moment.
                         </span>
                         <button
                           type="button"
