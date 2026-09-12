@@ -30,11 +30,9 @@ import {
   type V1_RelationRowTestData,
   type V1_SampleQuery,
   type GraphManagerState,
-  type PureModel,
-  type RelationType,
-  type V1_AccessPointImplementation,
-  InstanceValue,
-  V1_buildRelationTypeFromV1RelationType,
+  extractElementNameFromPath,
+  V1_getGenericTypeFullPath,
+  V1_CInteger,
 } from '@finos/legend-graph';
 import type { NormalizedDocumentationEntry } from '@finos/legend-lego/model-documentation';
 import {
@@ -48,13 +46,7 @@ import {
   type TDSServiceSchema,
   type LegendAIAccessPointRelationship,
 } from '@finos/legend-lego/legend-ai';
-import {
-  guaranteeNonNullable,
-  isNonNullable,
-  LogEvent,
-  returnUndefOnError,
-} from '@finos/legend-shared';
-import { DSL_DATAPRODUCT_EVENT } from '../../__lib__/DSL_DataProduct_Event.js';
+import { guaranteeNonNullable } from '@finos/legend-shared';
 import { getRelationColumnDescription } from '../../utils/LakehouseUtils.js';
 import { findArtifactRelationType } from '../../utils/DataProductIngestUtils.js';
 import type { DataProductViewerState } from './DataProductViewerState.js';
@@ -74,30 +66,27 @@ function isLakehouseSystemColumn(name: string): boolean {
   return name.startsWith(LAKEHOUSE_SYSTEM_COLUMN_PREFIX);
 }
 
-/**
- * Maps a relation type onto the AI column schema. Documentation is read from
- * the protocol columns, which carry it without a fully initialized graph.
- */
 function extractColumnsFromRelationType(
-  relationType: RelationType,
-  descriptions: Map<string, string>,
+  relationType: V1_RelationType,
   columnMetadataLookup?: Map<string, TDSColumnSchema>,
 ): TDSColumnSchema[] {
   return relationType.columns
     .filter((col) => !isLakehouseSystemColumn(col.name))
     .map((col) => {
-      const columnType = col.genericType.value.rawType.name;
-      const column: TDSColumnSchema = { name: col.name, type: columnType };
-      const typeArgs = (col.genericType.value.typeVariableValues ?? [])
-        .map((v) => (v instanceof InstanceValue ? v.values[0] : undefined))
-        .filter(isNonNullable);
-      if (typeArgs.length > 0) {
-        column.relationalType = `${columnType.toUpperCase()}(${typeArgs.join(',')})`;
+      const column: TDSColumnSchema = { name: col.name };
+      column.type = extractElementNameFromPath(
+        V1_getGenericTypeFullPath(col.genericType),
+      );
+      const intArgs = col.genericType.typeVariableValues
+        .filter((v): v is V1_CInteger => v instanceof V1_CInteger)
+        .map((v) => String(v.value));
+      if (intArgs.length > 0) {
+        column.relationalType = `${column.type.toUpperCase()}(${intArgs.join(',')})`;
       }
       if (col.multiplicity.lowerBound === 0) {
         column.nullable = true;
       }
-      const description = descriptions.get(col.name);
+      const description = getRelationColumnDescription(col);
       if (description !== undefined) {
         column.documentation = description;
       }
@@ -113,60 +102,6 @@ function extractColumnsFromRelationType(
       }
       return column;
     });
-}
-
-/**
- * Indexes what `getRelationColumnDescription` reads off each protocol column.
- * The metamodel `RelationColumn` carries no description field, so the protocol
- * type stays reachable for the two callers that need column documentation.
- */
-function buildColumnDescriptions(
-  v1RelationType: V1_RelationType,
-): Map<string, string> {
-  const descriptions = new Map<string, string>();
-  for (const column of v1RelationType.columns) {
-    const description = getRelationColumnDescription(column);
-    if (description !== undefined) {
-      descriptions.set(column.name, description);
-    }
-  }
-  return descriptions;
-}
-
-/**
- * Builds the access point relation type and keeps the protocol type alongside
- * it. `V1_buildRelationTypeFromAccessPointImplementation` covers the artifact
- * branch alone: it cannot take an engine result and it drops column docs.
- */
-function resolveAccessPointRelationType(
-  source: AccessPointSchemaSource,
-  impl: V1_AccessPointImplementation | undefined,
-  graphManagerState: GraphManagerState,
-):
-  | { relationType: RelationType; descriptions: Map<string, string> }
-  | undefined {
-  const v1RelationType = source.relationType ?? findArtifactRelationType(impl);
-  if (!v1RelationType) {
-    return undefined;
-  }
-  const relationType = returnUndefOnError(() =>
-    V1_buildRelationTypeFromV1RelationType(
-      v1RelationType,
-      graphManagerState.graph,
-      source.accessPoint.id,
-    ),
-  );
-  if (!relationType) {
-    graphManagerState.graphManager.logService.warn(
-      LogEvent.create(DSL_DATAPRODUCT_EVENT.ERROR_EXTRACT_LEGEND_AI_SERVICES),
-      `Could not type access point '${source.accessPoint.id}'; it is omitted from the AI schema`,
-    );
-    return undefined;
-  }
-  return {
-    relationType,
-    descriptions: buildColumnDescriptions(v1RelationType),
-  };
 }
 
 function buildTDSColumn(col: V1_ExecutableTDSResultColumn): TDSColumnSchema {
@@ -274,10 +209,7 @@ function enrichColumnsWithSampleData(
   }
 }
 
-function extractColumnsFromSampleQuery(
-  sq: V1_SampleQuery,
-  graph: PureModel,
-): TDSColumnSchema[] {
+function extractColumnsFromSampleQuery(sq: V1_SampleQuery): TDSColumnSchema[] {
   if (sq.result instanceof V1_ExecutableTDSResult) {
     return sq.result.tdsResult.tdsColumns.map(buildTDSColumn);
   }
@@ -285,16 +217,8 @@ function extractColumnsFromSampleQuery(
     const rawType = sq.result.genericType.typeArguments
       .map((ta) => ta.rawType)
       .find((rt): rt is V1_RelationType => rt instanceof V1_RelationType);
-    const relationType = rawType
-      ? returnUndefOnError(() =>
-          V1_buildRelationTypeFromV1RelationType(rawType, graph),
-        )
-      : undefined;
-    if (rawType && relationType) {
-      return extractColumnsFromRelationType(
-        relationType,
-        buildColumnDescriptions(rawType),
-      );
+    if (rawType) {
+      return extractColumnsFromRelationType(rawType);
     }
   }
   return [];
@@ -316,7 +240,6 @@ function buildAccessPointService(
   columnMetadataLookup: Map<string, TDSColumnSchema>,
   productPath: string,
   groupTitle: string,
-  graphManagerState: GraphManagerState,
 ): TDSServiceSchema | undefined {
   const ap = source.accessPoint;
   if (isMetadataAccessPoint(ap)) {
@@ -325,18 +248,13 @@ function buildAccessPointService(
   const impl = artifactApg?.accessPointImplementations.find(
     (ai) => ai.id === ap.id,
   );
-  const resolved = resolveAccessPointRelationType(
-    source,
-    impl,
-    graphManagerState,
-  );
-  if (!resolved || resolved.relationType.columns.length === 0) {
+  const relationType = source.relationType ?? findArtifactRelationType(impl);
+  if (!relationType || relationType.columns.length === 0) {
     return undefined;
   }
   const apTitle = ap.title ?? ap.id;
   const columns = extractColumnsFromRelationType(
-    resolved.relationType,
-    resolved.descriptions,
+    relationType,
     columnMetadataLookup,
   );
   enrichColumnsWithSampleData(
@@ -394,7 +312,7 @@ async function buildSampleQueryService(
   sq: V1_SampleQuery,
   graphManagerState: GraphManagerState,
 ): Promise<TDSServiceSchema[]> {
-  const columns = extractColumnsFromSampleQuery(sq, graphManagerState.graph);
+  const columns = extractColumnsFromSampleQuery(sq);
   if (columns.length === 0) {
     return [];
   }
@@ -422,7 +340,6 @@ async function buildSampleQueryService(
     pattern: sq.info.pattern,
     columns,
     parameters,
-    sourceType: TDSServiceSourceType.SERVICE,
     ...(parameterSchemas.length > 0 ? { parameterSchemas } : {}),
     ...(parameterExtractionFailed ? { parameterExtractionFailed: true } : {}),
     ...(preFilters ? { preFilters } : {}),
@@ -459,7 +376,6 @@ export async function extractTDSServicesFromDataProductSource(
         columnMetadataLookup,
         productPath,
         groupTitle,
-        source.graphManagerState,
       );
       if (entry) {
         services.push(entry);
