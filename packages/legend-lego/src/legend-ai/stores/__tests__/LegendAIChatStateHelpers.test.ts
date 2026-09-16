@@ -951,7 +951,7 @@ describe(unitTest('stripGuessedNonDateServiceParams'), () => {
       '  *',
       'FROM service(',
       "    '/VendorData/SeriesA/Region',",
-      "    coordinates => 'com.gs:vendor-data-series:5.11.0',",
+      "    coordinates => 'com.example:vendor-data-series:5.11.0',",
       "    seriesId => 'S001AAAA',",
       "    startDate => '2020-01-01',",
       "    endDate => '2023-12-31'",
