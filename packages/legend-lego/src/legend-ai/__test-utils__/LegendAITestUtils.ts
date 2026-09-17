@@ -16,9 +16,10 @@
 
 import { guaranteeNonNullable } from '@finos/legend-shared';
 import { createMock } from '@finos/legend-shared/test';
-import type {
-  MessageSetter,
-  LegendAIOperationContext,
+import {
+  type MessageSetter,
+  type LegendAIOperationContext,
+  createAssistantMessage,
 } from '../stores/LegendAIChatProcessors.js';
 import {
   type LegendAIMessage,
@@ -57,24 +58,8 @@ export const TEST__createMockSetter = (): {
 export const TEST__makeAssistantMessage = (
   overrides?: Partial<LegendAIAssistantMessage>,
 ): LegendAIAssistantMessage => ({
+  ...createAssistantMessage(),
   id: 'test-assistant-msg',
-  role: LegendAIMessageRole.ASSISTANT,
-  thinkingSteps: [],
-  sql: null,
-  textAnswer: null,
-  dataContext: null,
-  gridData: null,
-  error: null,
-  errorType: null,
-  sqlGenTime: null,
-  execTime: null,
-  thinkingDuration: null,
-  isProcessing: true,
-  isExecuting: false,
-  suggestedQueries: [],
-  fallbackAction: null,
-  queriedAccessPointGroups: [],
-  queriedAccessPoints: [],
   ...overrides,
 });
 export const TEST__seedAssistant = (setter: MessageSetter): void => {

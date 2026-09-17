@@ -27,22 +27,8 @@ import { unitTest } from '@finos/legend-shared/test';
 import { LegendAIChatToggle } from '../LegendAIChatToggle.js';
 
 jest.mock('@finos/legend-art', () => ({
+  ...jest.requireActual<object>('@finos/legend-art'),
   SparkleStarsIcon: () => <span data-testid="sparkle-icon" />,
-  clsx: (...args: unknown[]) => {
-    const classes: string[] = [];
-    for (const arg of args) {
-      if (typeof arg === 'string') {
-        classes.push(arg);
-      } else if (typeof arg === 'object' && arg !== null) {
-        for (const [key, value] of Object.entries(arg)) {
-          if (value) {
-            classes.push(key);
-          }
-        }
-      }
-    }
-    return classes.join(' ');
-  },
 }));
 
 // jsdom does not propagate pointer coordinates through fireEvent's PointerEvent

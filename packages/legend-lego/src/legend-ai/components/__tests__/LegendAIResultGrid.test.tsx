@@ -54,7 +54,7 @@ describe(unitTest('LegendAIResultGrid'), () => {
     };
     const { container } = render(<LegendAIResultGrid data={data} />);
     const grid = container.querySelector('[data-testid="mock-data-grid"]');
-    expect(grid).toBeDefined();
+    expect(grid).not.toBeNull();
     expect(grid?.getAttribute('data-cols')).toBe('2');
     expect(grid?.getAttribute('data-rows')).toBe('1');
     // Few columns → no horizontal scroll
@@ -73,7 +73,7 @@ describe(unitTest('LegendAIResultGrid'), () => {
     };
     const { container } = render(<LegendAIResultGrid data={data} />);
     const grid = container.querySelector('[data-testid="mock-data-grid"]');
-    expect(grid).toBeDefined();
+    expect(grid).not.toBeNull();
     expect(grid?.getAttribute('data-cols')).toBe('8');
     // Many columns → horizontal scroll enabled
     expect(grid?.getAttribute('data-hscroll')).toBe('true');
@@ -86,7 +86,7 @@ describe(unitTest('LegendAIResultGrid'), () => {
     };
     const { container } = render(<LegendAIResultGrid data={data} />);
     const wrapper = container.querySelector('.legend-ai__grid.ag-theme-balham');
-    expect(wrapper).toBeDefined();
+    expect(wrapper).not.toBeNull();
   });
 
   test('infers column defs from row keys when columnDefs is empty', () => {
@@ -96,7 +96,7 @@ describe(unitTest('LegendAIResultGrid'), () => {
     };
     const { container } = render(<LegendAIResultGrid data={data} />);
     const grid = container.querySelector('[data-testid="mock-data-grid"]');
-    expect(grid).toBeDefined();
+    expect(grid).not.toBeNull();
     expect(grid?.getAttribute('data-cols')).toBe('3');
     expect(grid?.getAttribute('data-rows')).toBe('1');
   });

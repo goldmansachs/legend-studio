@@ -97,6 +97,7 @@ jest.mock('../LegendAIAnalysisPanel.js', () => ({
 }));
 
 jest.mock('@finos/legend-art', () => ({
+  ...jest.requireActual<object>('@finos/legend-art'),
   SendIcon: () => <span data-testid="send-icon" />,
   LoadingIcon: (props: { isLoading?: boolean }) =>
     props.isLoading ? <span data-testid="loading-icon" /> : null,
@@ -125,21 +126,6 @@ jest.mock('@finos/legend-art', () => ({
   PythonIcon: () => <span data-testid="python-icon" />,
   JupyterIcon: () => <span data-testid="jupyter-icon" />,
   CubeIcon: () => <span data-testid="cube-icon" />,
-  clsx: (...args: unknown[]) => {
-    const classes: string[] = [];
-    for (const arg of args) {
-      if (typeof arg === 'string') {
-        classes.push(arg);
-      } else if (typeof arg === 'object' && arg !== null) {
-        for (const [key, value] of Object.entries(arg)) {
-          if (value) {
-            classes.push(key);
-          }
-        }
-      }
-    }
-    return classes.join(' ');
-  },
 }));
 
 afterEach(() => {

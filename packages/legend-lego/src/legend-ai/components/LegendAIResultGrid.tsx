@@ -117,7 +117,7 @@ export const LegendAIResultGrid = (props: {
             : { type: 'fitCellContents' }
         }
         alwaysShowHorizontalScroll={!fewColumns}
-        enableRangeSelection={true}
+        cellSelection={true}
         copyHeadersToClipboard={true}
         statusBar={{
           statusPanels: [
