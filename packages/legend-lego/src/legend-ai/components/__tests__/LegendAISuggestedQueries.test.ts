@@ -98,9 +98,7 @@ describe(unitTest('isDateColumn'), () => {
   });
 
   test('returns true for strict date type', () => {
-    expect(isDateColumn({ name: 'effectiveDate', type: 'StrictDate' })).toBe(
-      true,
-    );
+    expect(isDateColumn({ name: 'asOf', type: 'StrictDate' })).toBe(true);
   });
 
   test('returns true for column name containing date', () => {

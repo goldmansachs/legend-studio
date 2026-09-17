@@ -329,7 +329,6 @@ const IS_EMPTY_FUNCTION_PATH = 'meta::pure::functions::collection::isEmpty';
 const IS_NOT_EMPTY_FUNCTION_PATH =
   'meta::pure::functions::collection::isNotEmpty';
 const AND_FUNCTION_PATH = 'meta::pure::functions::boolean::and';
-const IS_NOT_NULL_PROPERTY_NAME = 'isNotNull';
 
 /**
  * Resolves the dotted property path addressed by a chain of applied properties.
@@ -441,9 +440,8 @@ function processFilterCall(
 }
 
 /**
- * Descends applied functions looking for filter calls. legend-graph exposes no
- * reusable value specification walker — its two complete traversals are a mobx
- * observer and a private path resolver — and neither may throw on odd input.
+ * Descends applied functions looking for filter calls. legend-graph's visitors
+ * all transform rather than accumulate, so none of them fits a read-only walk.
  */
 function walkExpressions(
   nodes: V1_ValueSpecification[],
@@ -469,10 +467,7 @@ function collectIsNotNullChecks(
   node: V1_ValueSpecification,
   results: TDSServicePreFilter[],
 ): void {
-  if (
-    node instanceof V1_AppliedProperty &&
-    node.property === IS_NOT_NULL_PROPERTY_NAME
-  ) {
+  if (node instanceof V1_AppliedProperty && node.property === 'isNotNull') {
     const columnName = node.parameters[1];
     if (columnName instanceof V1_CString) {
       results.push({ property: columnName.value, operator: 'isNotNull' });
@@ -529,8 +524,7 @@ export function extractLambdaPreFilters(
 
 /**
  * Derives the parameters and pre-filters a service query declares, parsing it
- * once so a sample query costs a single engine round trip. Shared by the
- * DataProduct and DataSpace extractors so the two stay identical.
+ * once so a sample query costs a single engine round trip.
  */
 export async function extractServiceQuerySchema(
   query: string,
@@ -566,8 +560,7 @@ export async function extractServiceQuerySchema(
 
 /**
  * Adapts a parsed lambda back to protocol form so the pre-filter walk can run.
- * legend-graph exposes both halves of that round trip but no helper that
- * performs it. Best effort: without filters the AI just misses a constraint.
+ * Best effort: without filters the AI just misses a constraint.
  */
 function extractPreFiltersFromLambda(
   rawLambda: RawLambda,

@@ -457,7 +457,7 @@ describe(unitTest('extractExecutableInfo'), () => {
     };
 
     // Simulate the lambda-derived parameter schemas that
-    // extractTDSServicesFromDataSpace would attach via extractParameterSchemas.
+    // extractTDSServicesFromDataSpace would attach via extractServiceQuerySchema.
     const services: TDSServiceSchema[] = [
       {
         title: 'Holdings Service',

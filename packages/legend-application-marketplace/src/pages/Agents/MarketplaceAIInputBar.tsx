@@ -20,8 +20,6 @@ import { SendIcon, LoadingIcon, TimesIcon } from '@finos/legend-art';
 import { useLegendMarketplaceAIChatStore } from '../../application/providers/LegendMarketplaceAIChatStoreProvider.js';
 import { MarketplaceAIScopeSelector } from './MarketplaceAIScopeSelector.js';
 
-const MAX_TEXTAREA_HEIGHT = 160;
-
 export const MarketplaceAIInputBar = observer(
   (props: { placeholder: string; onSubmit: () => void }): React.ReactNode => {
     const { placeholder, onSubmit } = props;
@@ -32,8 +30,7 @@ export const MarketplaceAIInputBar = observer(
       const el = textareaRef.current;
       if (el) {
         el.style.height = 'auto';
-        const nextHeight = Math.min(el.scrollHeight, MAX_TEXTAREA_HEIGHT);
-        el.style.height = `${nextHeight}px`;
+        el.style.height = `${el.scrollHeight}px`;
       }
     }, [store.questionText]);
 

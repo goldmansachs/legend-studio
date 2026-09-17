@@ -515,7 +515,6 @@ export const LegendAIChat = (props: LegendAIChatProps): React.ReactNode => {
               isThinkingVisible={isThinkingVisible}
               onToggleThinking={toggleThinking}
               onCopyText={copyTextToClipboard}
-              splitAnswerSections={true}
               onMessageFeedback={handleMessageFeedback}
               selectedFeedbackRating={feedbackByMessageId.get(msg.id)}
               feedbackSubmitting={pendingFeedbackByMessageId.has(msg.id)}

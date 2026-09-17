@@ -1,5 +1,5 @@
 ---
-'@finos/legend-lego': minor
+'@finos/legend-lego': patch
 '@finos/legend-application-marketplace': patch
 ---
 

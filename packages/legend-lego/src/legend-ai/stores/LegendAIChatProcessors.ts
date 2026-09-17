@@ -2670,8 +2670,7 @@ function prepareSafeSql(sql: string, services: TDSServiceSchema[]): string {
 
 /**
  * The single execution chokepoint for Legend AI SQL, applying the join
- * sanitizers, the row limit and the timeout. Nothing may call
- * `plugin.executeLakehouseSql` or `plugin.executeSql` directly.
+ * sanitizers, the row limit and the timeout. Never call the plugin directly.
  */
 export async function executeSqlForServices(
   sql: string,
@@ -4547,8 +4546,7 @@ interface ModelContextEnrichment {
 
 /**
  * Defers the three model context renderings so a question that never reaches
- * SQL generation does not pay for them. `legend-shared` re-exports no memo
- * helper, and `lodash-es` is not a dependency of this package.
+ * SQL generation does not pay for them.
  */
 function buildModelContextEnrichment(
   question: string,

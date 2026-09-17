@@ -904,8 +904,7 @@ export function classifyQuestionIntentFast(
 
 /**
  * Projects the variables `buildLambdaVariableExpressions` finds into the DTO
- * the prompt serializes. The extraction is legend-graph's; only this
- * flattening, and reporting failure instead of throwing, is local.
+ * the prompt serializes, reporting failure instead of throwing.
  */
 export function buildParameterSchemas(
   rawLambda: RawLambda,
