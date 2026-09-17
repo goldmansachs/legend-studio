@@ -528,7 +528,6 @@ export class LegendMarketplaceAIChatStore {
       assertErrorThrown(error);
       this.pythonCodeByMessageId.set(messageId, {
         status: LegendAIPythonCodeStatus.ERROR,
-        errorMessage: error.message,
       });
     }
   }

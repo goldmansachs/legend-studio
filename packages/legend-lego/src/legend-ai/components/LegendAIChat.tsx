@@ -236,7 +236,6 @@ export const LegendAIChat = (props: LegendAIChatProps): React.ReactNode => {
           const next = new Map(prev);
           next.set(msg.id, {
             status: LegendAIPythonCodeStatus.ERROR,
-            errorMessage: error.message,
           });
           return next;
         });

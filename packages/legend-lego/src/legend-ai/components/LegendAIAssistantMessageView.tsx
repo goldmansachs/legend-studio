@@ -65,7 +65,7 @@ export type LegendAIPythonCodeEntry =
       status: LegendAIPythonCodeStatus.READY;
       code: LegendAIPythonQueryCode | undefined;
     }
-  | { status: LegendAIPythonCodeStatus.ERROR; errorMessage: string };
+  | { status: LegendAIPythonCodeStatus.ERROR };
 
 function toUserFacingThinkingLabel(label: string): string {
   const normalized = label.toLowerCase();

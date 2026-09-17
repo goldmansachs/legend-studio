@@ -3559,11 +3559,6 @@ describe(
       await flowResult(store.generatePythonCode(messageId));
       const entry = store.pythonCodeByMessageId.get(messageId);
       expect(entry?.status).toBe(LegendAIPythonCodeStatus.ERROR);
-      expect(
-        entry?.status === LegendAIPythonCodeStatus.ERROR
-          ? entry.errorMessage
-          : undefined,
-      ).toContain('codegen boom');
     });
 
     test('openInDataCube translates SQL and opens with the prefill for a data-product accessor', async () => {
