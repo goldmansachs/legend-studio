@@ -37,7 +37,6 @@ import {
 } from '@finos/legend-graph';
 import {
   assertErrorThrown,
-  filterByType,
   isNonNullable,
   LogEvent,
 } from '@finos/legend-shared';
@@ -130,21 +129,6 @@ function formatMultiplicity(multiplicity: Multiplicity | undefined): string {
   const upper =
     multiplicity.upperBound === undefined ? '*' : `${multiplicity.upperBound}`;
   return `${multiplicity.lowerBound}..${upper}`;
-}
-
-function extractUniqueAssociations(
-  elementDocs: NormalizedDocumentationEntry[],
-): Map<string, AssociationDocumentationEntry> {
-  const assocEntries = elementDocs
-    .map((e) => e.elementEntry)
-    .filter(filterByType(AssociationDocumentationEntry));
-  const uniqueAssocs = new Map<string, AssociationDocumentationEntry>();
-  for (const a of assocEntries) {
-    if (!uniqueAssocs.has(a.path)) {
-      uniqueAssocs.set(a.path, a);
-    }
-  }
-  return uniqueAssocs;
 }
 
 function addAdjacencyEdge(
@@ -290,7 +274,10 @@ export function inferServiceRelationshipsFromAssociations(
   services: TDSServiceSchema[],
   elementDocs: NormalizedDocumentationEntry[],
 ): LegendAIServiceRelationship[] {
-  const uniqueAssocs = extractUniqueAssociations(elementDocs);
+  const uniqueAssocs = buildUniqueEntryMap(
+    elementDocs,
+    AssociationDocumentationEntry,
+  );
   const adjacency = buildAssociationAdjacency(uniqueAssocs);
   const relationships: LegendAIServiceRelationship[] = [];
   const seen = new Set<string>();
@@ -323,6 +310,7 @@ export function inferServiceRelationshipsFromAssociations(
 const FILTER_FUNCTION_PATHS = [
   'meta::pure::functions::collection::filter',
   'meta::pure::functions::relation::filter',
+  'meta::pure::tds::filter',
 ];
 const EQUAL_FUNCTION_PATH = 'meta::pure::functions::boolean::equal';
 const IS_EMPTY_FUNCTION_PATH = 'meta::pure::functions::collection::isEmpty';
@@ -2110,7 +2098,7 @@ export function buildModelContextEnrichmentText(
     buildColumnEnumMappingSection(modelContext, services),
     buildColumnDescriptionSection(modelContext, services),
     buildServiceJoinSection(modelContext, services),
-  ].filter((s): s is string => s !== undefined);
+  ].filter(isNonNullable);
 
   if (sections.length === 0) {
     return undefined;

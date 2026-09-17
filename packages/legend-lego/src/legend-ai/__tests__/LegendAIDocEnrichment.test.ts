@@ -367,6 +367,40 @@ describe(unitTest('extractLambdaPreFilters'), () => {
     ]);
   });
 
+  test('extracts equality filter spelled with fully-qualified paths', () => {
+    const body = [
+      {
+        _type: 'func',
+        function: 'meta::pure::functions::collection::filter',
+        parameters: [
+          { _type: 'func', function: 'getAll', parameters: [] },
+          {
+            _type: 'lambda',
+            body: [
+              {
+                _type: 'func',
+                function: 'meta::pure::functions::boolean::equal',
+                parameters: [
+                  {
+                    _type: 'property',
+                    property: 'symbolId',
+                    parameters: [{ _type: 'var', name: 'x' }],
+                  },
+                  { _type: 'string', value: 'AAAAAAA-S' },
+                ],
+              },
+            ],
+            parameters: [],
+          },
+        ],
+      },
+    ];
+    const result = extractLambdaPreFilters(buildTestLambda(body));
+    expect(result).toEqual([
+      { property: 'symbolId', operator: 'equal', value: 'AAAAAAA-S' },
+    ]);
+  });
+
   test('extracts nested property path equality', () => {
     const body = [
       {

@@ -809,15 +809,11 @@ function classifyMixedSignal(
       ambiguous: false,
     };
   }
-  if (PRODUCT_REFERENCE_PATTERN.test(q) || STRUCTURAL_KEYWORD_PATTERN.test(q)) {
-    return {
-      intent: LegendAIQuestionIntent.METADATA,
-      metaScore,
-      dataScore,
-      ambiguous: false,
-    };
-  }
-  if (CAPABILITY_DISCOVERY_PATTERNS.some((p) => p.test(q))) {
+  if (
+    PRODUCT_REFERENCE_PATTERN.test(q) ||
+    STRUCTURAL_KEYWORD_PATTERN.test(q) ||
+    CAPABILITY_DISCOVERY_PATTERNS.some((p) => p.test(q))
+  ) {
     return {
       intent: LegendAIQuestionIntent.METADATA,
       metaScore,
