@@ -335,7 +335,6 @@ export class LegendMarketplaceAIChatStore {
       setQuestionText: action,
       generatePythonCode: flow,
       openInDataCube: flow,
-      setStage: action,
       clearChat: action,
       selectDataProduct: action,
       selectAutosuggestProduct: action,
@@ -404,10 +403,6 @@ export class LegendMarketplaceAIChatStore {
     this.questionText = text;
   }
 
-  setStage(stage: MarketplaceAIChatStage): void {
-    this.stage = stage;
-  }
-
   logCopySql(): void {
     LegendMarketplaceTelemetryHelper.logEvent_AIAgentCopySql(
       this.baseStore.applicationStore.telemetryService,
@@ -454,8 +449,6 @@ export class LegendMarketplaceAIChatStore {
     );
   }
 
-  // Resolves the access point a message queried by name, falling back to the
-  // first resolved service.
   /**
    * The service an action applies to. Falls back to one the action actually
    * supports, so the button's availability and its target cannot disagree.

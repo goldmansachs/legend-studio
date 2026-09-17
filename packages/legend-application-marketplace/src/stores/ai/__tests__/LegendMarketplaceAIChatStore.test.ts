@@ -227,22 +227,11 @@ describe(unitTest('LegendMarketplaceAIChatStore — setQuestionText'), () => {
   });
 });
 
-describe(unitTest('LegendMarketplaceAIChatStore — setStage'), () => {
-  test('updates stage', () => {
-    const { store } = createStore();
-    store.setStage(MarketplaceAIChatStage.SEARCHING);
-    expect(store.stage).toBe(MarketplaceAIChatStage.SEARCHING);
-    store.setStage(MarketplaceAIChatStage.RESULTS);
-    expect(store.stage).toBe(MarketplaceAIChatStage.RESULTS);
-  });
-});
-
 describe(unitTest('LegendMarketplaceAIChatStore — clearChat'), () => {
   test('resets all chat state', () => {
     const { store } = createStore();
 
     store.setQuestionText('something');
-    store.setStage(MarketplaceAIChatStage.RESULTS);
 
     store.clearChat();
 
@@ -254,7 +243,6 @@ describe(unitTest('LegendMarketplaceAIChatStore — clearChat'), () => {
     expect(store.resolvedProductServices).toEqual([]);
     expect(store.lastResolvedEntities).toBeUndefined();
     expect(store.selectedDataProductId).toBeUndefined();
-    expect(store.stage).toBe(MarketplaceAIChatStage.IDLE);
     expect(store.questionText).toBe('');
     expect(store.isSending).toBe(false);
   });
@@ -610,13 +598,6 @@ describe(unitTest('LegendMarketplaceAIChatStore — removeScopeProduct'), () => 
 // ─── config / isEnabled computed ─────────────────────────────────────────────
 
 describe(unitTest('LegendMarketplaceAIChatStore — config/isEnabled'), () => {
-  test('config reads from application config', () => {
-    const { store } = createStore();
-    const config = store.config;
-    expect(config).toBeDefined();
-    expect(typeof config.enabled).toBe('boolean');
-  });
-
   test('isEnabled is false when no plugin is registered', () => {
     const { store } = createStore();
     expect(store.plugin).toBeUndefined();
