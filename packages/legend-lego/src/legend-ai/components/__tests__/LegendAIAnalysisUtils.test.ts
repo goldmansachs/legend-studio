@@ -21,7 +21,6 @@ import {
   computeKeyMetrics,
   inferChartType,
   computeChartData,
-  computeTopItems,
   findNumericColumnName,
   analyzeGridData,
 } from '../LegendAIAnalysisUtils.js';
@@ -254,28 +253,6 @@ describe(unitTest('computeChartData'), () => {
     const data = computeChartData(grid);
     expect(data).toHaveLength(1);
     expect(guaranteeNonNullable(data[0]).label).toBe('A');
-  });
-});
-
-describe(unitTest('computeTopItems'), () => {
-  test('returns at most 5 items', () => {
-    const rows = Array.from({ length: 10 }, (_, i) => ({
-      name: `item${i}`,
-      val: i * 10,
-    }));
-    const grid = makeGridData(['name', 'val'], rows);
-    expect(computeTopItems(grid).length).toBeLessThanOrEqual(5);
-  });
-
-  test('returns all items if fewer than 5', () => {
-    const grid = makeGridData(
-      ['name', 'val'],
-      [
-        { name: 'A', val: 10 },
-        { name: 'B', val: 20 },
-      ],
-    );
-    expect(computeTopItems(grid)).toHaveLength(2);
   });
 });
 

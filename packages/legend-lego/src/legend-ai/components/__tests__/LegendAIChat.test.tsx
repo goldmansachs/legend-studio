@@ -32,7 +32,7 @@ import {
 } from '@testing-library/react';
 import { unitTest } from '@finos/legend-shared/test';
 import { guaranteeNonNullable } from '@finos/legend-shared';
-import { LegendAIChat, LEGEND_AI_ANCHOR_ID } from '../LegendAIChat.js';
+import { LegendAIChat } from '../LegendAIChat.js';
 import {
   type LegendAIChatProps,
   type LegendAIChatState,
@@ -168,11 +168,6 @@ const defaultProps: LegendAIChatProps = {
 };
 
 describe(unitTest('LegendAIChat'), () => {
-  test('renders with correct anchor id', () => {
-    const { container } = render(<LegendAIChat {...defaultProps} />);
-    expect(container.querySelector(`#${LEGEND_AI_ANCHOR_ID}`)).toBeDefined();
-  });
-
   test('renders default title when none provided', () => {
     render(<LegendAIChat {...defaultProps} />);
     expect(screen.getByText('Legend AI')).toBeDefined();

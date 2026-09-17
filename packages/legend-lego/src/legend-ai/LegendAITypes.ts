@@ -597,8 +597,6 @@ export class LegendAIProductMetadata {
   accessPointRelationships?: LegendAIAccessPointRelationship[];
   /** Cross-service relationships derived from model associations (elementDocs). */
   serviceRelationships?: LegendAIServiceRelationship[];
-  /** Per-product domain knowledge for LLM context enrichment. */
-  domainContext?: string;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -686,7 +684,7 @@ export enum LegendAIQuestionIntent {
   ORCHESTRATOR = 'orchestrator',
 }
 
-export const METADATA_SIGNAL_PATTERNS: readonly RegExp[] = Object.freeze([
+const METADATA_SIGNAL_PATTERNS: readonly RegExp[] = Object.freeze([
   /\b(?:what\s+does\s+this\s+(?:data\s*product|dataspace|data\s*space|product)\s+(?:do|provide|contain|offer|have))\b/,
   /\b(?:describe|explain|summarize|summary|overview)\s+(?:this\s+)?(?:data\s*product|dataspace|data\s*space|product)\b/,
   /\b(?:tell\s+me\s+about)\s+(?:this\s+)?(?:data\s*product|dataspace|data\s*space|product)\b/,
@@ -716,7 +714,7 @@ export const METADATA_SIGNAL_PATTERNS: readonly RegExp[] = Object.freeze([
   /\b(?:can\s+(?:we|i|you)\s+(?:join|combine|link|relate|connect))\s+(?:these|the|those|them)\b/,
 ]);
 
-export const DATA_QUERY_SIGNAL_PATTERNS: readonly RegExp[] = Object.freeze([
+const DATA_QUERY_SIGNAL_PATTERNS: readonly RegExp[] = Object.freeze([
   /\b(?:select|query|sql|rows?|records?|count|sum|avg|average|min|max|total)\b/,
   /\b(?:top\s+\d+|first\s+\d+|last\s+\d+|limit\s+\d+)\b/,
   /\b(?:filter|where|group\s+by|order\s+by|sort|aggregate)\b/,

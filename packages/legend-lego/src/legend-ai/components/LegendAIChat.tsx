@@ -51,8 +51,6 @@ import {
 import { LegendAIChatInput } from './LegendAIChatInput.js';
 import { buildSuggestedQueries } from './LegendAIChatHelpers.js';
 
-export const LEGEND_AI_ANCHOR_ID = 'legend-ai-anchor';
-
 const CONTEXT_BANNER_AUTO_DISMISS_MS = 20000;
 
 const copyTextToClipboard = (text: string): Promise<void> =>
@@ -386,7 +384,7 @@ export const LegendAIChat = (props: LegendAIChatProps): React.ReactNode => {
   );
 
   return (
-    <div className="legend-ai" id={LEGEND_AI_ANCHOR_ID}>
+    <div className="legend-ai">
       <div className="legend-ai__header">
         <div className="legend-ai__header-icon">
           <SparkleStarsIcon />

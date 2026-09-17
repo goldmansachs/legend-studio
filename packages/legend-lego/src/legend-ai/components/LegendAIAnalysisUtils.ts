@@ -24,7 +24,6 @@ import { isNumber, isString } from '@finos/legend-shared';
 
 const CHART_PALETTE_COUNT = 10;
 const MAX_CHART_ITEMS = 10;
-const TOP_N_ITEMS = 5;
 const MAX_PROFILE_SAMPLE = 1000;
 const MAX_KEY_METRICS = 6;
 const MAX_METRIC_COLUMNS = 5;
@@ -431,12 +430,6 @@ export function computeChartData(
   gridData: LegendAIGridData,
 ): LegendAIChartDataPoint[] {
   return computeChartDataFromProfiles(profileColumns(gridData), gridData);
-}
-
-export function computeTopItems(
-  gridData: LegendAIGridData,
-): LegendAIChartDataPoint[] {
-  return computeChartData(gridData).slice(0, TOP_N_ITEMS);
 }
 
 function findNumericColumnNameFromProfiles(
