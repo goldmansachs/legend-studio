@@ -232,9 +232,12 @@ describe(unitTest('LegendMarketplaceAIChatStore — clearChat'), () => {
     const { store } = createStore();
 
     store.setQuestionText('something');
+    store.deselectProduct();
+    expect(store.stage).toBe(MarketplaceAIChatStage.PRODUCT_SELECTION);
 
     store.clearChat();
 
+    expect(store.stage).toBe(MarketplaceAIChatStage.IDLE);
     expect(store.messages).toEqual([]);
     expect(store.suggestedProducts).toEqual([]);
     expect(store.scoredCandidates).toEqual([]);

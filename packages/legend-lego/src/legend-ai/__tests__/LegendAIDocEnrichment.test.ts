@@ -606,6 +606,41 @@ describe(unitTest('extractLambdaPreFilters'), () => {
     });
   });
 
+  test('extracts post-projection TDS row filters spelled as meta::pure::tds::filter', () => {
+    const body = [
+      {
+        _type: 'func',
+        function: 'meta::pure::tds::filter',
+        parameters: [
+          {
+            _type: 'func',
+            function: 'project',
+            parameters: [{ _type: 'func', function: 'getAll', parameters: [] }],
+          },
+          {
+            _type: 'lambda',
+            body: [
+              {
+                _type: 'property',
+                property: 'isNotNull',
+                parameters: [
+                  { _type: 'var', name: 'row' },
+                  { _type: 'string', value: 'Mean Estimate' },
+                ],
+              },
+            ],
+            parameters: [],
+          },
+        ],
+      },
+    ];
+    const result = extractLambdaPreFilters(buildTestLambda(body));
+    expect(result).toContainEqual({
+      property: 'Mean Estimate',
+      operator: 'isNotNull',
+    });
+  });
+
   test('extracts filters from nested function calls (filter inside project inside filter)', () => {
     const body = [
       {
