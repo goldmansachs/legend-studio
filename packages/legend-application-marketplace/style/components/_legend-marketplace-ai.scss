@@ -814,6 +814,14 @@
     gap: 0.8rem;
     padding: 1rem 1.6rem;
     border-top: 1px solid var(--ai-python-border);
+
+    // Mirrors the retint in legend-lego's _legend-ai.scss so the Python
+    // actions keep their accent once the generic button rule below ties on
+    // specificity and wins on load order.
+    .legend-ai__permission-error-btn {
+      color: var(--ai-python-accent);
+      border-color: var(--ai-python-border);
+    }
   }
 
   .legend-ai__python-panel-loading {
