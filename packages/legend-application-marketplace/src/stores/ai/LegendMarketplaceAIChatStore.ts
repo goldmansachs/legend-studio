@@ -513,6 +513,12 @@ export class LegendMarketplaceAIChatStore {
       const code = (yield plugin.generatePythonQueryCodeAsync(request)) as
         | LegendAIPythonQueryCode
         | undefined;
+      if (code === undefined) {
+        this.pythonCodeByMessageId.set(messageId, {
+          status: LegendAIPythonCodeStatus.ERROR,
+        });
+        return;
+      }
       this.pythonCodeByMessageId.set(messageId, {
         status: LegendAIPythonCodeStatus.READY,
         code,

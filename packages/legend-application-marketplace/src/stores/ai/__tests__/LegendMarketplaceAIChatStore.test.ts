@@ -3545,6 +3545,18 @@ describe(
       expect(entry?.status).toBe(LegendAIPythonCodeStatus.ERROR);
     });
 
+    test('generatePythonCode records an error when the plugin resolves no code', async () => {
+      const { store, plugin } = createStoreWithPlugin();
+      const messageId = seedScopedAnswer(store);
+      jest
+        .spyOn(plugin, 'generatePythonQueryCodeAsync')
+        .mockResolvedValue(undefined);
+      await flowResult(store.generatePythonCode(messageId));
+      expect(store.pythonCodeByMessageId.get(messageId)).toEqual({
+        status: LegendAIPythonCodeStatus.ERROR,
+      });
+    });
+
     test('openInDataCube translates SQL and opens with the prefill for a data-product accessor', async () => {
       const { store, plugin } = createStoreWithPlugin();
       const messageId = seedScopedAnswer(store);
