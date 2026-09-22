@@ -15,9 +15,8 @@
  */
 
 import {
-  PRECISE_PRIMITIVE_TYPE,
   PRIMITIVE_TYPE,
-  extractElementNameFromPath,
+  getCorrespondingStandardPrimitiveType,
 } from '@finos/legend-graph';
 import {
   type LegendAIProductMetadata,
@@ -28,37 +27,27 @@ import {
 
 const MAX_SUGGESTED_QUERIES = 8;
 
-const STRING_TYPE_NAMES: ReadonlySet<string> = new Set([
-  PRIMITIVE_TYPE.STRING,
-  extractElementNameFromPath(PRECISE_PRIMITIVE_TYPE.VARCHAR),
-]);
+/**
+ * Collapses a precise primitive onto its standard counterpart, so the column
+ * predicates below only ever compare against the four standard families.
+ */
+function toStandardTypeName(typeName: string | undefined): string {
+  return typeName === undefined
+    ? ''
+    : (getCorrespondingStandardPrimitiveType(typeName) ?? typeName);
+}
 
 const NUMERIC_TYPE_NAMES: ReadonlySet<string> = new Set([
   PRIMITIVE_TYPE.NUMBER,
   PRIMITIVE_TYPE.INTEGER,
   PRIMITIVE_TYPE.FLOAT,
   PRIMITIVE_TYPE.DECIMAL,
-  extractElementNameFromPath(PRECISE_PRIMITIVE_TYPE.INT),
-  extractElementNameFromPath(PRECISE_PRIMITIVE_TYPE.TINY_INT),
-  extractElementNameFromPath(PRECISE_PRIMITIVE_TYPE.U_TINY_INT),
-  extractElementNameFromPath(PRECISE_PRIMITIVE_TYPE.SMALL_INT),
-  extractElementNameFromPath(PRECISE_PRIMITIVE_TYPE.U_SMALL_INT),
-  extractElementNameFromPath(PRECISE_PRIMITIVE_TYPE.U_INT),
-  extractElementNameFromPath(PRECISE_PRIMITIVE_TYPE.BIG_INT),
-  extractElementNameFromPath(PRECISE_PRIMITIVE_TYPE.U_BIG_INT),
-  extractElementNameFromPath(PRECISE_PRIMITIVE_TYPE.FLOAT),
-  extractElementNameFromPath(PRECISE_PRIMITIVE_TYPE.DOUBLE),
-  extractElementNameFromPath(PRECISE_PRIMITIVE_TYPE.DECIMAL),
-  extractElementNameFromPath(PRECISE_PRIMITIVE_TYPE.NUMERIC),
 ]);
 
 const DATE_TYPE_NAMES: ReadonlySet<string> = new Set([
   PRIMITIVE_TYPE.DATE,
   PRIMITIVE_TYPE.STRICTDATE,
   PRIMITIVE_TYPE.DATETIME,
-  extractElementNameFromPath(PRECISE_PRIMITIVE_TYPE.STRICTDATE),
-  extractElementNameFromPath(PRECISE_PRIMITIVE_TYPE.DATETIME),
-  extractElementNameFromPath(PRECISE_PRIMITIVE_TYPE.TIMESTAMP),
 ]);
 
 const ID_COLUMN_PATTERN =
@@ -74,7 +63,7 @@ const AP_DATE_NAME_PATTERN = /(?:date|dt|time)$/i;
  * identifier columns, which are the usual join keys.
  */
 export function isStringTypedColumn(c: TDSColumnSchema): boolean {
-  return STRING_TYPE_NAMES.has(c.type ?? '');
+  return toStandardTypeName(c.type) === PRIMITIVE_TYPE.STRING;
 }
 
 export function isStringColumn(c: TDSColumnSchema): boolean {
@@ -82,12 +71,12 @@ export function isStringColumn(c: TDSColumnSchema): boolean {
 }
 
 export function isNumericColumn(c: TDSColumnSchema): boolean {
-  return NUMERIC_TYPE_NAMES.has(c.type ?? '');
+  return NUMERIC_TYPE_NAMES.has(toStandardTypeName(c.type));
 }
 
 export function isDateColumn(c: TDSColumnSchema): boolean {
   return (
-    DATE_TYPE_NAMES.has(c.type ?? '') ||
+    DATE_TYPE_NAMES.has(toStandardTypeName(c.type)) ||
     c.name.toLowerCase().includes('date') ||
     c.name.toLowerCase().includes('time')
   );
@@ -165,24 +154,23 @@ function buildDataInsightSuggestions(
 
 function isAPCategoryColumn(c: TDSColumnSchema): boolean {
   return (
-    STRING_TYPE_NAMES.has(c.type ?? '') &&
+    isStringTypedColumn(c) &&
     !ID_COLUMN_PATTERN.test(c.name) &&
     !INFRASTRUCTURE_COLUMN_PATTERN.test(c.name) &&
     CATEGORY_COLUMN_PATTERN.test(c.name)
   );
 }
 
-function isAPNumericColumn(c: TDSColumnSchema): boolean {
-  return NUMERIC_TYPE_NAMES.has(c.type ?? '');
-}
-
 function isAPDateColumn(c: TDSColumnSchema): boolean {
-  return DATE_TYPE_NAMES.has(c.type ?? '') || AP_DATE_NAME_PATTERN.test(c.name);
+  return (
+    DATE_TYPE_NAMES.has(toStandardTypeName(c.type)) ||
+    AP_DATE_NAME_PATTERN.test(c.name)
+  );
 }
 
 function isAPTextColumn(c: TDSColumnSchema): boolean {
   return (
-    STRING_TYPE_NAMES.has(c.type ?? '') &&
+    isStringTypedColumn(c) &&
     !ID_COLUMN_PATTERN.test(c.name) &&
     !INFRASTRUCTURE_COLUMN_PATTERN.test(c.name)
   );
@@ -309,7 +297,7 @@ function buildAccessPointSuggestions(
     return suggestions;
   }
   const categoryCols = primary.columns.filter(isAPCategoryColumn);
-  const numericCols = primary.columns.filter(isAPNumericColumn);
+  const numericCols = primary.columns.filter(isNumericColumn);
   const dateCols = primary.columns.filter(isAPDateColumn);
   const textCols = primary.columns.filter(isAPTextColumn);
   const groupCol =
