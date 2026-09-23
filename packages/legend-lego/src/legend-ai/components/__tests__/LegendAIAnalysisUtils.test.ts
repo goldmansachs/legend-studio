@@ -17,13 +17,7 @@
 import { test, describe, expect } from '@jest/globals';
 import { unitTest } from '@finos/legend-shared/test';
 import { guaranteeNonNullable } from '@finos/legend-shared';
-import {
-  computeKeyMetrics,
-  inferChartType,
-  computeChartData,
-  findNumericColumnName,
-  analyzeGridData,
-} from '../LegendAIAnalysisUtils.js';
+import { analyzeGridData } from '../LegendAIAnalysisUtils.js';
 import { LegendAIChartType } from '../../LegendAI_LegendApplicationPlugin_Extension.js';
 import type { LegendAIGridData } from '../../LegendAITypes.js';
 import type { TDSRowDataType } from '@finos/legend-graph';
@@ -40,10 +34,10 @@ const makeGridData = (
   rowData: rows,
 });
 
-describe(unitTest('computeKeyMetrics'), () => {
+describe(unitTest('analyzeGridData key metrics'), () => {
   test('returns total rows for empty data', () => {
     const grid = makeGridData(['a'], []);
-    const metrics = computeKeyMetrics(grid);
+    const metrics = analyzeGridData(grid).metrics;
     expect(metrics).toHaveLength(1);
     const metric0 = guaranteeNonNullable(metrics[0]);
     expect(metric0.label).toBe('Total Rows');
@@ -59,7 +53,7 @@ describe(unitTest('computeKeyMetrics'), () => {
         { region: 'APAC', amount: 300 },
       ],
     );
-    const metrics = computeKeyMetrics(grid);
+    const metrics = analyzeGridData(grid).metrics;
     expect(metrics.length).toBeGreaterThanOrEqual(3);
     const firstMetric = guaranteeNonNullable(metrics[0]);
     expect(firstMetric.label).toBe('Total Rows');
@@ -88,13 +82,13 @@ describe(unitTest('computeKeyMetrics'), () => {
         { name: 'c', val1: 50, val2: 60 },
       ],
     );
-    const metrics = computeKeyMetrics(grid);
+    const metrics = analyzeGridData(grid).metrics;
     expect(metrics.length).toBeLessThanOrEqual(6);
   });
 
   test('omits range detail when all values are equal', () => {
     const grid = makeGridData(['x'], [{ x: 5 }, { x: 5 }]);
-    const metrics = computeKeyMetrics(grid);
+    const metrics = analyzeGridData(grid).metrics;
     const avgMetric = metrics.find((m) => m.label.startsWith('Avg'));
     expect(avgMetric).toBeUndefined();
   });
@@ -104,7 +98,7 @@ describe(unitTest('computeKeyMetrics'), () => {
       ['val'],
       [{ val: null }, { val: undefined }, { val: 10 }],
     );
-    const metrics = computeKeyMetrics(grid);
+    const metrics = analyzeGridData(grid).metrics;
     expect(guaranteeNonNullable(metrics[0]).value).toBe('3');
   });
 
@@ -113,7 +107,7 @@ describe(unitTest('computeKeyMetrics'), () => {
       ['revenue'],
       [{ revenue: 5_000_000 }, { revenue: 10_000_000 }],
     );
-    const metrics = computeKeyMetrics(grid);
+    const metrics = analyzeGridData(grid).metrics;
     const avgMetric = guaranteeNonNullable(
       metrics.find((m) => m.label.startsWith('Avg')),
     );
@@ -122,7 +116,7 @@ describe(unitTest('computeKeyMetrics'), () => {
 
   test('formats thousands with locale string', () => {
     const grid = makeGridData(['price'], [{ price: 2000 }, { price: 4000 }]);
-    const metrics = computeKeyMetrics(grid);
+    const metrics = analyzeGridData(grid).metrics;
     const avgMetric2 = guaranteeNonNullable(
       metrics.find((m) => m.label.startsWith('Avg')),
     );
@@ -130,10 +124,10 @@ describe(unitTest('computeKeyMetrics'), () => {
   });
 });
 
-describe(unitTest('inferChartType'), () => {
+describe(unitTest('analyzeGridData chart type'), () => {
   test('returns NONE for empty data', () => {
     const grid = makeGridData(['a'], []);
-    expect(inferChartType(grid)).toBe(LegendAIChartType.NONE);
+    expect(analyzeGridData(grid).chartType).toBe(LegendAIChartType.NONE);
   });
 
   test('returns PIE for small dataset with string + numeric columns', () => {
@@ -145,7 +139,7 @@ describe(unitTest('inferChartType'), () => {
         { name: 'C', value: 30 },
       ],
     );
-    expect(inferChartType(grid)).toBe(LegendAIChartType.PIE);
+    expect(analyzeGridData(grid).chartType).toBe(LegendAIChartType.PIE);
   });
 
   test('returns BAR for 7-20 rows with string + numeric columns', () => {
@@ -154,7 +148,7 @@ describe(unitTest('inferChartType'), () => {
       value: i * 10,
     }));
     const grid = makeGridData(['name', 'value'], rows);
-    expect(inferChartType(grid)).toBe(LegendAIChartType.BAR);
+    expect(analyzeGridData(grid).chartType).toBe(LegendAIChartType.BAR);
   });
 
   test('returns BAR for large dataset with numeric columns', () => {
@@ -163,12 +157,12 @@ describe(unitTest('inferChartType'), () => {
       value: i,
     }));
     const grid = makeGridData(['name', 'value'], rows);
-    expect(inferChartType(grid)).toBe(LegendAIChartType.BAR);
+    expect(analyzeGridData(grid).chartType).toBe(LegendAIChartType.BAR);
   });
 
   test('returns NONE for single-row numeric data', () => {
     const grid = makeGridData(['value'], [{ value: 42 }]);
-    expect(inferChartType(grid)).toBe(LegendAIChartType.NONE);
+    expect(analyzeGridData(grid).chartType).toBe(LegendAIChartType.NONE);
   });
 
   test('returns NONE for string-only data', () => {
@@ -179,7 +173,7 @@ describe(unitTest('inferChartType'), () => {
         { name: 'B', category: 'Y' },
       ],
     );
-    expect(inferChartType(grid)).toBe(LegendAIChartType.NONE);
+    expect(analyzeGridData(grid).chartType).toBe(LegendAIChartType.NONE);
   });
 
   test('returns BAR for numeric-only with multiple rows', () => {
@@ -187,14 +181,15 @@ describe(unitTest('inferChartType'), () => {
       ['amount'],
       [{ amount: 100 }, { amount: 200 }, { amount: 300 }],
     );
-    expect(inferChartType(grid)).toBe(LegendAIChartType.BAR);
+    expect(analyzeGridData(grid).chartType).toBe(LegendAIChartType.BAR);
   });
 });
 
-describe(unitTest('computeChartData'), () => {
+describe(unitTest('analyzeGridData chart data'), () => {
   test('returns empty array for string-only data', () => {
     const grid = makeGridData(['name'], [{ name: 'A' }, { name: 'B' }]);
-    expect(computeChartData(grid)).toEqual([]);
+    expect(analyzeGridData(grid).chartType).toBe(LegendAIChartType.NONE);
+    expect(analyzeGridData(grid).chartData).toEqual([]);
   });
 
   test('returns sorted entries with colorIndex for numeric + string data', () => {
@@ -206,7 +201,7 @@ describe(unitTest('computeChartData'), () => {
         { category: 'Gizmos', sales: 75 },
       ],
     );
-    const data = computeChartData(grid);
+    const data = analyzeGridData(grid).chartData;
     expect(data).toHaveLength(3);
     const d0 = guaranteeNonNullable(data[0]);
     const d1 = guaranteeNonNullable(data[1]);
@@ -226,7 +221,7 @@ describe(unitTest('computeChartData'), () => {
       amount: i,
     }));
     const grid = makeGridData(['name', 'amount'], rows);
-    expect(computeChartData(grid).length).toBeLessThanOrEqual(10);
+    expect(analyzeGridData(grid).chartData.length).toBeLessThanOrEqual(10);
   });
 
   test('uses first column as label when no string column exists', () => {
@@ -237,7 +232,7 @@ describe(unitTest('computeChartData'), () => {
         { id: 2, value: 20 },
       ],
     );
-    const data = computeChartData(grid);
+    const data = analyzeGridData(grid).chartData;
     expect(data).toHaveLength(2);
     expect(guaranteeNonNullable(data[0]).label).toBe('2');
   });
@@ -250,16 +245,16 @@ describe(unitTest('computeChartData'), () => {
         { name: 'A', val: 20 },
       ],
     );
-    const data = computeChartData(grid);
+    const data = analyzeGridData(grid).chartData;
     expect(data).toHaveLength(1);
     expect(guaranteeNonNullable(data[0]).label).toBe('A');
   });
 });
 
-describe(unitTest('findNumericColumnName'), () => {
+describe(unitTest('analyzeGridData numeric column name'), () => {
   test('returns undefined for no numeric columns', () => {
     const grid = makeGridData(['name'], [{ name: 'A' }]);
-    expect(findNumericColumnName(grid)).toBeUndefined();
+    expect(analyzeGridData(grid).numericColumnName).toBeUndefined();
   });
 
   test('returns headerName of first numeric column', () => {
@@ -273,7 +268,7 @@ describe(unitTest('findNumericColumnName'), () => {
         { region: 'EU', revenue: 200 },
       ],
     };
-    expect(findNumericColumnName(grid)).toBe('Total Revenue');
+    expect(analyzeGridData(grid).numericColumnName).toBe('Total Revenue');
   });
 
   test('falls back to field name when headerName is missing', () => {
@@ -281,71 +276,71 @@ describe(unitTest('findNumericColumnName'), () => {
       columnDefs: [{ colId: 'amount', field: 'amount' }],
       rowData: [{ amount: 42 }],
     };
-    expect(findNumericColumnName(grid)).toBe('amount');
+    expect(analyzeGridData(grid).numericColumnName).toBe('amount');
   });
 
   test('returns undefined for empty dataset', () => {
     const grid = makeGridData(['value'], []);
-    expect(findNumericColumnName(grid)).toBeUndefined();
+    expect(analyzeGridData(grid).numericColumnName).toBeUndefined();
   });
 });
 
 describe(unitTest('large dataset sampling'), () => {
-  test('computeKeyMetrics handles large datasets without error', () => {
+  test('key metrics handle large datasets without error', () => {
     const rows = Array.from({ length: 5000 }, (_, i) => ({
       name: `item${i % 100}`,
       value: i * 1.5,
     }));
     const grid = makeGridData(['name', 'value'], rows);
-    const metrics = computeKeyMetrics(grid);
+    const metrics = analyzeGridData(grid).metrics;
     const m0 = guaranteeNonNullable(metrics[0]);
     expect(m0.label).toBe('Total Rows');
     expect(m0.value).toBe('5,000');
     expect(metrics.length).toBeGreaterThan(1);
   });
 
-  test('computeChartData handles large datasets without error', () => {
+  test('chart data handles large datasets without error', () => {
     const rows = Array.from({ length: 5000 }, (_, i) => ({
       category: `cat${i % 50}`,
       amount: i,
     }));
     const grid = makeGridData(['category', 'amount'], rows);
-    const data = computeChartData(grid);
+    const data = analyzeGridData(grid).chartData;
     expect(data.length).toBeGreaterThan(0);
     expect(data.length).toBeLessThanOrEqual(10);
   });
 
-  test('inferChartType works for large datasets', () => {
+  test('chart type inference works for large datasets', () => {
     const rows = Array.from({ length: 5000 }, (_, i) => ({
       name: `item${i}`,
       value: i,
     }));
     const grid = makeGridData(['name', 'value'], rows);
-    expect(inferChartType(grid)).toBe(LegendAIChartType.BAR);
+    expect(analyzeGridData(grid).chartType).toBe(LegendAIChartType.BAR);
   });
 });
 
-describe(unitTest('formatNumber edge cases via computeKeyMetrics'), () => {
+describe(unitTest('formatNumber edge cases via analyzeGridData'), () => {
   test('formats K-range numbers (1000-999999)', () => {
     const grid = makeGridData(
       ['amount'],
       [{ amount: 1500.5 }, { amount: 2500.5 }],
     );
-    const metrics = computeKeyMetrics(grid);
+    const metrics = analyzeGridData(grid).metrics;
     const avg = metrics.find((m) => m.label.startsWith('Avg'));
     expect(avg?.value).toContain('K');
   });
 
   test('formats small decimals with toFixed(2)', () => {
     const grid = makeGridData(['value'], [{ value: 0.123 }, { value: 0.456 }]);
-    const metrics = computeKeyMetrics(grid);
+    const metrics = analyzeGridData(grid).metrics;
     const avg = metrics.find((m) => m.label.startsWith('Avg'));
     expect(avg?.value).toMatch(/^\d+\.\d{2}$/);
   });
 
   test('single unique numeric skips avg metric', () => {
     const grid = makeGridData(['x'], [{ x: 42 }]);
-    const metrics = computeKeyMetrics(grid);
+    const metrics = analyzeGridData(grid).metrics;
     expect(metrics.find((m) => m.label.startsWith('Avg'))).toBeUndefined();
   });
 });
@@ -359,7 +354,7 @@ describe(unitTest('profileColumns edge cases'), () => {
         { name: 'B', amount: 20 },
       ],
     };
-    const data = computeChartData(grid);
+    const data = analyzeGridData(grid).chartData;
     expect(data).toHaveLength(2);
   });
 
@@ -368,7 +363,7 @@ describe(unitTest('profileColumns edge cases'), () => {
       columnDefs: [{ headerName: 'Val' }],
       rowData: [{ '': 10 }],
     };
-    const metrics = computeKeyMetrics(grid);
+    const metrics = analyzeGridData(grid).metrics;
     expect(metrics).toHaveLength(1);
   });
 
@@ -380,14 +375,14 @@ describe(unitTest('profileColumns edge cases'), () => {
         { id: 'b', amount: 20 },
       ],
     );
-    const metrics = computeKeyMetrics(grid);
+    const metrics = analyzeGridData(grid).metrics;
     const uniqueMetric = metrics.find((m) => m.label.startsWith('Unique'));
     expect(uniqueMetric?.value).toBe('2');
   });
 });
 
 describe(unitTest('frequency chart fallback'), () => {
-  test('inferChartType returns PIE for categorical data with few unique values and no numeric columns', () => {
+  test('returns PIE for categorical data with few unique values and no numeric columns', () => {
     const grid = makeGridData(
       ['region', 'status'],
       [
@@ -396,24 +391,24 @@ describe(unitTest('frequency chart fallback'), () => {
         { region: 'US', status: 'inactive' },
       ],
     );
-    expect(inferChartType(grid)).toBe(LegendAIChartType.PIE);
+    expect(analyzeGridData(grid).chartType).toBe(LegendAIChartType.PIE);
   });
 
-  test('inferChartType returns BAR for categorical data with many unique values', () => {
+  test('returns BAR for categorical data with many unique values', () => {
     const rows = Array.from({ length: 10 }, (_, i) => ({
       name: `item${i % 8}`,
       note: 'x',
     }));
     const grid = makeGridData(['name', 'note'], rows);
-    expect(inferChartType(grid)).toBe(LegendAIChartType.BAR);
+    expect(analyzeGridData(grid).chartType).toBe(LegendAIChartType.BAR);
   });
 
-  test('inferChartType returns NONE when all string values are unique', () => {
+  test('returns NONE when all string values are unique', () => {
     const grid = makeGridData(['id'], [{ id: 'a' }, { id: 'b' }, { id: 'c' }]);
-    expect(inferChartType(grid)).toBe(LegendAIChartType.NONE);
+    expect(analyzeGridData(grid).chartType).toBe(LegendAIChartType.NONE);
   });
 
-  test('computeChartData returns frequency distribution for categorical data', () => {
+  test('returns frequency distribution for categorical data', () => {
     const grid = makeGridData(
       ['region', 'headline'],
       [
@@ -424,7 +419,7 @@ describe(unitTest('frequency chart fallback'), () => {
         { region: 'EU', headline: 'h5' },
       ],
     );
-    const data = computeChartData(grid);
+    const data = analyzeGridData(grid).chartData;
     expect(data).toHaveLength(2);
     const d0 = guaranteeNonNullable(data[0]);
     expect(d0.label).toBe('US');
@@ -434,9 +429,10 @@ describe(unitTest('frequency chart fallback'), () => {
     expect(d1.value).toBe(2);
   });
 
-  test('computeChartData returns empty array when no frequency column exists', () => {
+  test('returns empty chart data when no frequency column exists', () => {
     const grid = makeGridData(['id'], [{ id: 'a' }, { id: 'b' }, { id: 'c' }]);
-    expect(computeChartData(grid)).toEqual([]);
+    expect(analyzeGridData(grid).chartType).toBe(LegendAIChartType.NONE);
+    expect(analyzeGridData(grid).chartData).toEqual([]);
   });
 
   test('frequency fallback prefers lowest-cardinality column', () => {
@@ -450,7 +446,7 @@ describe(unitTest('frequency chart fallback'), () => {
         { guid: 'g5', region: 'US' },
       ],
     );
-    const data = computeChartData(grid);
+    const data = analyzeGridData(grid).chartData;
     expect(data).toHaveLength(2);
     expect(guaranteeNonNullable(data[0]).label).toBe('US');
   });
@@ -464,8 +460,8 @@ describe(unitTest('frequency chart fallback'), () => {
         { guid: 'g1', headline: 'h3', sentiment: null },
       ],
     );
-    expect(inferChartType(grid)).toBe(LegendAIChartType.PIE);
-    const data = computeChartData(grid);
+    expect(analyzeGridData(grid).chartType).toBe(LegendAIChartType.PIE);
+    const data = analyzeGridData(grid).chartData;
     expect(data).toHaveLength(2);
     expect(guaranteeNonNullable(data[0]).label).toBe('g1');
     expect(guaranteeNonNullable(data[0]).value).toBe(2);
@@ -528,7 +524,7 @@ describe(unitTest('LINE chart inference'), () => {
         { tradeDate: '2024-01-03', amount: 300 },
       ],
     );
-    expect(inferChartType(grid)).toBe(LegendAIChartType.LINE);
+    expect(analyzeGridData(grid).chartType).toBe(LegendAIChartType.LINE);
   });
 
   test('returns LINE for ISO datetime values', () => {
@@ -540,7 +536,7 @@ describe(unitTest('LINE chart inference'), () => {
         { timestamp: '2024-01-15T12:30:00', value: 70 },
       ],
     );
-    expect(inferChartType(grid)).toBe(LegendAIChartType.LINE);
+    expect(analyzeGridData(grid).chartType).toBe(LegendAIChartType.LINE);
   });
 
   test('does not return LINE for non-date strings + numeric', () => {
@@ -552,7 +548,7 @@ describe(unitTest('LINE chart inference'), () => {
         { name: 'Gamma', value: 30 },
       ],
     );
-    expect(inferChartType(grid)).toBe(LegendAIChartType.PIE);
+    expect(analyzeGridData(grid).chartType).toBe(LegendAIChartType.PIE);
   });
 
   test('does not return LINE for single row date data', () => {
@@ -560,7 +556,7 @@ describe(unitTest('LINE chart inference'), () => {
       ['date', 'val'],
       [{ date: '2024-01-01', val: 100 }],
     );
-    expect(inferChartType(grid)).toBe(LegendAIChartType.NONE);
+    expect(analyzeGridData(grid).chartType).toBe(LegendAIChartType.NONE);
   });
 
   test('analyzeGridData returns LINE with trend title for date series', () => {
@@ -589,7 +585,7 @@ describe(unitTest('enhanced metrics'), () => {
         { region: 'APAC', revenue: 3000, cost: 1200 },
       ],
     );
-    const metrics = computeKeyMetrics(grid);
+    const metrics = analyzeGridData(grid).metrics;
     const avgCost = metrics.find((m) => m.label === 'Avg cost');
     expect(avgCost).toBeDefined();
   });
@@ -603,7 +599,7 @@ describe(unitTest('enhanced metrics'), () => {
         { tradeDate: '2024-12-31', amount: 300 },
       ],
     );
-    const metrics = computeKeyMetrics(grid);
+    const metrics = analyzeGridData(grid).metrics;
     const dateRange = metrics.find((m) => m.label === 'Date Range');
     expect(dateRange).toBeDefined();
     expect(dateRange?.value).toContain('2024-01-15');
@@ -617,7 +613,7 @@ describe(unitTest('enhanced metrics'), () => {
       ...Array.from({ length: 5 }, () => ({ region: 'APAC', val: 10 })),
     ];
     const grid = makeGridData(['region', 'val'], rows);
-    const metrics = computeKeyMetrics(grid);
+    const metrics = analyzeGridData(grid).metrics;
     const concentration = metrics.find((m) => m.label.startsWith('Top'));
     expect(concentration).toBeDefined();
     expect(concentration?.value).toContain('%');
@@ -629,7 +625,7 @@ describe(unitTest('enhanced metrics'), () => {
       val: 10,
     }));
     const grid = makeGridData(['region', 'val'], rows);
-    const metrics = computeKeyMetrics(grid);
+    const metrics = analyzeGridData(grid).metrics;
     const concentration = metrics.find((m) => m.label.startsWith('Top'));
     expect(concentration).toBeUndefined();
   });

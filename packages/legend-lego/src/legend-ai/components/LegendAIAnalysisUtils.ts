@@ -307,16 +307,6 @@ function computeKeyMetricsFromProfiles(
   return metrics.slice(0, MAX_KEY_METRICS);
 }
 
-export function computeKeyMetrics(
-  gridData: LegendAIGridData,
-): LegendAIKeyMetric[] {
-  return computeKeyMetricsFromProfiles(
-    profileColumns(gridData),
-    gridData.rowData.length,
-    gridData,
-  );
-}
-
 function inferChartTypeFromProfiles(
   profiles: ColumnProfile[],
   rowCount: number,
@@ -355,13 +345,6 @@ function inferChartTypeFromProfiles(
   }
 
   return LegendAIChartType.NONE;
-}
-
-export function inferChartType(gridData: LegendAIGridData): LegendAIChartType {
-  return inferChartTypeFromProfiles(
-    profileColumns(gridData),
-    gridData.rowData.length,
-  );
 }
 
 function computeChartDataFromProfiles(
@@ -426,12 +409,6 @@ function computeChartDataFromProfiles(
     }));
 }
 
-export function computeChartData(
-  gridData: LegendAIGridData,
-): LegendAIChartDataPoint[] {
-  return computeChartDataFromProfiles(profileColumns(gridData), gridData);
-}
-
 function findNumericColumnNameFromProfiles(
   profiles: ColumnProfile[],
   gridData: LegendAIGridData,
@@ -444,12 +421,6 @@ function findNumericColumnNameFromProfiles(
     (c) => (c.field ?? c.colId ?? '') === numericCol.name,
   );
   return colDef?.headerName ?? colDef?.field;
-}
-
-export function findNumericColumnName(
-  gridData: LegendAIGridData,
-): string | undefined {
-  return findNumericColumnNameFromProfiles(profileColumns(gridData), gridData);
 }
 
 function findCategoryColumnNameFromProfiles(
