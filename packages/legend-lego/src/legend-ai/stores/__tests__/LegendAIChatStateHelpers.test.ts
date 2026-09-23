@@ -2398,6 +2398,25 @@ describe(unitTest('applyMultiTurnBias'), () => {
     // A and C were used, should be first (in some order), B last
     expect(result[2]?.title).toBe('B');
   });
+
+  test('does not treat a word-prefixed call such as map() as an access point', () => {
+    const services = [
+      makeSvc('Alpha', '/alpha'),
+      makeSvc('Beta', '/beta'),
+      makeSvc('Gamma', '/gamma'),
+    ];
+    const history = [
+      {
+        question: 'q1',
+        sql: "SELECT map('Gamma') FROM p('com::dp.Beta')",
+        intent: LegendAIQuestionIntent.DATA_QUERY,
+      },
+    ];
+    const result = applyMultiTurnBias(services, history);
+    // Only Beta was accessed; the 'Gamma' inside map() must not bias it forward
+    expect(result[0]?.title).toBe('Beta');
+    expect(result[2]?.title).toBe('Gamma');
+  });
 });
 
 describe(unitTest('boundCrossAccessPointJoinDrivingSide'), () => {

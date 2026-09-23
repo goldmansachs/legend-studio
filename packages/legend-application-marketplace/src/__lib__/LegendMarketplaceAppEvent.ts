@@ -109,4 +109,5 @@ export enum LEGEND_MARKETPLACE_APP_EVENT {
   AI_AGENT_ENTITY_DISAMBIGUATION_FAILURE = 'marketplace.ai-agent.entity.disambiguation.failure',
   AI_AGENT_FIELD_SEARCH_PARSE_FAILURE = 'marketplace.ai-agent.field-search.parse.failure',
   AI_AGENT_OPEN_DATACUBE_FAILURE = 'marketplace.ai-agent.open-datacube.failure',
+  AI_AGENT_PYTHON_CODEGEN_FAILURE = 'marketplace.ai-agent.python-codegen.failure',
 }

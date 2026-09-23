@@ -523,6 +523,12 @@ export class LegendMarketplaceAIChatStore {
       });
     } catch (error) {
       assertErrorThrown(error);
+      this.baseStore.applicationStore.logService.warn(
+        LogEvent.create(
+          LEGEND_MARKETPLACE_APP_EVENT.AI_AGENT_PYTHON_CODEGEN_FAILURE,
+        ),
+        error,
+      );
       this.pythonCodeByMessageId.set(messageId, {
         status: LegendAIPythonCodeStatus.ERROR,
       });
