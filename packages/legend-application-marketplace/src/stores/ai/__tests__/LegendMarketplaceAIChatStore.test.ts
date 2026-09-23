@@ -3623,7 +3623,6 @@ describe(
       pattern: '/trades',
       columns: [{ name: 'amount', type: 'Number' }],
       parameters: [],
-      sourceType: TDSServiceSourceType.SERVICE,
     };
     const resolvedContext = {
       services: [dataSpaceService],

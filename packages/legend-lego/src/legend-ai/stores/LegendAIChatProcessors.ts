@@ -33,7 +33,6 @@ import {
   type LegendAIConversationTurn,
   type LegendAIProductMetadata,
   type LegendAIModelContext,
-  LegendAISelfHealKind,
   LegendAIQuestionIntent,
   LegendAIResponseOutcome,
   LegendAIThinkingStepStatus,
@@ -3818,15 +3817,10 @@ async function tryRecoverZeroRows(
     | LegendAIOrchestratorDataProductCoordinates
     | undefined,
   context: LegendAIOperationContext,
-): Promise<{
-  sql: string;
-  result: LegendAISqlExecutionResultData;
-  selfHealed: LegendAISelfHealKind;
-}> {
+): Promise<{ sql: string; result: LegendAISqlExecutionResultData }> {
   const { plugin, config, setMessages } = context;
   let recoveredSql = currentSql;
   let recoveredResult = sqlResult;
-  let selfHealed = LegendAISelfHealKind.NONE;
 
   const strippedSql = stripGuessedNonDateServiceParams(recoveredSql, question);
   if (strippedSql !== recoveredSql) {
@@ -3870,7 +3864,6 @@ async function tryRecoverZeroRows(
     if (resolved) {
       recoveredSql = resolved.sql;
       recoveredResult = resolved.result;
-      selfHealed = LegendAISelfHealKind.DISTINCT_VALUE;
       updateLastAssistant(setMessages, () => ({ sql: resolved.sql }));
     }
   }
@@ -3887,11 +3880,10 @@ async function tryRecoverZeroRows(
     if (correction) {
       recoveredSql = correction.sql;
       recoveredResult = correction.result;
-      selfHealed = LegendAISelfHealKind.LLM_ZERO_ROW;
     }
   }
 
-  return { sql: recoveredSql, result: recoveredResult, selfHealed };
+  return { sql: recoveredSql, result: recoveredResult };
 }
 
 async function resolveNestedPCalls(

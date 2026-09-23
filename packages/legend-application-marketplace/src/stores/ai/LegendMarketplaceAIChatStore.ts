@@ -178,9 +178,7 @@ interface DataSpaceScope {
 
 export interface ScoredProductCandidate {
   product: DataProductSearchResult;
-  productSimilarity: number;
   fieldCoverage: number;
-  fieldIntersection: number;
   matchedFields: string[];
   missingFields: string[];
   compositeScore: number;
@@ -977,9 +975,6 @@ export class LegendMarketplaceAIChatStore {
         allFieldNames.length > 0
           ? matchedFields.length / allFieldNames.length
           : 0;
-      const fieldIntersection =
-        allFieldNames.length > 0 && missingFields.length === 0 ? 1 : 0;
-
       const compositeScore =
         allFieldNames.length > 0
           ? normalizedSimilarity + FIELD_COVERAGE_BOOST * fieldCoverage
@@ -987,9 +982,7 @@ export class LegendMarketplaceAIChatStore {
 
       return {
         product,
-        productSimilarity,
         fieldCoverage,
-        fieldIntersection,
         matchedFields,
         missingFields,
         compositeScore,

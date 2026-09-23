@@ -68,7 +68,6 @@ export interface TDSServicePreFilter {
 }
 
 export enum TDSServiceSourceType {
-  SERVICE = 'service',
   ACCESS_POINT = 'accessPoint',
 }
 
@@ -85,9 +84,8 @@ export class TDSServiceSchema {
    */
   parameterSchemas?: TDSParameterSchema[];
   /**
-   * Indicates the source of this service schema.
-   * - SERVICE: traditional DataSpace service executable (uses `FROM service(...)` SQL syntax)
-   * - ACCESS_POINT: data product access point (uses `FROM p(...)` SQL syntax with lakehouse runtime)
+   * How this schema is addressed in SQL. ACCESS_POINT is a data product access
+   * point using `FROM p(...)`; undefined is a DataSpace service executable.
    */
   sourceType?: TDSServiceSourceType;
   /** Full data product path (e.g. 'my::package::DataProduct'), used with `p()` syntax for access points. */
@@ -935,12 +933,6 @@ export function buildParameterSchemas(
       parameterExtractionFailed: true,
     };
   }
-}
-
-export enum LegendAISelfHealKind {
-  NONE = 'none',
-  DISTINCT_VALUE = 'distinct-value',
-  LLM_ZERO_ROW = 'llm-zero-row',
 }
 
 export interface LegendAIChatProps {
