@@ -19,6 +19,7 @@ import { observer } from 'mobx-react-lite';
 import { DataSpaceQuickStart } from './DataSpaceQuickStart.js';
 import { DataSpaceDataAccess } from './DataSpaceDataAccess.js';
 import { DataSpaceDescription } from './DataSpaceDescription.js';
+import { DataSpaceLakehouseAccess } from './DataSpaceLakehouseAccess.js';
 import { useEffect } from 'react';
 import { ModelsDocumentation } from '@finos/legend-lego/model-documentation';
 import { DiagramViewer } from '@finos/legend-extension-dsl-diagram';
@@ -58,6 +59,7 @@ export const DataSpaceWiki = observer(
     return (
       <div className="data-space__viewer__wiki">
         <DataSpaceDescription dataSpaceViewerState={dataSpaceViewerState} />
+        <DataSpaceLakehouseAccess dataSpaceViewerState={dataSpaceViewerState} />
         <DiagramViewer
           diagramViewerState={dataSpaceViewerState.diagramViewerState}
           actions={{
