@@ -254,7 +254,9 @@ export class DataCubeViewState {
           this.snapshotService.registerSubscriber(state);
         }),
       );
-      const source = await this.engine.processSource(specification.source);
+      const source =
+        this.dataCube.options?.initialSource ??
+        (await this.engine.processSource(specification.source));
       this._source = source;
       this._initialSource = source;
       this._initialSpecification = specification;
